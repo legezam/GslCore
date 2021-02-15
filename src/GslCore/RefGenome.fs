@@ -4,9 +4,8 @@ open Amyris.Bio
 open Amyris.Bio.sgd
 open Amyris.Bio.utils
 open Amyris.Bio.SuffixTree
-open utils
-open constants
-open pragmaTypes
+open Constants
+open PragmaTypes
 open Amyris.ErrorHandling
 open Amyris.Dna
 (*

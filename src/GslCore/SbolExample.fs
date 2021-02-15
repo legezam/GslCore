@@ -1,8 +1,7 @@
-﻿module sbolExample
-open Amyris.Bio.utils
+﻿module SbolExample
+
 open Amyris.Dna
-open FSharp.Data
-open uri
+open Uri
 
 // NOTE: see helper functions below.  Dammit SBOL, why did you decide to wrap
 // every XML tag inside another XML tag...
@@ -213,7 +212,7 @@ type RangeLocation = {start:int; stop:int; orient:Orientation}
     member x.emit() =
         SBOLProvider.Location(
             SBOLProvider.Range(
-                uri.createTempUri(),
+                Uri.createTempUri(),
                 x.start,
                 x.stop,
                 SBOLProvider.Orientation(
@@ -229,7 +228,7 @@ type Sequence = {id:Identity; elements:string}
 
 /// Create a new Sequence type from dna.
 let seqFromDna (dna: Dna) =
-    {id = {identity = uri.createTempUri(); name = None; description = None};
+    {id = {identity = Uri.createTempUri(); name = None; description = None};
      elements = dna.str}
 
 type Location =
@@ -281,7 +280,7 @@ and ComponentDefinition =
 
     /// Helper function to create a subcomponent reference to this CD.
     member x.asSubcomponent(locations, roles) =
-        {identity = uri.createTempUri();
+        {identity = Uri.createTempUri();
          compRef = x;
          locations = locations;
          roles = roles}
@@ -301,11 +300,11 @@ and SubcomponentIntegration =
             match location with
             | Range(rl) ->
                 seqAnns <-
-                    (SequenceAnnotation (uri.createTempUri()) x.identity (rl.emit()) (x.roles))
+                    (SequenceAnnotation (Uri.createTempUri()) x.identity (rl.emit()) (x.roles))
                     ::seqAnns
             | Precede(si) ->
                 seqCons <-
-                    (SequenceConstraint (uri.createTempUri()) Precedes (x.identity) (si.identity))
+                    (SequenceConstraint (Uri.createTempUri()) Precedes (x.identity) (si.identity))
                     ::seqCons
         // only put roles on the Component if there are no SequenceAnnotations
         let compRoles = if seqAnns.IsEmpty then x.roles else []
@@ -329,7 +328,7 @@ let compileGbom (compDefs:seq<ComponentDefinition>) =
 
 // --- Roles ---
 
-let roleUriBase = unwrap (addNamespaces uri.amyrisUriBase ["Role"])
+let roleUriBase = unwrap (addNamespaces Uri.amyrisUriBase ["Role"])
 
 let addTermToNamespaceStatic ns term = unwrap (addTermToNamespace ns term)
 

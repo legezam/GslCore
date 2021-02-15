@@ -1,16 +1,13 @@
 ﻿/// Top-level compiler operations.
-module gslcProcess
+module GslcProcess
 
 open System
-open System.IO
+open Amyris.Bio
 open AstExpansion
-open AstTypes
 open LegacyParseTypes
-open commonTypes
+open CommonTypes
 open DnaCreation
 open PrimerCreation
-open Amyris.Bio
-open utils
 open ProcessCmdLineArgs
 open PluginTypes
 open LexAndParse
@@ -78,7 +75,7 @@ let materializeDna (s:ConfigurationState) (assem:seq<Assembly>) =
                 printf "log: dnaPart: %s\n" a.name
                 for p in a.dnaParts do
                     printf "log:      %s\n" p.description
-                    printf "%s\n" (format60 p.dna.arr)
+                    printf "%s\n" (utils.format60 p.dna.arr)
 
         // Check for reused pieces and number them accordingly
         // Make a list of all parts, determine unique set and assign ids
@@ -102,7 +99,7 @@ let materializeDna (s:ConfigurationState) (assem:seq<Assembly>) =
 
 /// Promote long slices to regular rabits to avoid trying to build
 /// impossibly long things with oligos.
-let cleanLongSlicesInPartsList (p:pragmaTypes.PragmaCollection) (l:DNASlice list) =
+let cleanLongSlicesInPartsList (p:PragmaTypes.PragmaCollection) (l:DNASlice list) =
     l |> List.map (fun s ->
         if (s.sliceType = INLINEST &&
             s.dna.Length > 30 &&

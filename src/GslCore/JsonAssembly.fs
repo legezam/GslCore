@@ -1,13 +1,9 @@
 ﻿module JsonAssembly
 
 open System.IO
-open System.Text
 open System
-open commonTypes
-open constants
-open Amyris.Bio.utils
+open CommonTypes
 open Newtonsoft.Json
-open System.Collections.Generic
 open PluginTypes
 open CoreOutputProviders
 

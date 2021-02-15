@@ -1,5 +1,5 @@
-﻿module uri
-open System
+﻿module Uri
+
 // Big TODO: dry out the duplication of these constants between Thumper and GSLc
 
 let amyrisUriBase = "http://amyris.com/GBoM"

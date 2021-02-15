@@ -1,10 +1,10 @@
-﻿module commonTypes
+﻿module CommonTypes
 
 open System
-open pragmaTypes
-open constants
+open PragmaTypes
+open Constants
 open DesignParams
-open uri
+open Uri
 open LegacyParseTypes
 open Amyris.Dna
 open Amyris.ErrorHandling

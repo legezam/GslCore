@@ -1,16 +1,16 @@
 ﻿module DnaCreation
 open System
-open Amyris.Bio.biolib
-open constants
+
+open Constants
 open LegacyParseTypes
 open RefGenome
-open pragmaTypes
-open commonTypes
-open applySlices
+open PragmaTypes
+open CommonTypes
+open ApplySlices
 open Amyris.Bio
 open Amyris.ErrorHandling
 open Amyris.Dna
-open ryse
+open Ryse
 open PluginTypes
 
 // ================================================================================================
@@ -572,7 +572,7 @@ let expandAssembly
                     let task = { dnaSource = dnaSource ; ppp = ppp ; markerSet = markerSet}
                     yield markerProvider.CreateDna(task) // expandMarkerPart library dnaSource ppp
                 | PARTID(partId) ->
-                    yield resolveExtPart.fetchSequence verbose library ppp partId
+                    yield ResolveExtPart.fetchSequence verbose library ppp partId
                 | INLINEDNA(dna) ->
                     yield expandInlineDna dnaSource ppp dna
                 | INLINEPROT(_) ->

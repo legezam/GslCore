@@ -1,4 +1,4 @@
-﻿module markers
+﻿module Markers
 open Amyris.Bio.utils
 open System.IO
 

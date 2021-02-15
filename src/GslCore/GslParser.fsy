@@ -2,9 +2,9 @@
 // F# code goes here
 open System
 open AstTypes
-open pragmaTypes
+open PragmaTypes
 open Amyris.Bio
-open constants
+open Constants
 
 let uppercase (s: string) = s.ToUpper()
 

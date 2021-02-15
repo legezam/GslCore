@@ -1,15 +1,15 @@
-﻿module ryse
+﻿module Ryse
 open System.IO
 open System
-open pragmaTypes
-open commonTypes
+open PragmaTypes
+open CommonTypes
 open Amyris.Bio.utils
 open Amyris.Dna
-//open System.Collections.Generic
+
 open System.Collections.Concurrent
-open constants
-open uri
-open sbolExample
+open Constants
+open Uri
+open SbolExample
 open AstTypes
 
 // ==================================================================
@@ -76,7 +76,7 @@ let thumper = "http://thumper.amyris.local"
 
 // FIXME: this cache is global and mutable and can become stale when GSLC is embedded in a long-
 // running application.
-let private fetchCache = new ConcurrentDictionary<string,rycodExample.ThumperRycod.RyseComponentRequest>()
+let private fetchCache = new ConcurrentDictionary<string,RycodExample.ThumperRycod.RyseComponentRequest>()
 
 /// Global flag to activate or deactivate caching of part fetch.
 /// Long-running clients of GSLC should set this flag to false to avoid building up a large cache
@@ -90,7 +90,7 @@ let fetch (url:string) =
         try
             use wc = new System.Net.WebClient()
             let s = wc.DownloadString(url)
-            let res = rycodExample.ThumperRycod.Parse(s)
+            let res = RycodExample.ThumperRycod.Parse(s)
             res
         with ex ->
             failwithf
@@ -251,7 +251,7 @@ let mapRyseLinkers
             {id = None;
              extId = None;
              sliceName = "";
-             uri = Some(uri.linkerUri linker.name)
+             uri = Some(Uri.linkerUri linker.name)
              dna = dna;
              sourceChr = "linker";
              sourceFr = 0<ZeroOffset>;
@@ -588,7 +588,7 @@ let linkerUris linkCode =
 let sbolLinker (linker:RYSELinker) =
     let cdUri, seqUri = linkerUris linker.name
     {id = {identity = cdUri; name = Some("RYSE linker " + linker.name); description = None};
-     roles = [sbolExample.ryseLinkerRoleUri];
+     roles = [SbolExample.ryseLinkerRoleUri];
      sequence =
         Some(
             {id = {identity = seqUri; name = None; description = None};
@@ -609,30 +609,30 @@ let sbolPrimer
 
     // make tail and body items
     let tailComp =
-       {id = {identity = uri.createTempUri(); name = Some(name + "_tail"); description = None};
-        roles = [sbolExample.primerTailRoleUri];
-        sequence = Some(sbolExample.seqFromDna tail);
+       {id = {identity = Uri.createTempUri(); name = Some(name + "_tail"); description = None};
+        roles = [SbolExample.primerTailRoleUri];
+        sequence = Some(SbolExample.seqFromDna tail);
         subcomponents = [];
         gslProg = None}
-    let tailSubcomp = tailComp.asSubcomponent([], [sbolExample.primerTailRoleUri])
+    let tailSubcomp = tailComp.asSubcomponent([], [SbolExample.primerTailRoleUri])
 
     let bodyComp =
-       {id = {identity = uri.createTempUri(); name = Some(name + "_body"); description = None};
-        roles = [sbolExample.primerBodyRoleUri];
-        sequence = Some(sbolExample.seqFromDna body);
+       {id = {identity = Uri.createTempUri(); name = Some(name + "_body"); description = None};
+        roles = [SbolExample.primerBodyRoleUri];
+        sequence = Some(SbolExample.seqFromDna body);
         subcomponents = [];
         gslProg = None}
-    let bodySubcomp = bodyComp.asSubcomponent([], [sbolExample.primerBodyRoleUri])
+    let bodySubcomp = bodyComp.asSubcomponent([], [SbolExample.primerBodyRoleUri])
 
     let primerRole =
         match kind with
-        | Amplification -> sbolExample.ampPrimerRoleUri
-        | Quickchange -> sbolExample.quickchangePrimerRoleUri
+        | Amplification -> SbolExample.ampPrimerRoleUri
+        | Quickchange -> SbolExample.quickchangePrimerRoleUri
 
     let fullComp =
-       {id = {identity = uri.createTempUri(); name = Some(name); description = None};
+       {id = {identity = Uri.createTempUri(); name = Some(name); description = None};
         roles = [primerRole];
-        sequence = Some(sbolExample.seqFromDna (DnaOps.append tail body));
+        sequence = Some(SbolExample.seqFromDna (DnaOps.append tail body));
         subcomponents = [tailSubcomp; bodySubcomp];
         gslProg = None}
 
@@ -661,11 +661,11 @@ let sbolDnaElement
              qc3p.asSubcomponent([], [threePrimePrimerRoleUri; quickchangePrimerRoleUri])]
     | None -> ()
 
-    {id = {identity = (match compUri with | Some(u) -> u | None -> uri.createTempUri());
+    {id = {identity = (match compUri with | Some(u) -> u | None -> Uri.createTempUri());
            name = Some(name);
            description = desc};
      roles = [rabitDnaRoleUri];
-     sequence = Some(sbolExample.seqFromDna dna);
+     sequence = Some(SbolExample.seqFromDna dna);
      subcomponents = subcomps;
      gslProg = None}
 
@@ -717,11 +717,11 @@ let sbolRabit
         failwithf "Subcomponent lengths added up to %d, but rabit '%s' has dna sequence of length %d."
             lastbp name dna.Length
 
-    {id = {identity = (match compUri with | Some(u) -> u | None -> uri.createTempUri());
+    {id = {identity = (match compUri with | Some(u) -> u | None -> Uri.createTempUri());
            name = Some(name);
            description = Some(desc)};
-     roles = [rabitRoleUri; (sbolExample.rabitBreedRole breed) ];
-     sequence = Some(sbolExample.seqFromDna dna);
+     roles = [rabitRoleUri; (SbolExample.rabitBreedRole breed) ];
+     sequence = Some(SbolExample.seqFromDna dna);
      subcomponents = linker5pSC::linker3pSC::dnaSubcomps;
      gslProg = None}
 
@@ -744,7 +744,7 @@ let sbolStitch (name:string) (desc:string) (compUri:Uri option) (rabits:Componen
     let _, rabitScs = rabitSubcomponents rabits []
 
     // actually make the ComponentDefinition
-    {id = {identity = (match compUri with | Some(u) -> u | None -> uri.createTempUri());
+    {id = {identity = (match compUri with | Some(u) -> u | None -> Uri.createTempUri());
            name = Some(name);
            description = Some(desc)};
      roles = [stitchRoleUri];
@@ -768,7 +768,7 @@ let sbolMegastitch
         | None -> [stitchA.asSubcomponent([], [stitchRoleUri])]
 
     // actually make the ComponentDefinition
-    {id = {identity = (match compUri with | Some(u) -> u | None -> uri.createTempUri());
+    {id = {identity = (match compUri with | Some(u) -> u | None -> Uri.createTempUri());
            name = Some(name);
            description = Some(desc)};
      roles = [megastitchRoleUri];

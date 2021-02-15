@@ -1,14 +1,14 @@
-﻿module gslc
+﻿module Gslc
 open System.IO
 open System
 open System.Text
 open System.Reflection
 open Microsoft.FSharp.Core.Printf
 
-open commonTypes
-open commandConfig
+open CommonTypes
+open CommandConfig
 open LexAndParse
-open gslcProcess // Top-level compiler operations
+open GslcProcess // Top-level compiler operations
 open AstAlgorithms
 open Amyris.ErrorHandling
 open AstErrorHandling
@@ -16,8 +16,8 @@ open AstErrorHandling
 // These imports are only needed for the temporary primer test function below.
 open Amyris.Bio
 open primercore
-open utils
-open constants
+open Utils
+open Constants
 open PluginTypes
 open AstTypes
 open ProcessCmdLineArgs
@@ -38,7 +38,7 @@ let testPrimer() =
                              sequencePenalties  = None }
 
     let res = oligoDesign true pen task
-    printf "pen=%A \n %A %s %d\n" pen (res.Value.temp) (arr2seq res.Value.oligo) res.Value.oligo.Length
+    printf "pen=%A \n %A %s %d\n" pen (res.Value.temp) (utils.arr2seq res.Value.oligo) res.Value.oligo.Length
 
     ()
 
@@ -91,7 +91,7 @@ let maybeDumpLoci (s: ConfigurationState) =
     | None -> Continue(s)
     | Some ref ->
         // dump available loci for this ref genome
-        let p = opj s.opts.libDir ref
+        let p = utils.opj s.opts.libDir ref
         if not (Directory.Exists(p)) then
             Exit(1, Some(sprintf "ERROR: unable to find genome reference dir %s\n" p))
         else
@@ -158,11 +158,11 @@ let configureGslc unconfiguredPlugins argv =
 
             // combine plugin pragmas and static pragmas into final legal list
             // FIXME: should eliminate global pragma storage
-            pragmaTypes.finalizePragmas pluginPragmas
+            PragmaTypes.finalizePragmas pluginPragmas
 
             // fulfill this request only after we've processed all the plugins and determined full list of pragmas
             if s.opts.doHelpPragmas then
-                pragmaTypes.pragmaUsage()
+                PragmaTypes.pragmaUsage()
 
             Continue(s)
         with e ->

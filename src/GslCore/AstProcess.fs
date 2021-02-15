@@ -6,12 +6,9 @@ open Amyris.Dna
 open AstTypes
 open AstErrorHandling
 open AstAlgorithms
-open FSharp.Text.Lexing
 open RefGenome
-open utils
-open constants
-open pragmaTypes
-open DesignParams
+open Constants
+open PragmaTypes
 
 // ==========================
 // Helper functions to ease working with pragmas and parts.

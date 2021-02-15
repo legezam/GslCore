@@ -1,17 +1,12 @@
-﻿namespace gslc.Tests
-open System
+﻿namespace GslCore.Tests
+
 open NUnit.Framework
 open Amyris.ErrorHandling
-open AstTypes
-open AstFixtures
 open AstAssertions
 open AstAlgorithms
 open AstExpansion
-open AstProcess
 open AstErrorHandling
-open BasicL2ExpansionProvider
-open constants
-open PluginTypes
+open Constants
 
 [<TestFixture>]
 type TestL2Expansion() = 

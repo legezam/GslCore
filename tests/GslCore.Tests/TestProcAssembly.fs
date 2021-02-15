@@ -1,8 +1,8 @@
 namespace GslCore.Tests
 open System
 open NUnit.Framework
-open gslcProcess
-open commonTypes
+open GslcProcess
+open CommonTypes
 open AssemblyTestSupport
 
 module SharedSliceTesting =
@@ -38,12 +38,12 @@ type TestProcAssembly() =
 
     do
         // initialize pragmas
-        pragmaTypes.finalizePragmas []
+        PragmaTypes.finalizePragmas []
 
     let _doProcAssembly testName (slices:DNASlice list) designParams =
         // simulate what compiler will do cleaning up inline seqs
         // that are too short to be treated as inlines
-        let cleanedSlices = cleanLongSlicesInPartsList pragmaTypes.EmptyPragmas slices
+        let cleanedSlices = cleanLongSlicesInPartsList PragmaTypes.EmptyPragmas slices
         PrimerCreation.procAssembly
             verbose // debug
             designParams

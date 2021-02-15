@@ -1,6 +1,6 @@
 ﻿module BasicAlleleSwapProvider
 
-open alleleSwaps
+open AlleleSwaps
 open PluginTypes
 
 let basicAlleleSwapPlugin =

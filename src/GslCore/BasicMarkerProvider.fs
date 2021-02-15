@@ -1,7 +1,7 @@
 ﻿module BasicMarkerProvider
-open constants
+open Constants
 open LegacyParseTypes
-open commonTypes
+open CommonTypes
 open Amyris.Dna
 open PluginTypes
 open DnaCreation

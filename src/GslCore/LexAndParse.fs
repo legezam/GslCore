@@ -1,11 +1,9 @@
 ﻿/// Entry points for lexing and parsing.
 module LexAndParse
-open constants
+open Constants
 open GslParser
 open GslLexer
 open FSharp.Text.Lexing
-open FSharp.Text.Parsing
-open utils
 open Amyris.ErrorHandling
 open AstTypes
 open AstErrorHandling

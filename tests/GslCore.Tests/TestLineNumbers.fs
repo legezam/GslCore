@@ -1,11 +1,11 @@
-﻿namespace gslc.Tests
+﻿namespace GslCore.Tests
 open System
 open NUnit.Framework
 open Amyris.ErrorHandling
 open AstTypes
 open AstAssertions
 open AstExpansion
-open constants
+open Constants
 
 [<TestFixture>]
 type TestLineNumbers() = 
@@ -70,7 +70,7 @@ end
 """ 
     do
         // initialize pragmas
-        pragmaTypes.finalizePragmas []
+        PragmaTypes.finalizePragmas []
 
     [<Test>]
     member __.TestFunctionExpansion() =

@@ -2,26 +2,18 @@
 module SeamlessPlugin
 
 open System
-open System.IO
-open AstExpansion
-open AstTypes
-open LegacyParseTypes
-open commonTypes
-open commandConfig
-open DnaCreation
-open PrimerCreation
-open Amyris.Bio
-open utils
+open CommonTypes
+open CommandConfig
 open PluginTypes
-open constants
+open Constants
 open Amyris.ErrorHandling
-open gslcProcess
+open GslcProcess
 
 let mt = {
     id = None;
     extId = None;
     sliceName = "";
-    uri = Some(uri.linkerUri "MT")
+    uri = Some(Uri.linkerUri "MT")
     dna = Amyris.Dna.Dna("");
     sourceChr = "linker";
     sourceFr = 0<ZeroOffset>;
@@ -37,7 +29,7 @@ let mt = {
     sliceType = LINKER;
     destFwd = true;
     dnaSource = "";
-    pragmas = pragmaTypes.EmptyPragmas;
+    pragmas = PragmaTypes.EmptyPragmas;
     breed = B_LINKER;
     materializedFrom = None;
     annotations = []}

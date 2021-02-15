@@ -3,10 +3,10 @@ open System.IO
 open NUnit.Framework
 open Amyris.Bio.biolib
 open LegacyParseTypes
-open commonTypes
-open pragmaTypes
+open CommonTypes
+open PragmaTypes
 open Amyris.ErrorHandling
-open constants
+open Constants
 open DesignParams
 open RefGenome
 open AssemblyTestSupport
@@ -26,7 +26,7 @@ type DnaMaterialization() =
             else testLibDir2
 
     do
-        pragmaTypes.finalizePragmas []
+        PragmaTypes.finalizePragmas []
     let refGenomePragma = 
         match buildPragma "refgenome" ["TestGenome2"] with
         | Result.Ok (p,_) -> p 
@@ -146,7 +146,7 @@ type DnaMaterialization() =
     member __.setupPragmas() =
         do
         // initialize pragmas
-        pragmaTypes.finalizePragmas []
+        PragmaTypes.finalizePragmas []
 
     [<Test>]
     /// Check basic sequence

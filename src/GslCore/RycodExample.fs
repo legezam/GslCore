@@ -1,5 +1,4 @@
-﻿module rycodExample
-open FSharp.Data
+﻿module RycodExample
 
 /// Example XMLto train FSharp type provider.  NB: not a valid rycod example, has been simplified for brevity
 type ThumperRycod = FSharp.Data.XmlProvider<"""<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>

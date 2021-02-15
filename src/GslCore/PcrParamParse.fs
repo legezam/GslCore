@@ -5,7 +5,7 @@ open System
 open Amyris.Bio.primercore
 open System.Text.RegularExpressions
 open Amyris.ErrorHandling
-open constants
+open Constants
 
 /// Handle parsing of PCR parameters
 

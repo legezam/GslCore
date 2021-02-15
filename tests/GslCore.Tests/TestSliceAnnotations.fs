@@ -1,9 +1,9 @@
 ﻿namespace GslCore.Tests
-open System
+
 open NUnit.Framework
 open LegacyParseTypes
-open constants
-open commonTypes
+open Constants
+open CommonTypes
 
 [<TestFixture>]
 type TestOrfAnnotation() = 

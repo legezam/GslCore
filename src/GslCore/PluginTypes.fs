@@ -1,17 +1,17 @@
 ﻿/// Definitions of plug-in types and interfaces.
 module PluginTypes
-open System
+
 open Amyris.ErrorHandling
-open commonTypes
-open commandConfig
+open CommonTypes
+open CommandConfig
 open Amyris.Bio
-open constants
+open Constants
 open LegacyParseTypes
-open pragmaTypes
+open PragmaTypes
 open AstTypes
 open RefGenome
 open Amyris.Bio.IO.CodonUsage
-open utils
+open Utils
 open Amyris.Dna
 
 /// Interface specification for plugins that want to inject command line arguments and
@@ -107,7 +107,7 @@ type IMarkerProvider =
     /// Marker providers the pragma environment to configure themselves locally.
     abstract member Setup : PragmaCollection -> IMarkerProvider
     /// When is comes time to convert a marker into a concrete DNA sequence (whole marker), this gets called
-    abstract member CreateDna : MarkerMaterializationTask -> commonTypes.DNASlice
+    abstract member CreateDna : MarkerMaterializationTask -> CommonTypes.DNASlice
     abstract member IsLegal : string -> bool
     abstract member ListMarkers : unit -> string list
     abstract member ScoreJob : MarkerProviderJobAccept
@@ -264,7 +264,7 @@ type Plugin =
     /// behaviors provided by this plugin
     behaviors: PluginBehaviorWrapper list;
     /// new pragmas provided by this plugin
-    providesPragmas: pragmaTypes.PragmaDef list;
+    providesPragmas: PragmaTypes.PragmaDef list;
     /// new capabilities enabled by this plugin
     providesCapas: string list}
     with

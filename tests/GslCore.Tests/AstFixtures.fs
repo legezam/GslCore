@@ -1,14 +1,9 @@
 ﻿/// Fixtures and fixture creation for testing the AST.
 module AstFixtures
-open System
-open NUnit.Framework
 open Amyris.ErrorHandling
-open AstExpansion
 open AstTypes
-open AstErrorHandling
-open AstProcess
 open LexAndParse
-open constants
+open Constants
 
 
 /// Parse text and return the contents of the top-level block.

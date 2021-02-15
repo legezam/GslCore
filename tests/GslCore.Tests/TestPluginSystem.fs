@@ -1,8 +1,8 @@
-﻿namespace testGslc
-open System
+﻿namespace GslCore
+
 open NUnit.Framework
 
-open commandConfig
+open CommandConfig
 open ProcessCmdLineArgs
 open PluginTypes
 open BasicCodonProvider

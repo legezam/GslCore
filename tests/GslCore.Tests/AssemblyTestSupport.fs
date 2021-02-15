@@ -4,10 +4,10 @@ module AssemblyTestSupport
 open AstTypes
 open AstAssertions
 open AstExpansion
-open constants
+open Constants
 open Amyris.ErrorHandling
-open commonTypes
-open pragmaTypes
+open CommonTypes
+open PragmaTypes
 open Amyris.Dna
 
 let rec extractAssemblies (n:AstNode) : AstNode list =

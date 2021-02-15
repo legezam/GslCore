@@ -1,15 +1,15 @@
 ﻿module PrimerCreation
 /// Support routines for primer design scenarios and primer generation for stitches
-open commonTypes
+open CommonTypes
 open System
-open constants // primer parameters
+open Constants // primer parameters
 open Amyris.Bio.primercore
 open Amyris.Bio
 open Amyris.Bio.utils
 open Amyris.Bio.biolib
 open Amyris.Dna
 open DesignParams
-open pragmaTypes
+open PragmaTypes
 
 /// Check if tail of A overlaps head of B
 let checkTailAOverlapsHeadB (a: Dna) (b: Dna) =
@@ -1916,6 +1916,6 @@ let designPrimers (opts:ParsedOptions) (linkedTree : DnaAssembly list) =
     //let oldTree = linkedTree |> List.map (fun a -> a.dnaParts)
 
     // Validate primer annotation and primers are legit
-    primerValidation.checkPrimers primers
-    primerValidation.checkPrimersVAssembly (List.zip primers newTree)
+    PrimerValidation.checkPrimers primers
+    PrimerValidation.checkPrimersVAssembly (List.zip primers newTree)
     primers, newTree

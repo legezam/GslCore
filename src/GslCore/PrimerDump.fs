@@ -1,12 +1,9 @@
 /// IO routine for emitting simple primer details
-module primerDump
+module PrimerDump
 open System.IO
-open commonTypes
-open Amyris.Bio.utils
-open Amyris.Bio.biolib
+open CommonTypes
 open System
-open Amyris.Dna
-open utils
+open Utils
 
 /// Dump out all the primers/primerparts to define the construct
 let simplePrimerDump (file:string) (primers:DivergedPrimerPair list list) (assemblies:DnaAssembly list) =

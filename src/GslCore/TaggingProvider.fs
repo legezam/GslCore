@@ -3,9 +3,9 @@ module TaggingPlugin
 
 open System
 open LegacyParseTypes
-open commonTypes
-open commandConfig
-open pragmaTypes
+open CommonTypes
+open CommandConfig
+open PragmaTypes
 open PluginTypes
 open Amyris.ErrorHandling
 

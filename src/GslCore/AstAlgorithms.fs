@@ -4,15 +4,9 @@ open AstTypes
 open AstErrorHandling
 open System.Text
 open Amyris.ErrorHandling
-open constants
-open utils
-
-open FSharp.Text.Lexing
-open RefGenome
-open utils
-open constants
-open pragmaTypes
-open DesignParams
+open Constants
+open Utils
+open PragmaTypes
 open FSharp.Collections.ParallelSeq
 
 

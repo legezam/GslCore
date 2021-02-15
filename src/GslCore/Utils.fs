@@ -1,10 +1,10 @@
 ﻿/// Functions used throughout GSLc that have no internal dependencies.
-module utils
+module Utils
 open System
 open System.Reflection
 open System.Text
 open Microsoft.FSharp.Core.Printf
-open constants
+open Constants
 open Microsoft.FSharp.Reflection
 
 /// Print an integer id that might not be assigned yet 

@@ -3,8 +3,8 @@ open AstTypes
 open Amyris.ErrorHandling
 open FSharp.Text.Parsing
 open System.Diagnostics
-open utils
-open constants
+open Utils
+open Constants
 
 // ================
 // error handling support

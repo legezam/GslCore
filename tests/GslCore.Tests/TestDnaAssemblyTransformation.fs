@@ -1,14 +1,13 @@
 ﻿namespace GslCore.Tests
-open System
+
 open NUnit.Framework
 open Amyris.ErrorHandling
-open gslcProcess
+open GslcProcess
 open LegacyParseTypes
-open commonTypes
-open LexAndParse
-open pragmaTypes
+open CommonTypes
+open PragmaTypes
 open Amyris.Dna
-open constants
+open Constants
 
 module AssemblyTestBase =
     let emptyAssembly: Assembly = {

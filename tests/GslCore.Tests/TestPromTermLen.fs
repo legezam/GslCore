@@ -1,11 +1,11 @@
-﻿module testPromTermLen
+﻿module TestPromTermLen
 /// Test #promoterlen #terminatorlen work
 
 open NUnit.Framework
 open LegacyParseTypes
-open constants
-open commonTypes
-open pragmaTypes
+open Constants
+open CommonTypes
+open PragmaTypes
 open Amyris.ErrorHandling
 
 /// location of test gslc_lib fixtures
@@ -17,7 +17,7 @@ type TestPromTermLen() =
     let emptyPragmas = PragmaCollection(Map.empty)
     do
         // initialize pragmas
-        pragmaTypes.finalizePragmas []
+        PragmaTypes.finalizePragmas []
 
     let testLibDir = 
         if System.IO.Directory.Exists testLibDir1 then testLibDir1  

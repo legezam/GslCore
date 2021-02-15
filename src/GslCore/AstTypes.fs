@@ -1,9 +1,9 @@
 ﻿/// Types and functions for AST creation.
 module AstTypes
 open FSharp.Text.Lexing
-open constants
+open Constants
 open System
-open utils
+open Utils
 
 // =======================
 // types and functions for lexing
@@ -211,7 +211,7 @@ and AstNode =
     | Roughage of Node<Roughage>
     // pragmas
     | ParsePragma of Node<ParsePragma> // pragmas that we've parsed but haven't been "built" yet
-    | Pragma of Node<pragmaTypes.Pragma> // pragmas that have had all variables resolved to literals
+    | Pragma of Node<PragmaTypes.Pragma> // pragmas that have had all variables resolved to literals
     // Block of code
     | Block of Node<AstNode list>
     // Function definition and call

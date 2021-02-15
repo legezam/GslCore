@@ -2,11 +2,11 @@
 
 open System
 open NUnit.Framework
-open LegacyParseTypes
-open constants
-open commonTypes
+
+open Constants
+open CommonTypes
 open Amyris.Dna
-open pragmaTypes
+open PragmaTypes
 let map = Map.ofSeq
 
 let uHO = { id= Some(2)

@@ -1,21 +1,17 @@
 ﻿module BasicCodonProvider
 
 open System
-open System.Text.RegularExpressions
 open Amyris.Bio.utils
 open MathNet.Numerics.Random
 open System.Collections.Generic
 open System.IO
-open System.Threading
-open pragmaTypes
+open PragmaTypes
 open Amyris.Bio.biolib
 open Amyris.Bio.IO.CodonUsage
 open Amyris.Bio.SuffixTree
 open Amyris.Dna
 open RefGenome
 open PluginTypes
-open commandConfig
-
 (*
 
 UUU 26.1(170666)  UCU 23.5(153557)  UAU 18.8(122728)  UGU  8.1( 52903)

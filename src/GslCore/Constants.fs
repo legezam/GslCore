@@ -1,5 +1,5 @@
 ﻿/// Numeric and string constants, as well as some broadly-needed domain types.
-module constants
+module Constants
 open Amyris.Bio.primercore
 
 let ryseLinkerTargetDefault = 60.0<C> // melting temp for linker overhang melting temp

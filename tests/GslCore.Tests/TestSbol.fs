@@ -1,11 +1,10 @@
-﻿namespace testGslc
-open System
-open System.IO
+﻿namespace GslCore
+
 open System.Xml
 open NUnit.Framework
 open Amyris.Dna
 
-open sbolExample
+open SbolExample
 
 [<TestFixture>]
 type TestSbolProvider() = 
@@ -24,7 +23,7 @@ type TestSbolProvider() =
     </gbom:gslProgram>
   </sbol:ComponentDefinition>
 </gbom:gbom>"""
-        let parsedInput = sbolExample.SBOLProvider.Parse(testSbolInput)
+        let parsedInput = SbolExample.SBOLProvider.Parse(testSbolInput)
         Assert.AreEqual (parsedInput.ComponentDefinitions.Length, 1)
         let cd = parsedInput.ComponentDefinitions.[0]
         Assert.AreEqual (cd.Title, Some("child1"))

@@ -1,14 +1,13 @@
-﻿module snapgene
+﻿module Snapgene
 
 open System.IO
 open System
-open commonTypes
-open constants
+open CommonTypes
+open Constants
 open Amyris.Bio.utils
-open utils
-open Amyris.Dna
+open Utils
 open Genbank
-open pragmaTypes
+open PragmaTypes
 
 let topologyToString : Topology -> string =
     function

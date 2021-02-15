@@ -1,7 +1,7 @@
-﻿namespace gslc.Tests
-open System
+﻿namespace GslCore.Tests
+
 open NUnit.Framework
-open constants
+open Constants
 open Amyris.ErrorHandling
 open AstTypes
 open AstErrorHandling

@@ -1,4 +1,4 @@
-﻿module alleleSwaps
+﻿module AlleleSwaps
 
 ///
 /// Support for introducing mutations into genes
@@ -6,18 +6,16 @@
 open Amyris.Bio
 open Amyris.Dna
 open System
-open constants
+open Constants
 open DesignParams
 open AstTypes
-open pragmaTypes
+open PragmaTypes
 open LegacyParseTypes
-open commonTypes
 open RefGenome
 open IO.CodonUsage 
-open utils
 open biolib
 open primercore
-open ryse // for getrabit
+open Ryse // for getrabit
 
 open PluginTypes
 
@@ -164,7 +162,7 @@ let expandSimpleMut (asAACheck:bool) (_:GenomeDef) (g:PartIdLegacy) (m:Mutation)
         if (codon2aa currentCodon <> m.f) && asAACheck then
             failwithf
                 "ERROR: for mutation %c%d%c , gene %s has amino acid %c (%s) in that position not %c"
-                m.f m.loc m.t g.id (codon2aa currentCodon) (arr2seq currentCodon) m.f
+                m.f m.loc m.t g.id (codon2aa currentCodon) (utils.arr2seq currentCodon) m.f
         else
             let id = g.id
             let lhs = m.loc-1
@@ -505,7 +503,7 @@ let private generateHBCore
     if localVerbose then printf "templat: %O\n" downTrans.[0..min 60 downTrans.Length]
     if localVerbose then printf "    alt: %O\n" alt
     if localVerbose then printf "Current:%O\n" current
-    if localVerbose then printf "Alt    :%s\n" (altRetranslated |> arr2seq)
+    if localVerbose then printf "Alt    :%s\n" (altRetranslated |> utils.arr2seq)
 
      // ensure the sequence still reads the same amino acids out
     assert (DnaOps.translate downTrans = altRetranslated )
@@ -607,7 +605,7 @@ let private generateHBCore
                                 printf
                                     "i=%-3d p1l=%-3d p2l=%-3d p3l=%-3d p1t=%-3A p2t=%-3A p3t=%-3A %f score=%f %s %s\n" i 
                                     o1.oligo.Length o2.oligo.Length o3.oligo.Length
-                                    o1.temp o2.temp o3.temp (float x) score (arr2seq o2.oligo) (arr2seq o3.oligo)
+                                    o1.temp o2.temp o3.temp (float x) score (utils.arr2seq o2.oligo) (utils.arr2seq o3.oligo)
 
                             let move2 =
                                 if o2.temp < meltHBNeighbour then HBRIGHT

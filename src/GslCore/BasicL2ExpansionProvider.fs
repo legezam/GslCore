@@ -4,16 +4,12 @@
 /// Implementation of GSL Level 2 Expression Lines
 /// Modelled roughly on roughage syntax  e.g. gHO^ ; a> b ; c>d etc
 ///
-open pragmaTypes
+open PragmaTypes
 open LegacyParseTypes
 open AstTypes
 open AstAlgorithms
 open AstProcess
-open commonTypes
-open Amyris.Bio
-open constants
-open RefGenome
-open System.Text
+open Constants
 open System
 open PluginTypes
 

@@ -1,15 +1,14 @@
 ﻿module DesignParams
-open System
 open Amyris.Bio.primercore
-open System.Text.RegularExpressions
 open Amyris.ErrorHandling
-open pragmaTypes
-open constants
+open PragmaTypes
+open Constants
 open PcrParamParse
 
 ///<summary>
 /// Given an initial set of PrimerParams, return a new set based on parsing arguments
 /// passed to a #pcrparams pragma.
+/// </summary>
 let revisePP (p: PrimerParams) (arguments: string list) =
     arguments
     |> List.fold

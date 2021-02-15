@@ -1,11 +1,11 @@
 ﻿module CoreOutputProviders
 open PluginTypes
-open commandConfig
-open cloneManager
-open ape
-open snapgene
-open dumpFlat
-open commonTypes
+open CommandConfig
+open CloneManager
+open Ape
+open Snapgene
+open DumpFlat
+open CommonTypes
 open System.IO
 
 // =============================
@@ -148,7 +148,7 @@ type PrimerOutputProvider (outPath) =
         :> IOutputFormat
     override x.DoOutput(path, data) =
         match data.primers with
-        | Some(primers) -> primerDump.simplePrimerDump path primers data.assemblies
+        | Some(primers) -> PrimerDump.simplePrimerDump path primers data.assemblies
         | None -> failwithf "--primers was selected but no primers were produced.  Did you also pass --noprimers?"
 
 let primerOutputPlugin =

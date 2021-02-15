@@ -1,4 +1,4 @@
-﻿namespace gslc.Tests
+﻿namespace GslCore.Tests
 
 open System.Collections
 open GslCore.Tests
@@ -9,11 +9,11 @@ open AstTypes
 open AstAssertions
 open AstExpansion
 open PluginTypes
-open commonTypes
-open constants
+open CommonTypes
+open Constants
 open BasicCodonProvider
 
-open pragmaTypes
+open PragmaTypes
 [<TestFixture>]
 type TestTagging() = 
 
@@ -302,7 +302,7 @@ uADH2; dADH2
               codonProvider =
                 { BasicCodonProvider.parameters = None
                   cache = None } }
-          opts = commandConfig.defaultOpts }
+          opts = CommandConfig.defaultOpts }
         
     static member dummyDnaAssembly =
         { DnaAssembly.id = None

@@ -1,12 +1,8 @@
-﻿namespace testGslc
-open System
-open System.IO
+﻿namespace GslCore
+
 open NUnit.Framework
 open Amyris.ErrorHandling
-open LegacyParseTypes
-open pragmaTypes
-open LexAndParse
-open commandConfig
+open PragmaTypes
 open Amyris.Bio.primercore
 open DesignParams
 open AstTypes
@@ -15,7 +11,7 @@ open AstProcess
 open AstAlgorithms
 open AstAssertions
 open AstErrorHandling
-open constants
+open Constants
 
 [<TestFixture>]
 type TestPragmas() =
@@ -174,10 +170,10 @@ gBAZ"""
         let reducedAst = returnOrFail (compile stuffPragmasPipeline (source |> GslSourceCode))
 
         // we need to dive into the AST to check this
-        let namePrag = Pragma(nodeWrap {definition=pragmaTypes.namePragmaDef; args=["foobar"]})
-        let namePrag2 = Pragma(nodeWrap {definition=pragmaTypes.namePragmaDef; args=["shouldOnlyBeOnInner"]})
-        let seedPrag = Pragma(nodeWrap {definition=pragmaTypes.getLegalPragmas().TryFind("seed").Value; args=["123"]})
-        let seedPrag2 = Pragma(nodeWrap {definition=pragmaTypes.getLegalPragmas().TryFind("seed").Value; args=["456"]})
+        let namePrag = Pragma(nodeWrap {definition=PragmaTypes.namePragmaDef; args=["foobar"]})
+        let namePrag2 = Pragma(nodeWrap {definition=PragmaTypes.namePragmaDef; args=["shouldOnlyBeOnInner"]})
+        let seedPrag = Pragma(nodeWrap {definition=PragmaTypes.getLegalPragmas().TryFind("seed").Value; args=["123"]})
+        let seedPrag2 = Pragma(nodeWrap {definition=PragmaTypes.getLegalPragmas().TryFind("seed").Value; args=["456"]})
         let barGenePart = basePartWrap (createGenePart "gBAR")
         let bazGenePart = basePartWrap (createGenePart "gBAZ")
         let fooAssembly = assemble [fooGenePart]

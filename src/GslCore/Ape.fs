@@ -1,13 +1,12 @@
-﻿module ape
+﻿module Ape
 
 open System.IO
 open System
-open commonTypes
-open constants
+open CommonTypes
+open Constants
 open Amyris.Bio.utils
-open utils
-open Amyris.Dna
-open pragmaTypes
+open Utils
+open PragmaTypes
 open Genbank
  
 let topologyToString : Topology -> string =

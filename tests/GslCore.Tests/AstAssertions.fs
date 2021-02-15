@@ -3,17 +3,15 @@ module AstAssertions
 open System
 open NUnit.Framework
 open Amyris.ErrorHandling
-open AstExpansion
 open AstTypes
 open AstErrorHandling
-open AstProcess
 open AstAlgorithms
 open AstFixtures
 open LexAndParse
-open constants
+open Constants
 
 /// Initialize any globals that need to be set for tests.
-let initGlobals() = pragmaTypes.finalizePragmas []
+let initGlobals() = PragmaTypes.finalizePragmas []
 
 /// Lex and parse, in verbose mode.
 let lexparse = lexAndParse true

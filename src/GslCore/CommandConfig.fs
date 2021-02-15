@@ -1,8 +1,7 @@
 ﻿/// Command line arguments, parsing, and command defaults.
-module commandConfig
+module CommandConfig
 open System
-open commonTypes
-open pragmaTypes
+open CommonTypes
 open Amyris.Bio.utils
 
 let informalVersion = AssemblyVersionInformation.AssemblyInformationalVersion // git hash

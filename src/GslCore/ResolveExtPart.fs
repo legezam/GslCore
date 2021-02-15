@@ -1,11 +1,10 @@
-﻿module resolveExtPart
-open commonTypes
-open pragmaTypes
+﻿module ResolveExtPart
+open CommonTypes
+open PragmaTypes
 open LegacyParseTypes
-open ryse
-open applySlices
-open Amyris.Bio.biolib
-open constants
+open Ryse
+open ApplySlices
+open Constants
 open Amyris.Dna
 open Amyris.ErrorHandling
 

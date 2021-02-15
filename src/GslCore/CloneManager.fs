@@ -1,11 +1,9 @@
-﻿module cloneManager
+﻿module CloneManager
 open System.IO
-open commonTypes
+open CommonTypes
 open Amyris.Bio.utils
-open Amyris.Bio.biolib
-open utils
-open constants
-open Amyris.Dna
+open Utils
+open Constants
 
 /// Clone manager formatted output
 let dumpCM (outDir:string) (tag:string) (assemblies: DnaAssembly list) (primers : DivergedPrimerPair list list option) =

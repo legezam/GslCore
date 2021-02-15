@@ -1,5 +1,5 @@
-﻿namespace gslc.Tests
-open System
+﻿namespace GslCore.Tests
+
 open NUnit.Framework
 open Amyris.ErrorHandling
 open AstTypes
@@ -7,10 +7,9 @@ open AstErrorHandling
 open AstProcess
 open AstLinting
 open AstFixtures
-open AstExpansion
 open AstAssertions
 open AstAlgorithms
-open constants
+open Constants
 
 [<TestFixture>]
 type TestLinting() = 

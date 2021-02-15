@@ -1,13 +1,10 @@
 ﻿module LegacyParseTypes
-open FSharp.Text.Lexing
-open Amyris.Bio.primercore
 open Amyris.ErrorHandling
-open Amyris
 open Amyris.Dna
-open constants
+open Constants
 open System
-open uri
-open pragmaTypes
+open Uri
+open PragmaTypes
 open AstTypes
 open AstProcess
 open AstErrorHandling

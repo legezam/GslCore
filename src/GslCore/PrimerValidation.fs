@@ -1,8 +1,7 @@
-﻿module primerValidation
+﻿module PrimerValidation
 
-open commonTypes
+open CommonTypes
 open Amyris.Bio.utils
-open Amyris.Bio.biolib
 open Amyris.Dna
 
 let checkAnnotation (p:Primer) errorDesc =

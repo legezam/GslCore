@@ -2,9 +2,9 @@
 open System
 open LegacyParseTypes
 open NUnit.Framework
-open commonTypes
+open CommonTypes
 open AssemblyTestSupport
-open pragmaTypes
+open PragmaTypes
 open Amyris.ErrorHandling
 
 [<TestFixture>]
@@ -15,7 +15,7 @@ type TestMapRyseLinkers() =
 
     do
         // initialize pragmas
-        pragmaTypes.finalizePragmas []
+        PragmaTypes.finalizePragmas []
 
     let makePragma name values =
         match buildPragma name values with
@@ -70,7 +70,7 @@ type TestMapRyseLinkers() =
                                          tags = Set.empty
                                          topology = Linear}
 
-        let updatedAssembly = ryse.mapRyseLinkers opts Map.empty linkers assemblyIn
+        let updatedAssembly = Ryse.mapRyseLinkers opts Map.empty linkers assemblyIn
         // Check expected and actual slice output
         SharedSliceTesting.checkSequence expected updatedAssembly.dnaParts
 

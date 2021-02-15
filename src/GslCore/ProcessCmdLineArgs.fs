@@ -1,9 +1,8 @@
 ﻿module ProcessCmdLineArgs
-open Amyris.ErrorHandling
-open commandConfig
+
+open CommandConfig
 open PluginTypes
-open commonTypes
-open utils
+open CommonTypes
 open Amyris.Bio.utils
 open System.IO
 open RefGenome

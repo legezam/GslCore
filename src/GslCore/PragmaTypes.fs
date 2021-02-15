@@ -1,7 +1,7 @@
-﻿module pragmaTypes
+﻿module PragmaTypes
 open System
 open Amyris.ErrorHandling
-open utils
+open Utils
 
 /// Accumulate named capabilities from #capa pragmas
 type Capabilities = Set<string>

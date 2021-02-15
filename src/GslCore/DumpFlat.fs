@@ -1,11 +1,10 @@
 ﻿/// Code for flat file output format
-module dumpFlat
+module DumpFlat
 open System
 open System.IO
-
 open Amyris.Bio.utils
-open utils
-open commonTypes
+open Utils
+open CommonTypes
 
 /// Text representation of the assemblies to stdout
 /// dumpFlat file format

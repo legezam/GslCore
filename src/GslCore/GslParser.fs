@@ -3,14 +3,14 @@ module GslParser
 #nowarn "64";; // turn off warnings that type variables used in production annotations are instantiated to concrete type
 open FSharp.Text.Lexing
 open FSharp.Text.Parsing.ParseHelpers
-# 1 ".\GslParser.fsy"
+# 1 "./GslParser.fsy"
 
 // F# code goes here
 open System
 open AstTypes
-open pragmaTypes
+open PragmaTypes
 open Amyris.Bio
-open constants
+open Constants
 
 let uppercase (s: string) = s.ToUpper()
 
@@ -525,1455 +525,1455 @@ let _fsyacc_immediateActions = [|65535us; 49152us; 16385us; 65535us; 16386us; 16
 let _fsyacc_reductions ()  =    [| 
 # 526 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : AstTreeHead)) in
+            let _1 = parseState.GetInput(1) :?> AstTreeHead in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
                       raise (FSharp.Text.Parsing.Accept(Microsoft.FSharp.Core.Operators.box _1))
                    )
-                 : '_startstart));
+                 : 'gentype__startstart));
 # 535 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Final)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Final in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 59 ".\GslParser.fsy"
+# 59 "./GslParser.fsy"
                                     AstTreeHead(_1) 
                    )
-# 59 ".\GslParser.fsy"
+# 59 "./GslParser.fsy"
                  : AstTreeHead));
 # 546 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'CodeSection)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_CodeSection in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 62 ".\GslParser.fsy"
+# 62 "./GslParser.fsy"
                                                Block(nodeWrap _1) 
                    )
-# 62 ".\GslParser.fsy"
-                 : 'Final));
+# 62 "./GslParser.fsy"
+                 : 'gentype_Final));
 # 557 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 63 ".\GslParser.fsy"
+# 63 "./GslParser.fsy"
                                                Block(nodeWrap []) 
                    )
-# 63 ".\GslParser.fsy"
-                 : 'Final));
+# 63 "./GslParser.fsy"
+                 : 'gentype_Final));
 # 567 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'CodeSection)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_CodeSection in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 66 ".\GslParser.fsy"
+# 66 "./GslParser.fsy"
                                                                Block(nodeWrap _2) 
                    )
-# 66 ".\GslParser.fsy"
-                 : 'ScopedBlock));
+# 66 "./GslParser.fsy"
+                 : 'gentype_ScopedBlock));
 # 578 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Line)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Line in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 69 ".\GslParser.fsy"
+# 69 "./GslParser.fsy"
                                                                match _1 with | Some(l) -> [l] | None -> [] 
                    )
-# 69 ".\GslParser.fsy"
-                 : 'CodeSection));
+# 69 "./GslParser.fsy"
+                 : 'gentype_CodeSection));
 # 589 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Line)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'CodeSection)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Line in
+            let _2 = parseState.GetInput(2) :?> 'gentype_CodeSection in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 70 ".\GslParser.fsy"
+# 70 "./GslParser.fsy"
                                                                match _1 with | Some(l) -> l::_2 | None -> _2 
                    )
-# 70 ".\GslParser.fsy"
-                 : 'CodeSection));
+# 70 "./GslParser.fsy"
+                 : 'gentype_CodeSection));
 # 601 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 74 ".\GslParser.fsy"
+# 74 "./GslParser.fsy"
                                         None 
                    )
-# 74 ".\GslParser.fsy"
-                 : 'Line));
+# 74 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 611 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'AssemblyPart)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_AssemblyPart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 75 ".\GslParser.fsy"
+# 75 "./GslParser.fsy"
                                                             Some(_1) 
                    )
-# 75 ".\GslParser.fsy"
-                 : 'Line));
+# 75 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 622 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 76 ".\GslParser.fsy"
+# 76 "./GslParser.fsy"
                                                     Some(Docstring(tokenAsNode _1)) 
                    )
-# 76 ".\GslParser.fsy"
-                 : 'Line));
+# 76 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 633 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2ExpLine)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2ExpLine in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 77 ".\GslParser.fsy"
+# 77 "./GslParser.fsy"
                                                   Some(_1) 
                    )
-# 77 ".\GslParser.fsy"
-                 : 'Line));
+# 77 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 644 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLineList)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_RoughageLineList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 78 ".\GslParser.fsy"
+# 78 "./GslParser.fsy"
                                                                            Some(Block(nodeWrap _2)) 
                    )
-# 78 ".\GslParser.fsy"
-                 : 'Line));
+# 78 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 655 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Pragma)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Pragma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 79 ".\GslParser.fsy"
+# 79 "./GslParser.fsy"
                                                             Some(_1) 
                    )
-# 79 ".\GslParser.fsy"
-                 : 'Line));
+# 79 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 666 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'TypedVariableDeclaration)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_TypedVariableDeclaration in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 80 ".\GslParser.fsy"
+# 80 "./GslParser.fsy"
                                                             Some(_1) 
                    )
-# 80 ".\GslParser.fsy"
-                 : 'Line));
+# 80 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 677 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'FunctionCall)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_FunctionCall in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 81 ".\GslParser.fsy"
+# 81 "./GslParser.fsy"
                                                             Some(_1) 
                    )
-# 81 ".\GslParser.fsy"
-                 : 'Line));
+# 81 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 688 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'FunctionDeclaration)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_FunctionDeclaration in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 82 ".\GslParser.fsy"
+# 82 "./GslParser.fsy"
                                                             Some(_1) 
                    )
-# 82 ".\GslParser.fsy"
-                 : 'Line));
+# 82 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 699 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'ScopedBlock)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_ScopedBlock in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 83 ".\GslParser.fsy"
+# 83 "./GslParser.fsy"
                                                             Some(_1) 
                    )
-# 83 ".\GslParser.fsy"
-                 : 'Line));
+# 83 "./GslParser.fsy"
+                 : 'gentype_Line));
 # 710 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 93 ".\GslParser.fsy"
+# 93 "./GslParser.fsy"
                                                (tokenToVariable _1 NotYetTyped) 
                    )
-# 93 ".\GslParser.fsy"
-                 : 'PragmaValue));
+# 93 "./GslParser.fsy"
+                 : 'gentype_PragmaValue));
 # 721 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 94 ".\GslParser.fsy"
+# 94 "./GslParser.fsy"
                                                String(tokenAsNode _1) 
                    )
-# 94 ".\GslParser.fsy"
-                 : 'PragmaValue));
+# 94 "./GslParser.fsy"
+                 : 'gentype_PragmaValue));
 # 732 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PragmaValue)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'PragmaValues)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PragmaValue in
+            let _2 = parseState.GetInput(2) :?> 'gentype_PragmaValues in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 97 ".\GslParser.fsy"
+# 97 "./GslParser.fsy"
                                                       _1::_2 
                    )
-# 97 ".\GslParser.fsy"
-                 : 'PragmaValues));
+# 97 "./GslParser.fsy"
+                 : 'gentype_PragmaValues));
 # 744 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PragmaValue)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PragmaValue in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 98 ".\GslParser.fsy"
+# 98 "./GslParser.fsy"
                                                       [_1] 
                    )
-# 98 ".\GslParser.fsy"
-                 : 'PragmaValues));
+# 98 "./GslParser.fsy"
+                 : 'gentype_PragmaValues));
 # 755 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'PragmaValues)) in
+            let _1 = parseState.GetInput(1) :?> PString in
+            let _2 = parseState.GetInput(2) :?> 'gentype_PragmaValues in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 101 ".\GslParser.fsy"
+# 101 "./GslParser.fsy"
                                                 (createPragma _1 _2) 
                    )
-# 101 ".\GslParser.fsy"
-                 : 'Pragma));
+# 101 "./GslParser.fsy"
+                 : 'gentype_Pragma));
 # 767 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 102 ".\GslParser.fsy"
+# 102 "./GslParser.fsy"
                                    (createPragma _1 []) 
                    )
-# 102 ".\GslParser.fsy"
-                 : 'Pragma));
+# 102 "./GslParser.fsy"
+                 : 'gentype_Pragma));
 # 778 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Pragma)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Pragma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 105 ".\GslParser.fsy"
+# 105 "./GslParser.fsy"
                                     [_1]
                    )
-# 105 ".\GslParser.fsy"
-                 : 'Pragmas));
+# 105 "./GslParser.fsy"
+                 : 'gentype_Pragmas));
 # 789 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Pragma)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'Pragmas)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Pragma in
+            let _2 = parseState.GetInput(2) :?> 'gentype_Pragmas in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 106 ".\GslParser.fsy"
+# 106 "./GslParser.fsy"
                                             _1::_2
                    )
-# 106 ".\GslParser.fsy"
-                 : 'Pragmas));
+# 106 "./GslParser.fsy"
+                 : 'gentype_Pragmas));
 # 801 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'Pragmas)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_Pragmas in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 109 ".\GslParser.fsy"
+# 109 "./GslParser.fsy"
                                                    _2 
                    )
-# 109 ".\GslParser.fsy"
-                 : 'InlinePragmas));
+# 109 "./GslParser.fsy"
+                 : 'gentype_InlinePragmas));
 # 812 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'Pragmas)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'InlinePragmas)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_Pragmas in
+            let _4 = parseState.GetInput(4) :?> 'gentype_InlinePragmas in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 110 ".\GslParser.fsy"
+# 110 "./GslParser.fsy"
                                                                  _2@_4 
                    )
-# 110 ".\GslParser.fsy"
-                 : 'InlinePragmas));
+# 110 "./GslParser.fsy"
+                 : 'gentype_InlinePragmas));
 # 824 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 119 ".\GslParser.fsy"
+# 119 "./GslParser.fsy"
                                                             createVariableBinding _2 NotYetTyped (tokenToVariable _4 NotYetTyped) 
                    )
-# 119 ".\GslParser.fsy"
-                 : 'TypedVariableDeclaration));
+# 119 "./GslParser.fsy"
+                 : 'gentype_TypedVariableDeclaration));
 # 836 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 120 ".\GslParser.fsy"
+# 120 "./GslParser.fsy"
                                                                      createVariableBinding _2 IntType _4 
                    )
-# 120 ".\GslParser.fsy"
-                 : 'TypedVariableDeclaration));
+# 120 "./GslParser.fsy"
+                 : 'gentype_TypedVariableDeclaration));
 # 848 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'StringLiteral)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> 'gentype_StringLiteral in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 121 ".\GslParser.fsy"
+# 121 "./GslParser.fsy"
                                                                      createVariableBinding _2 StringType _4 
                    )
-# 121 ".\GslParser.fsy"
-                 : 'TypedVariableDeclaration));
+# 121 "./GslParser.fsy"
+                 : 'gentype_TypedVariableDeclaration));
 # 860 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'FloatLiteral)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> 'gentype_FloatLiteral in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 122 ".\GslParser.fsy"
+# 122 "./GslParser.fsy"
                                                                      createVariableBinding _2 FloatType _4 
                    )
-# 122 ".\GslParser.fsy"
-                 : 'TypedVariableDeclaration));
+# 122 "./GslParser.fsy"
+                 : 'gentype_TypedVariableDeclaration));
 # 872 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'CompletePart)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> 'gentype_CompletePart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 123 ".\GslParser.fsy"
+# 123 "./GslParser.fsy"
                                                                      createVariableBinding _2 PartType _4 
                    )
-# 123 ".\GslParser.fsy"
-                 : 'TypedVariableDeclaration));
+# 123 "./GslParser.fsy"
+                 : 'gentype_TypedVariableDeclaration));
 # 884 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'AssemblyPart)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> 'gentype_AssemblyPart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 124 ".\GslParser.fsy"
+# 124 "./GslParser.fsy"
                                                                      createVariableBinding _2 PartType _4 
                    )
-# 124 ".\GslParser.fsy"
-                 : 'TypedVariableDeclaration));
+# 124 "./GslParser.fsy"
+                 : 'gentype_TypedVariableDeclaration));
 # 896 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 132 ".\GslParser.fsy"
+# 132 "./GslParser.fsy"
                                 [ _1.i ] 
                    )
-# 132 ".\GslParser.fsy"
-                 : 'FunctionDefArgs));
+# 132 "./GslParser.fsy"
+                 : 'gentype_FunctionDefArgs));
 # 907 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'FunctionDefArgs)) in
+            let _1 = parseState.GetInput(1) :?> PString in
+            let _3 = parseState.GetInput(3) :?> 'gentype_FunctionDefArgs in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 133 ".\GslParser.fsy"
+# 133 "./GslParser.fsy"
                                                       _1.i::_3 
                    )
-# 133 ".\GslParser.fsy"
-                 : 'FunctionDefArgs));
+# 133 "./GslParser.fsy"
+                 : 'gentype_FunctionDefArgs));
 # 919 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'FunctionDefArgs)) in
-            let _7 = (let data = parseState.GetInput(7) in (Microsoft.FSharp.Core.Operators.unbox data : 'CodeSection)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _4 = parseState.GetInput(4) :?> 'gentype_FunctionDefArgs in
+            let _7 = parseState.GetInput(7) :?> 'gentype_CodeSection in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 136 ".\GslParser.fsy"
+# 136 "./GslParser.fsy"
                                                                                          createFunctionDeclaration _2 _4 _7 
                    )
-# 136 ".\GslParser.fsy"
-                 : 'FunctionDeclaration));
+# 136 "./GslParser.fsy"
+                 : 'gentype_FunctionDeclaration));
 # 932 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _6 = (let data = parseState.GetInput(6) in (Microsoft.FSharp.Core.Operators.unbox data : 'CodeSection)) in
+            let _2 = parseState.GetInput(2) :?> PString in
+            let _6 = parseState.GetInput(6) :?> 'gentype_CodeSection in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 137 ".\GslParser.fsy"
+# 137 "./GslParser.fsy"
                                                                          createFunctionDeclaration _2 [] _6 
                    )
-# 137 ".\GslParser.fsy"
-                 : 'FunctionDeclaration));
+# 137 "./GslParser.fsy"
+                 : 'gentype_FunctionDeclaration));
 # 944 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 145 ".\GslParser.fsy"
+# 145 "./GslParser.fsy"
                                         createTypedValue NotYetTyped (tokenToVariable _1 NotYetTyped) 
                    )
-# 145 ".\GslParser.fsy"
-                 : 'TypedValue));
+# 145 "./GslParser.fsy"
+                 : 'gentype_TypedValue));
 # 955 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 146 ".\GslParser.fsy"
+# 146 "./GslParser.fsy"
                                            createTypedValue IntType _1 
                    )
-# 146 ".\GslParser.fsy"
-                 : 'TypedValue));
+# 146 "./GslParser.fsy"
+                 : 'gentype_TypedValue));
 # 966 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'StringLiteral)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_StringLiteral in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 147 ".\GslParser.fsy"
+# 147 "./GslParser.fsy"
                                            createTypedValue StringType _1 
                    )
-# 147 ".\GslParser.fsy"
-                 : 'TypedValue));
+# 147 "./GslParser.fsy"
+                 : 'gentype_TypedValue));
 # 977 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'FloatLiteral)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_FloatLiteral in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 148 ".\GslParser.fsy"
+# 148 "./GslParser.fsy"
                                            createTypedValue FloatType _1 
                    )
-# 148 ".\GslParser.fsy"
-                 : 'TypedValue));
+# 148 "./GslParser.fsy"
+                 : 'gentype_TypedValue));
 # 988 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'CompletePart)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_CompletePart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 149 ".\GslParser.fsy"
+# 149 "./GslParser.fsy"
                                            createTypedValue PartType _1 
                    )
-# 149 ".\GslParser.fsy"
-                 : 'TypedValue));
+# 149 "./GslParser.fsy"
+                 : 'gentype_TypedValue));
 # 999 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'AssemblyPart)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_AssemblyPart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 150 ".\GslParser.fsy"
+# 150 "./GslParser.fsy"
                                            createTypedValue PartType _1 
                    )
-# 150 ".\GslParser.fsy"
-                 : 'TypedValue));
+# 150 "./GslParser.fsy"
+                 : 'gentype_TypedValue));
 # 1010 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'TypedValue)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'CommaSeparatedTypedValues)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_TypedValue in
+            let _3 = parseState.GetInput(3) :?> 'gentype_CommaSeparatedTypedValues in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 154 ".\GslParser.fsy"
+# 154 "./GslParser.fsy"
                                                                          _1::_3 
                    )
-# 154 ".\GslParser.fsy"
-                 : 'CommaSeparatedTypedValues));
+# 154 "./GslParser.fsy"
+                 : 'gentype_CommaSeparatedTypedValues));
 # 1022 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'TypedValue)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_TypedValue in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 155 ".\GslParser.fsy"
+# 155 "./GslParser.fsy"
                                         [_1] 
                    )
-# 155 ".\GslParser.fsy"
-                 : 'CommaSeparatedTypedValues));
+# 155 "./GslParser.fsy"
+                 : 'gentype_CommaSeparatedTypedValues));
 # 1033 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'CommaSeparatedTypedValues)) in
+            let _1 = parseState.GetInput(1) :?> PString in
+            let _3 = parseState.GetInput(3) :?> 'gentype_CommaSeparatedTypedValues in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 158 ".\GslParser.fsy"
+# 158 "./GslParser.fsy"
                                                                         createFunctionCall _1 _3 
                    )
-# 158 ".\GslParser.fsy"
-                 : 'FunctionCall));
+# 158 "./GslParser.fsy"
+                 : 'gentype_FunctionCall));
 # 1045 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 159 ".\GslParser.fsy"
+# 159 "./GslParser.fsy"
                                               createFunctionCall _1 [] 
                    )
-# 159 ".\GslParser.fsy"
-                 : 'FunctionCall));
+# 159 "./GslParser.fsy"
+                 : 'gentype_FunctionCall));
 # 1056 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PInt)) in
+            let _1 = parseState.GetInput(1) :?> PInt in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 167 ".\GslParser.fsy"
+# 167 "./GslParser.fsy"
                                            Int(tokenAsNode _1) 
                    )
-# 167 ".\GslParser.fsy"
-                 : 'IntLiteral));
+# 167 "./GslParser.fsy"
+                 : 'gentype_IntLiteral));
 # 1067 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PInt)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PInt)) in
+            let _1 = parseState.GetInput(1) :?> PInt in
+            let _3 = parseState.GetInput(3) :?> PInt in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 170 ".\GslParser.fsy"
+# 170 "./GslParser.fsy"
                                            createFloat _1 _3 
                    )
-# 170 ".\GslParser.fsy"
-                 : 'FloatLiteral));
+# 170 "./GslParser.fsy"
+                 : 'gentype_FloatLiteral));
 # 1079 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 173 ".\GslParser.fsy"
+# 173 "./GslParser.fsy"
                                            String(tokenAsNode _1) 
                    )
-# 173 ".\GslParser.fsy"
-                 : 'StringLiteral));
+# 173 "./GslParser.fsy"
+                 : 'gentype_StringLiteral));
 # 1090 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntLiteral)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntLiteral in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 180 ".\GslParser.fsy"
+# 180 "./GslParser.fsy"
                                                            _1 
                    )
-# 180 ".\GslParser.fsy"
-                 : 'IntExp));
+# 180 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1101 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 181 ".\GslParser.fsy"
+# 181 "./GslParser.fsy"
                                                            (tokenToVariable _1 IntType) 
                    )
-# 181 ".\GslParser.fsy"
-                 : 'IntExp));
+# 181 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1112 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 182 ".\GslParser.fsy"
+# 182 "./GslParser.fsy"
                                                            _2 
                    )
-# 182 ".\GslParser.fsy"
-                 : 'IntExp));
+# 182 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1123 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 183 ".\GslParser.fsy"
+# 183 "./GslParser.fsy"
                                                            (negate _2) 
                    )
-# 183 ".\GslParser.fsy"
-                 : 'IntExp));
+# 183 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1134 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
+            let _3 = parseState.GetInput(3) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 184 ".\GslParser.fsy"
+# 184 "./GslParser.fsy"
                                                          (createBinaryOp Multiply _1 _3) 
                    )
-# 184 ".\GslParser.fsy"
-                 : 'IntExp));
+# 184 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1146 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
+            let _3 = parseState.GetInput(3) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 185 ".\GslParser.fsy"
+# 185 "./GslParser.fsy"
                                                            (createBinaryOp Divide _1 _3) 
                    )
-# 185 ".\GslParser.fsy"
-                 : 'IntExp));
+# 185 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1158 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
+            let _3 = parseState.GetInput(3) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 186 ".\GslParser.fsy"
+# 186 "./GslParser.fsy"
                                                          (createBinaryOp Add _1 _3) 
                    )
-# 186 ".\GslParser.fsy"
-                 : 'IntExp));
+# 186 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1170 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
+            let _3 = parseState.GetInput(3) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 187 ".\GslParser.fsy"
+# 187 "./GslParser.fsy"
                                                         (createBinaryOp Subtract _1 _3) 
                    )
-# 187 ".\GslParser.fsy"
-                 : 'IntExp));
+# 187 "./GslParser.fsy"
+                 : 'gentype_IntExp));
 # 1182 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 194 ".\GslParser.fsy"
+# 194 "./GslParser.fsy"
                                        match _1.i.Split([| '-' |]) with
                                        | [| a;b;c |] -> {l1 = a ; l2 = b; orient = c}
                                        | _ -> failwithf "bad linker format '%s'" (_1.i)
                                      
                    )
-# 194 ".\GslParser.fsy"
-                 : 'Linker));
+# 194 "./GslParser.fsy"
+                 : 'gentype_Linker));
 # 1196 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'AssemblyPart)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_AssemblyPart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 200 ".\GslParser.fsy"
+# 200 "./GslParser.fsy"
                                                            _2 
                    )
-# 200 ".\GslParser.fsy"
-                 : 'Part));
+# 200 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1207 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Linker)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Linker in
+            let _3 = parseState.GetInput(3) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 202 ".\GslParser.fsy"
+# 202 "./GslParser.fsy"
                                                            createGenePart _3 (Some(_1)) 
                    )
-# 202 ".\GslParser.fsy"
-                 : 'Part));
+# 202 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1219 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 204 ".\GslParser.fsy"
+# 204 "./GslParser.fsy"
                                                            createGenePart _1 None 
                    )
-# 204 ".\GslParser.fsy"
-                 : 'Part));
+# 204 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1230 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
+            let _1 = parseState.GetInput(1) :?> PUnit in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 205 ".\GslParser.fsy"
+# 205 "./GslParser.fsy"
                                                            createPartWithBase (Marker(tokenAsNode _1)) 
                    )
-# 205 ".\GslParser.fsy"
-                 : 'Part));
+# 205 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1241 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _2 = parseState.GetInput(2) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 207 ".\GslParser.fsy"
+# 207 "./GslParser.fsy"
                                                            createPartWithBase (InlineDna(tokenAsNodeAfter uppercase _2)) 
                    )
-# 207 ".\GslParser.fsy"
-                 : 'Part));
+# 207 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1252 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _3 = parseState.GetInput(3) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 209 ".\GslParser.fsy"
+# 209 "./GslParser.fsy"
                                                            createPartWithBase (InlineProtein(tokenAsNodeAfter uppercase _3))
                    )
-# 209 ".\GslParser.fsy"
-                 : 'Part));
+# 209 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1263 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _3 = parseState.GetInput(3) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 211 ".\GslParser.fsy"
+# 211 "./GslParser.fsy"
                                                            createPartWithBase (InlineProtein(tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) _3 )) 
                    )
-# 211 ".\GslParser.fsy"
-                 : 'Part));
+# 211 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1274 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 213 ".\GslParser.fsy"
+# 213 "./GslParser.fsy"
                                                            createPartWithBase (InlineProtein(nodeWrap "*")) 
                    )
-# 213 ".\GslParser.fsy"
-                 : 'Part));
+# 213 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1284 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
+            let _1 = parseState.GetInput(1) :?> PUnit in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 214 ".\GslParser.fsy"
+# 214 "./GslParser.fsy"
                                                            createPartWithBase (HetBlock(tokenAsNode _1)) 
                    )
-# 214 ".\GslParser.fsy"
-                 : 'Part));
+# 214 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1295 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 216 ".\GslParser.fsy"
+# 216 "./GslParser.fsy"
                                                            createPartWithBase (tokenToVariable _1 PartType) 
                    )
-# 216 ".\GslParser.fsy"
-                 : 'Part));
+# 216 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1306 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _2 = parseState.GetInput(2) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 218 ".\GslParser.fsy"
+# 218 "./GslParser.fsy"
                                                            createPartWithBase (PartId(tokenAsNode _2)) 
                    )
-# 218 ".\GslParser.fsy"
-                 : 'Part));
+# 218 "./GslParser.fsy"
+                 : 'gentype_Part));
 # 1317 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Part)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Part in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 222 ".\GslParser.fsy"
+# 222 "./GslParser.fsy"
                                            _1 
                    )
-# 222 ".\GslParser.fsy"
-                 : 'PartMaybeMods));
+# 222 "./GslParser.fsy"
+                 : 'gentype_PartMaybeMods));
 # 1328 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Part)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'ModList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Part in
+            let _2 = parseState.GetInput(2) :?> 'gentype_ModList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 223 ".\GslParser.fsy"
+# 223 "./GslParser.fsy"
                                            stuffModsIntoPart _1 _2 
                    )
-# 223 ".\GslParser.fsy"
-                 : 'PartMaybeMods));
+# 223 "./GslParser.fsy"
+                 : 'gentype_PartMaybeMods));
 # 1340 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartMaybeMods)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'InlinePragmas)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PartMaybeMods in
+            let _2 = parseState.GetInput(2) :?> 'gentype_InlinePragmas in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 228 ".\GslParser.fsy"
+# 228 "./GslParser.fsy"
                                                                stuffPragmasIntoPart _1 _2 
                    )
-# 228 ".\GslParser.fsy"
-                 : 'PartMaybePragma));
+# 228 "./GslParser.fsy"
+                 : 'gentype_PartMaybePragma));
 # 1352 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartMaybeMods)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PartMaybeMods in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 229 ".\GslParser.fsy"
+# 229 "./GslParser.fsy"
                                                                _1 
                    )
-# 229 ".\GslParser.fsy"
-                 : 'PartMaybePragma));
+# 229 "./GslParser.fsy"
+                 : 'gentype_PartMaybePragma));
 # 1363 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartMaybePragma)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PartMaybePragma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 233 ".\GslParser.fsy"
+# 233 "./GslParser.fsy"
                                              _1 
                    )
-# 233 ".\GslParser.fsy"
-                 : 'PartFwdRev));
+# 233 "./GslParser.fsy"
+                 : 'gentype_PartFwdRev));
 # 1374 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartMaybePragma)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_PartMaybePragma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 234 ".\GslParser.fsy"
+# 234 "./GslParser.fsy"
                                                    revPart _2 
                    )
-# 234 ".\GslParser.fsy"
-                 : 'PartFwdRev));
+# 234 "./GslParser.fsy"
+                 : 'gentype_PartFwdRev));
 # 1385 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartFwdRev)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PartFwdRev in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 238 ".\GslParser.fsy"
+# 238 "./GslParser.fsy"
                                        _1
                    )
-# 238 ".\GslParser.fsy"
-                 : 'CompletePart));
+# 238 "./GslParser.fsy"
+                 : 'gentype_CompletePart));
 # 1396 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 245 ".\GslParser.fsy"
+# 245 "./GslParser.fsy"
                                          (_1, None) 
                    )
-# 245 ".\GslParser.fsy"
-                 : 'RelPos));
+# 245 "./GslParser.fsy"
+                 : 'gentype_RelPos));
 # 1407 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'IntExp)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_IntExp in
+            let _2 = parseState.GetInput(2) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 246 ".\GslParser.fsy"
+# 246 "./GslParser.fsy"
                                          (_1, (Some _2)) 
                    )
-# 246 ".\GslParser.fsy"
-                 : 'RelPos));
+# 246 "./GslParser.fsy"
+                 : 'gentype_RelPos));
 # 1419 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_RelPos in
+            let _4 = parseState.GetInput(4) :?> 'gentype_RelPos in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 249 ".\GslParser.fsy"
+# 249 "./GslParser.fsy"
                                                                                              createParseSlice _2 _4 false false 
                    )
-# 249 ".\GslParser.fsy"
-                 : 'Slice));
+# 249 "./GslParser.fsy"
+                 : 'gentype_Slice));
 # 1431 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
-            let _5 = (let data = parseState.GetInput(5) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
+            let _2 = parseState.GetInput(2) :?> PUnit in
+            let _3 = parseState.GetInput(3) :?> 'gentype_RelPos in
+            let _5 = parseState.GetInput(5) :?> 'gentype_RelPos in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 250 ".\GslParser.fsy"
+# 250 "./GslParser.fsy"
                                                                                              createParseSlice _3 _5 true false 
                    )
-# 250 ".\GslParser.fsy"
-                 : 'Slice));
+# 250 "./GslParser.fsy"
+                 : 'gentype_Slice));
 # 1444 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _5 = (let data = parseState.GetInput(5) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_RelPos in
+            let _4 = parseState.GetInput(4) :?> PUnit in
+            let _5 = parseState.GetInput(5) :?> 'gentype_RelPos in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 251 ".\GslParser.fsy"
+# 251 "./GslParser.fsy"
                                                                                              createParseSlice _2 _5 false true 
                    )
-# 251 ".\GslParser.fsy"
-                 : 'Slice));
+# 251 "./GslParser.fsy"
+                 : 'gentype_Slice));
 # 1457 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
-            let _5 = (let data = parseState.GetInput(5) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _6 = (let data = parseState.GetInput(6) in (Microsoft.FSharp.Core.Operators.unbox data : 'RelPos)) in
+            let _2 = parseState.GetInput(2) :?> PUnit in
+            let _3 = parseState.GetInput(3) :?> 'gentype_RelPos in
+            let _5 = parseState.GetInput(5) :?> PUnit in
+            let _6 = parseState.GetInput(6) :?> 'gentype_RelPos in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 252 ".\GslParser.fsy"
+# 252 "./GslParser.fsy"
                                                                                              createParseSlice _3 _6 true true 
                    )
-# 252 ".\GslParser.fsy"
-                 : 'Slice));
+# 252 "./GslParser.fsy"
+                 : 'gentype_Slice));
 # 1471 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 255 ".\GslParser.fsy"
+# 255 "./GslParser.fsy"
                                             createMutation _1 NT 
                    )
-# 255 ".\GslParser.fsy"
-                 : 'Mod));
+# 255 "./GslParser.fsy"
+                 : 'gentype_Mod));
 # 1482 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 256 ".\GslParser.fsy"
+# 256 "./GslParser.fsy"
                                             createMutation _1 AA 
                    )
-# 256 ".\GslParser.fsy"
-                 : 'Mod));
+# 256 "./GslParser.fsy"
+                 : 'gentype_Mod));
 # 1493 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Slice)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Slice in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 257 ".\GslParser.fsy"
+# 257 "./GslParser.fsy"
                                             _1 
                    )
-# 257 ".\GslParser.fsy"
-                 : 'Mod));
+# 257 "./GslParser.fsy"
+                 : 'gentype_Mod));
 # 1504 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _2 = parseState.GetInput(2) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 258 ".\GslParser.fsy"
+# 258 "./GslParser.fsy"
                                          DotMod(tokenAsNode _2) 
                    )
-# 258 ".\GslParser.fsy"
-                 : 'Mod));
+# 258 "./GslParser.fsy"
+                 : 'gentype_Mod));
 # 1515 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'Mod)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_Mod in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 261 ".\GslParser.fsy"
+# 261 "./GslParser.fsy"
                                                            [ _1 ] 
                    )
-# 261 ".\GslParser.fsy"
-                 : 'ModList));
+# 261 "./GslParser.fsy"
+                 : 'gentype_ModList));
 # 1526 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'ModList)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'Mod)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_ModList in
+            let _2 = parseState.GetInput(2) :?> 'gentype_Mod in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 262 ".\GslParser.fsy"
+# 262 "./GslParser.fsy"
                                                            _2 :: _1 
                    )
-# 262 ".\GslParser.fsy"
-                 : 'ModList));
+# 262 "./GslParser.fsy"
+                 : 'gentype_ModList));
 # 1538 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'CompletePart)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_CompletePart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 269 ".\GslParser.fsy"
+# 269 "./GslParser.fsy"
                                                                    [_1] 
                    )
-# 269 ".\GslParser.fsy"
-                 : 'PartList));
+# 269 "./GslParser.fsy"
+                 : 'gentype_PartList));
 # 1549 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'CompletePart)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_CompletePart in
+            let _2 = parseState.GetInput(2) :?> PUnit in
+            let _3 = parseState.GetInput(3) :?> 'gentype_PartList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 270 ".\GslParser.fsy"
+# 270 "./GslParser.fsy"
                                                                    _1::_3 
                    )
-# 270 ".\GslParser.fsy"
-                 : 'PartList));
+# 270 "./GslParser.fsy"
+                 : 'gentype_PartList));
 # 1562 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'PartList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_PartList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 275 ".\GslParser.fsy"
+# 275 "./GslParser.fsy"
                                            createAssemblyPart _1 
                    )
-# 275 ".\GslParser.fsy"
-                 : 'AssemblyPart));
+# 275 "./GslParser.fsy"
+                 : 'gentype_AssemblyPart));
 # 1573 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 285 ".\GslParser.fsy"
+# 285 "./GslParser.fsy"
                                      tokenAsNode _1 
                    )
-# 285 ".\GslParser.fsy"
-                 : 'L2IdWrap));
+# 285 "./GslParser.fsy"
+                 : 'gentype_L2IdWrap));
 # 1584 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 286 ".\GslParser.fsy"
+# 286 "./GslParser.fsy"
                                      tokenAsNode _1 
                    )
-# 286 ".\GslParser.fsy"
-                 : 'L2IdWrap));
+# 286 "./GslParser.fsy"
+                 : 'gentype_L2IdWrap));
 # 1595 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2IdWrap)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2IdWrap in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 296 ".\GslParser.fsy"
+# 296 "./GslParser.fsy"
                                            createL2Id None _1 
                    )
-# 296 ".\GslParser.fsy"
-                 : 'L2Id));
+# 296 "./GslParser.fsy"
+                 : 'gentype_L2Id));
 # 1606 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2IdWrap)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2IdWrap)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2IdWrap in
+            let _3 = parseState.GetInput(3) :?> 'gentype_L2IdWrap in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 297 ".\GslParser.fsy"
+# 297 "./GslParser.fsy"
                                                     createL2Id (Some(_1)) _3 
                    )
-# 297 ".\GslParser.fsy"
-                 : 'L2Id));
+# 297 "./GslParser.fsy"
+                 : 'gentype_L2Id));
 # 1618 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 301 ".\GslParser.fsy"
+# 301 "./GslParser.fsy"
                                       createL2Id None (tokenAsNode _1) 
                    )
-# 301 ".\GslParser.fsy"
-                 : 'L2Promoter));
+# 301 "./GslParser.fsy"
+                 : 'gentype_L2Promoter));
 # 1629 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
+            let _3 = parseState.GetInput(3) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 302 ".\GslParser.fsy"
+# 302 "./GslParser.fsy"
                                                 createL2Id (Some(tokenAsNode _1)) (tokenAsNode _3) 
                    )
-# 302 ".\GslParser.fsy"
-                 : 'L2Promoter));
+# 302 "./GslParser.fsy"
+                 : 'gentype_L2Promoter));
 # 1641 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
+            let _3 = parseState.GetInput(3) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 303 ".\GslParser.fsy"
+# 303 "./GslParser.fsy"
                                                 createL2Id (Some(tokenAsNode _1)) (tokenAsNode _3) 
                    )
-# 303 ".\GslParser.fsy"
-                 : 'L2Promoter));
+# 303 "./GslParser.fsy"
+                 : 'gentype_L2Promoter));
 # 1653 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'CompletePart)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_CompletePart in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 304 ".\GslParser.fsy"
+# 304 "./GslParser.fsy"
                                           _1 
                    )
-# 304 ".\GslParser.fsy"
-                 : 'L2Promoter));
+# 304 "./GslParser.fsy"
+                 : 'gentype_L2Promoter));
 # 1664 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2Id)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2Id in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 309 ".\GslParser.fsy"
+# 309 "./GslParser.fsy"
                                           _1 
                    )
-# 309 ".\GslParser.fsy"
-                 : 'L2Locus));
+# 309 "./GslParser.fsy"
+                 : 'gentype_L2Locus));
 # 1675 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2Promoter)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2Id)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2Promoter in
+            let _3 = parseState.GetInput(3) :?> 'gentype_L2Id in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 313 ".\GslParser.fsy"
+# 313 "./GslParser.fsy"
                                                           createL2Element _1 _3 
                    )
-# 313 ".\GslParser.fsy"
-                 : 'L2ExpElement));
+# 313 "./GslParser.fsy"
+                 : 'gentype_L2ExpElement));
 # 1687 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2ExpElement)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2ExpElement in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 317 ".\GslParser.fsy"
+# 317 "./GslParser.fsy"
                                           [_1] 
                    )
-# 317 ".\GslParser.fsy"
-                 : 'L2ExpElementList));
+# 317 "./GslParser.fsy"
+                 : 'gentype_L2ExpElementList));
 # 1698 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2ExpElement)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2ExpElementList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2ExpElement in
+            let _2 = parseState.GetInput(2) :?> PUnit in
+            let _3 = parseState.GetInput(3) :?> 'gentype_L2ExpElementList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 318 ".\GslParser.fsy"
+# 318 "./GslParser.fsy"
                                                                      _1::_3 
                    )
-# 318 ".\GslParser.fsy"
-                 : 'L2ExpElementList));
+# 318 "./GslParser.fsy"
+                 : 'gentype_L2ExpElementList));
 # 1711 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2Locus)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2Locus in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 322 ".\GslParser.fsy"
+# 322 "./GslParser.fsy"
                                                   createL2Expression (Some(_1)) [] 
                    )
-# 322 ".\GslParser.fsy"
-                 : 'L2ExpLine));
+# 322 "./GslParser.fsy"
+                 : 'gentype_L2ExpLine));
 # 1722 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2Locus)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PUnit)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2ExpElementList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2Locus in
+            let _2 = parseState.GetInput(2) :?> PUnit in
+            let _3 = parseState.GetInput(3) :?> 'gentype_L2ExpElementList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 323 ".\GslParser.fsy"
+# 323 "./GslParser.fsy"
                                                                  createL2Expression (Some(_1)) _3 
                    )
-# 323 ".\GslParser.fsy"
-                 : 'L2ExpLine));
+# 323 "./GslParser.fsy"
+                 : 'gentype_L2ExpLine));
 # 1735 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'L2ExpElementList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_L2ExpElementList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 324 ".\GslParser.fsy"
+# 324 "./GslParser.fsy"
                                                     createL2Expression None _1 
                    )
-# 324 ".\GslParser.fsy"
-                 : 'L2ExpLine));
+# 324 "./GslParser.fsy"
+                 : 'gentype_L2ExpLine));
 # 1746 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 332 ".\GslParser.fsy"
+# 332 "./GslParser.fsy"
                                  createL2IdNode None (tokenAsNode _1) 
                    )
-# 332 ".\GslParser.fsy"
-                 : 'RID));
+# 332 "./GslParser.fsy"
+                 : 'gentype_RID));
 # 1757 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _1 = parseState.GetInput(1) :?> PString in
+            let _3 = parseState.GetInput(3) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 333 ".\GslParser.fsy"
+# 333 "./GslParser.fsy"
                                        createL2IdNode (Some(tokenAsNode _1)) (tokenAsNode _3) 
                    )
-# 333 ".\GslParser.fsy"
-                 : 'RID));
+# 333 "./GslParser.fsy"
+                 : 'gentype_RID));
 # 1769 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : PString)) in
+            let _2 = parseState.GetInput(2) :?> PString in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 336 ".\GslParser.fsy"
+# 336 "./GslParser.fsy"
                                                           tokenAsNode _2 
                    )
-# 336 ".\GslParser.fsy"
-                 : 'RoughageMarker));
+# 336 "./GslParser.fsy"
+                 : 'gentype_RoughageMarker));
 # 1780 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageMarker)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageMarker in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 340 ".\GslParser.fsy"
+# 340 "./GslParser.fsy"
                                             Some(_1) 
                    )
-# 340 ".\GslParser.fsy"
-                 : 'RoughageMarkerMaybe));
+# 340 "./GslParser.fsy"
+                 : 'gentype_RoughageMarkerMaybe));
 # 1791 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 341 ".\GslParser.fsy"
+# 341 "./GslParser.fsy"
                              None 
                    )
-# 341 ".\GslParser.fsy"
-                 : 'RoughageMarkerMaybe));
+# 341 "./GslParser.fsy"
+                 : 'gentype_RoughageMarkerMaybe));
 # 1801 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RID)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'RID)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RID in
+            let _3 = parseState.GetInput(3) :?> 'gentype_RID in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 344 ".\GslParser.fsy"
+# 344 "./GslParser.fsy"
                                                createRoughagePart RoughageFwd _1 _3 
                    )
-# 344 ".\GslParser.fsy"
-                 : 'RoughagePartFwd));
+# 344 "./GslParser.fsy"
+                 : 'gentype_RoughagePartFwd));
 # 1813 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RID)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'RID)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RID in
+            let _3 = parseState.GetInput(3) :?> 'gentype_RID in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 347 ".\GslParser.fsy"
+# 347 "./GslParser.fsy"
                                             createRoughagePart RoughageRev _3 _1 
                    )
-# 347 ".\GslParser.fsy"
-                 : 'RoughagePartRev));
+# 347 "./GslParser.fsy"
+                 : 'gentype_RoughagePartRev));
 # 1825 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughagePartFwd)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageMarkerMaybe)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughagePartFwd in
+            let _2 = parseState.GetInput(2) :?> 'gentype_RoughageMarkerMaybe in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 352 ".\GslParser.fsy"
+# 352 "./GslParser.fsy"
                                                                  createRoughageElement _1 None _2 
                    )
-# 352 ".\GslParser.fsy"
-                 : 'RoughageElement));
+# 352 "./GslParser.fsy"
+                 : 'gentype_RoughageElement));
 # 1837 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughagePartRev)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughagePartFwd)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageMarkerMaybe)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughagePartRev in
+            let _3 = parseState.GetInput(3) :?> 'gentype_RoughagePartFwd in
+            let _4 = parseState.GetInput(4) :?> 'gentype_RoughageMarkerMaybe in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 354 ".\GslParser.fsy"
+# 354 "./GslParser.fsy"
                                                                                         createRoughageElement _1 (Some(_3)) _4 
                    )
-# 354 ".\GslParser.fsy"
-                 : 'RoughageElement));
+# 354 "./GslParser.fsy"
+                 : 'gentype_RoughageElement));
 # 1850 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageElement)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageElement in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 357 ".\GslParser.fsy"
+# 357 "./GslParser.fsy"
                                              [_1] 
                    )
-# 357 ".\GslParser.fsy"
-                 : 'RoughageElementList));
+# 357 "./GslParser.fsy"
+                 : 'gentype_RoughageElementList));
 # 1861 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageElement)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageElementList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageElement in
+            let _4 = parseState.GetInput(4) :?> 'gentype_RoughageElementList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 358 ".\GslParser.fsy"
+# 358 "./GslParser.fsy"
                                                                              _1::_4 
                    )
-# 358 ".\GslParser.fsy"
-                 : 'RoughageElementList));
+# 358 "./GslParser.fsy"
+                 : 'gentype_RoughageElementList));
 # 1873 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RID)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RID in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 362 ".\GslParser.fsy"
+# 362 "./GslParser.fsy"
                                          (Some(_1), None) 
                    )
-# 362 ".\GslParser.fsy"
-                 : 'RoughageLocus));
+# 362 "./GslParser.fsy"
+                 : 'gentype_RoughageLocus));
 # 1884 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RID)) in
-            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageMarker)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RID in
+            let _3 = parseState.GetInput(3) :?> 'gentype_RoughageMarker in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 363 ".\GslParser.fsy"
+# 363 "./GslParser.fsy"
                                                       (Some(_1), Some(_3)) 
                    )
-# 363 ".\GslParser.fsy"
-                 : 'RoughageLocus));
+# 363 "./GslParser.fsy"
+                 : 'gentype_RoughageLocus));
 # 1896 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLocus)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageLocus in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 366 ".\GslParser.fsy"
+# 366 "./GslParser.fsy"
                                                   createRoughageLine _1 [] 
                    )
-# 366 ".\GslParser.fsy"
-                 : 'RoughageLine));
+# 366 "./GslParser.fsy"
+                 : 'gentype_RoughageLine));
 # 1907 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLocus)) in
-            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageElementList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageLocus in
+            let _4 = parseState.GetInput(4) :?> 'gentype_RoughageElementList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 367 ".\GslParser.fsy"
+# 367 "./GslParser.fsy"
                                                                             createRoughageLine _1 _4 
                    )
-# 367 ".\GslParser.fsy"
-                 : 'RoughageLine));
+# 367 "./GslParser.fsy"
+                 : 'gentype_RoughageLine));
 # 1919 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageElementList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageElementList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 368 ".\GslParser.fsy"
+# 368 "./GslParser.fsy"
                                                   createRoughageLine (None, None) _1 
                    )
-# 368 ".\GslParser.fsy"
-                 : 'RoughageLine));
+# 368 "./GslParser.fsy"
+                 : 'gentype_RoughageLine));
 # 1930 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLine)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageLine in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 371 ".\GslParser.fsy"
+# 371 "./GslParser.fsy"
                                                              [_1] 
                    )
-# 371 ".\GslParser.fsy"
-                 : 'RoughageLineList));
+# 371 "./GslParser.fsy"
+                 : 'gentype_RoughageLineList));
 # 1941 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLineList)) in
+            let _2 = parseState.GetInput(2) :?> 'gentype_RoughageLineList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 372 ".\GslParser.fsy"
+# 372 "./GslParser.fsy"
                                                              _2 
                    )
-# 372 ".\GslParser.fsy"
-                 : 'RoughageLineList));
+# 372 "./GslParser.fsy"
+                 : 'gentype_RoughageLineList));
 # 1952 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 373 ".\GslParser.fsy"
+# 373 "./GslParser.fsy"
                                                              [] 
                    )
-# 373 ".\GslParser.fsy"
-                 : 'RoughageLineList));
+# 373 "./GslParser.fsy"
+                 : 'gentype_RoughageLineList));
 # 1962 "GslParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLine)) in
-            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : 'RoughageLineList)) in
+            let _1 = parseState.GetInput(1) :?> 'gentype_RoughageLine in
+            let _2 = parseState.GetInput(2) :?> 'gentype_RoughageLineList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 374 ".\GslParser.fsy"
+# 374 "./GslParser.fsy"
                                                              _1::_2 
                    )
-# 374 ".\GslParser.fsy"
-                 : 'RoughageLineList));
+# 374 "./GslParser.fsy"
+                 : 'gentype_RoughageLineList));
 |]
 # 1975 "GslParser.fs"
-let tables () : FSharp.Text.Parsing.Tables<_> = 
+let tables : FSharp.Text.Parsing.Tables<_> = 
   { reductions= _fsyacc_reductions ();
     endOfInputTag = _fsyacc_endOfInputTag;
     tagOfToken = tagOfToken;
@@ -1993,6 +1993,6 @@ let tables () : FSharp.Text.Parsing.Tables<_> =
                               | None -> parse_error ctxt.Message);
     numTerminals = 50;
     productionToNonTerminalTable = _fsyacc_productionToNonTerminalTable  }
-let engine lexer lexbuf startState = (tables ()).Interpret(lexer, lexbuf, startState)
+let engine lexer lexbuf startState = tables.Interpret(lexer, lexbuf, startState)
 let start lexer lexbuf : AstTreeHead =
-    Microsoft.FSharp.Core.Operators.unbox ((tables ()).Interpret(lexer, lexbuf, 0))
+    engine lexer lexbuf 0 :?> _

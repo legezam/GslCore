@@ -1,7 +1,7 @@
 ﻿/// AST versions of biological expansions
 module AstExpansion
 open System
-open constants
+open Constants
 open AstTypes
 open AstLinting
 open AstProcess
@@ -10,16 +10,14 @@ open AstAlgorithms
 open Amyris.ErrorHandling
 open RefGenome
 open LegacyParseTypes
-open DesignParams
-open Amyris.Bio
 open Amyris.Dna
 open DnaCreation
-open pragmaTypes
-open alleleSwaps
+open PragmaTypes
+open AlleleSwaps
 open Amyris.Bio.utils
-open applySlices
-open commonTypes
-open resolveExtPart
+open ApplySlices
+open CommonTypes
+open ResolveExtPart
 open LexAndParse
 open PluginTypes
 
@@ -271,7 +269,7 @@ let private expandL2Expression
         // specifying a different reference genome implies a non standard
         // DNA source, so we can use that too (they can override with dnasrc)
         | Some(rg) -> rg.Trim([| ' ' ; '\t' |]) 
-        | None -> constants.defaultRefGenome
+        | None -> Constants.defaultRefGenome
        
     /// Parameters to pass to specific L2 algorithm implementation  
     let designParams = { megastitch = megastitch
@@ -454,7 +452,7 @@ let private expandMut
 
                 // Leave pragmas intact
                 {p with
-                    part = SOURCE_CODE(alleleSwaps.expandSimpleMut asAACheck rg' part mutMod)}
+                    part = SOURCE_CODE(AlleleSwaps.expandSimpleMut asAACheck rg' part mutMod)}
             | tooManyMuts -> failwithf "Internal error, found more than one mutation mod: %A" tooManyMuts
 
         | GENEPART(gp) ->
@@ -513,7 +511,7 @@ let private expandMut
                             "Undefined allele swap style '%s', options are long or short" x
                  
                 let swapImpl =
-                    alleleSwaps.expandAS
+                    AlleleSwaps.expandAS
                         providers
                         asAACheck
                         aName

@@ -1,4 +1,4 @@
-﻿namespace gslc.Tests
+﻿namespace GslCore.Tests
 open System
 open NUnit.Framework
 open Amyris.ErrorHandling
@@ -8,7 +8,7 @@ open AstAssertions
 open AstAlgorithms
 open AstProcess
 open AstErrorHandling
-open constants
+open Constants
 
 [<TestFixture>]
 type TestParsing() = 
