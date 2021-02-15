@@ -4,7 +4,7 @@ module GslCore.DumpFlat
 open System
 open System.IO
 open Amyris.Bio.utils
-open GslCore.Utils
+open GslCore
 open GslCore.CommonTypes
 
 /// Text representation of the assemblies to stdout
@@ -53,7 +53,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         | Some (x) -> x.WriteLine(s)
 
     for a in assemblies do
-        let aId = ambId a.id
+        let aId = Utils.ambId a.id
         sprintf "##### Assembly %s #######" aId |> w
         sprintf "A# %s" aId |> w
         sprintf "NA %s" a.name |> w
@@ -71,7 +71,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         sprintf "" |> w
 
         for p in a.dnaParts do
-            sprintf "P# %s" (ambId p.id) |> w
+            sprintf "P# %s" (Utils.ambId p.id) |> w
             if p.sliceName <> "" then sprintf "SN %s" p.sliceName |> w
 
             match p.uri with
@@ -99,7 +99,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
     |> w
 
     for a in assemblies do
-        let s = sprintf "AI %s -> " (ambId a.id)
+        let s = sprintf "AI %s -> " (Utils.ambId a.id)
 
         match outF with
         | None -> stdout.Write(s)
@@ -108,7 +108,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         sprintf
             "%s"
             (a.dnaParts
-             |> List.map (fun p -> ambId p.id)
+             |> List.map (fun p -> Utils.ambId p.id)
              |> Array.ofList
              |> (fun x -> String.Join(",", x)))
         |> w

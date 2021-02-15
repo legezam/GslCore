@@ -17,7 +17,6 @@ open GslCore.AstErrorHandling
 // These imports are only needed for the temporary primer test function below.
 open Amyris.Bio
 open primercore
-open Utils
 open GslCore.Constants
 open PluginTypes
 open AstTypes

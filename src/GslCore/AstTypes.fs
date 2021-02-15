@@ -4,7 +4,7 @@ module GslCore.AstTypes
 open FSharp.Text.Lexing
 open GslCore.Constants
 open System
-open GslCore.Utils
+open GslCore
 
 // =======================
 // types and functions for lexing
@@ -37,7 +37,7 @@ type SourcePosition =
 
             for line in max 0 (p.Line - contextLines) .. min (p.Line + contextLines) (lines.Length - 1) do
                 yield sprintf "%s" lines.[line]
-                if line = p.Line then yield sprintf "%s^" (pad p.Column)
+                if line = p.Line then yield sprintf "%s^" (Utils.pad p.Column)
         }
 
 /// Expand possibly multiple levels of source positions into a formatted string
@@ -307,7 +307,7 @@ and AstNode =
         | Splice _ -> []
 
     /// Get a string representation of the type of this node.
-    member x.TypeName = GetUnionCaseName x
+    member x.TypeName = Utils.getUnionCaseName x
 
 // ----- general programming nodes ------
 /// A binding from a name to a type and value.

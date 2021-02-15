@@ -9,13 +9,13 @@ open Microsoft.FSharp.Core.Printf
 open Microsoft.FSharp.Reflection
 
 /// Print an integer id that might not be assigned yet
-let ambId (i: int option) =
-    match i with
+let ambId (input: int option): string =
+    match input with
     | None -> "?"
-    | Some (i) -> string (i)
+    | Some i -> string i
 
 /// Produce a padding string of spaces n long
-let pad n = String.replicate n " "
+let pad (n: int): string = String.replicate n " "
 
 let strToTempC (s: string): float<C> = (float s) * 1.0<C>
 
@@ -23,7 +23,7 @@ let limitTo n (s: string) =
     if s.Length > n then s.Substring(0, n) else s
 
 ///Returns the case name of the object with union type 'ty.
-let GetUnionCaseName (x: 'a) =
+let getUnionCaseName (x: 'a) =
     match FSharpValue.GetUnionFields(x, typeof<'a>) with
     | case, _ -> case.Name
 
@@ -37,19 +37,19 @@ let nonExhaustiveError x =
 /// Taken from https://sergeytihon.wordpress.com/2013/04/08/f-exception-formatter/
 // TODO: promote to Amyris.ErrorHandling
 let prettyPrintException (e: Exception) =
-    let sb = StringBuilder()
-    let delimeter = String.replicate 50 "*"
-    let nl = Environment.NewLine
+    let builder = StringBuilder()
+    let delimiter = String.replicate 50 "*"
+    let newLine = Environment.NewLine
 
-    let rec printException (e: Exception) count =
+    let rec printException (e: Exception) depth =
         if (e :? TargetException && e.InnerException <> null) then
-            printException (e.InnerException) count
+            printException (e.InnerException) depth
         else
-            if (count = 1)
-            then bprintf sb "%s%s%s" e.Message nl delimeter
-            else bprintf sb "%s%s%d)%s%s%s" nl nl count e.Message nl delimeter
+            if depth = 1
+            then bprintf builder "%s%s%s" e.Message newLine delimiter
+            else bprintf builder "%s%s%d)%s%s%s" newLine newLine depth e.Message newLine delimiter
 
-            bprintf sb "%sType: %s" nl (e.GetType().FullName)
+            bprintf builder "%sType: %s" newLine (e.GetType().FullName)
             // Loop through the public properties of the exception object
             // and record their values.
             e.GetType().GetProperties()
@@ -64,15 +64,15 @@ let prettyPrintException (e: Exception) =
                         let value = p.GetValue(e, null)
 
                         if (value <> null)
-                        then bprintf sb "%s%s: %s" nl p.Name (value.ToString())
-                    with e2 -> bprintf sb "%s%s: %s" nl p.Name e2.Message)
+                        then bprintf builder "%s%s: %s" newLine p.Name (value.ToString())
+                    with e2 -> bprintf builder "%s%s: %s" newLine p.Name e2.Message)
 
             if (e.StackTrace <> null) then
-                bprintf sb "%s%sStackTrace%s%s%s" nl nl nl delimeter nl
-                bprintf sb "%s%s" nl e.StackTrace
+                bprintf builder "%s%sStackTrace%s%s%s" newLine newLine newLine delimiter newLine
+                bprintf builder "%s%s" newLine e.StackTrace
 
             if (e.InnerException <> null)
-            then printException e.InnerException (count + 1)
+            then printException e.InnerException (depth + 1)
 
     printException e 1
-    sb.ToString()
+    builder.ToString()

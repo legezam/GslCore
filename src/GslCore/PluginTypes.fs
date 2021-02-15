@@ -11,7 +11,7 @@ open GslCore.PragmaTypes
 open GslCore.AstTypes
 open GslCore.RefGenome
 open Amyris.Bio.IO.CodonUsage
-open GslCore.Utils
+open GslCore
 open Amyris.Dna
 
 /// Interface specification for plugins that want to inject command line arguments and
@@ -255,7 +255,7 @@ type PluginBehaviorWrapper =
             | Some (d) -> yield sprintf "Description: %s" d
             | None -> ()
 
-            yield sprintf "Type: %s" (GetUnionCaseName x.behavior)
+            yield sprintf "Type: %s" (Utils.getUnionCaseName x.behavior)
         }
         |> String.concat "\n"
 

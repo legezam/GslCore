@@ -5,7 +5,7 @@ open System
 open GslCore.CommonTypes
 open GslCore.Constants
 open Amyris.Bio.utils
-open GslCore.Utils
+open GslCore
 open GslCore.PragmaTypes
 open GslCore.Genbank
 
@@ -79,7 +79,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_revcolor=%s\n" range
                 (if p.sliceName <> "" then p.sliceName
                  else if p.description <> "" then p.description
-                 else (ambId p.id)) colorFwd colorRev
+                 else (Utils.ambId p.id)) colorFwd colorRev
             |> w
 
         sprintf "ORIGIN\n" |> w

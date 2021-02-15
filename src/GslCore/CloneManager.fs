@@ -3,7 +3,7 @@
 open System.IO
 open GslCore.CommonTypes
 open Amyris.Bio.utils
-open GslCore.Utils
+open GslCore
 open GslCore.Constants
 
 /// Clone manager formatted output
@@ -63,7 +63,7 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
             let partName =
                 if p.sliceName <> "" then p.sliceName
                 elif p.description <> "" then p.description
-                else (sprintf "part_%s" (ambId p.id))
+                else (sprintf "part_%s" (Utils.ambId p.id))
 
             let partType =
                 match p.sliceType with

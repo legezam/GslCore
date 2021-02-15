@@ -5,7 +5,7 @@ open System
 open GslCore.CommonTypes
 open GslCore.Constants
 open Amyris.Bio.utils
-open GslCore.Utils
+open GslCore
 open GslCore.Genbank
 open GslCore.PragmaTypes
 
@@ -120,7 +120,7 @@ FEATURES             Location/Qualifiers
             let label =
                 if p.sliceName <> "" then p.sliceName
                 else if p.description <> "" then p.description
-                else (ambId p.id)
+                else (Utils.ambId p.id)
 
             sprintf "     misc_feature    %s
                      /label=\"%s\"
@@ -159,7 +159,7 @@ FEATURES             Location/Qualifiers
                 | Some value ->
                     if value.sliceName <> "" then value.sliceName
                     else if value.description <> "" then value.description
-                    else (ambId value.id)
+                    else (Utils.ambId value.id)
                 | None -> ""
 
             sprintf "     primer_bind     %s

@@ -2,7 +2,7 @@
 
 open System
 open Amyris.ErrorHandling
-open GslCore.Utils
+open GslCore
 
 /// Accumulate named capabilities from #capa pragmas
 type Capabilities = Set<string>
@@ -46,8 +46,8 @@ type PragmaScope =
     | BlockOrPart of PragmaPersistence
     member x.ToString =
         match x with
-        | BlockOrPart (b) -> sprintf "Block (%s); Part" (GetUnionCaseName b)
-        | BlockOnly (b) -> sprintf "Block (%s)" (GetUnionCaseName b)
+        | BlockOrPart (b) -> sprintf "Block (%s); Part" (Utils.getUnionCaseName b)
+        | BlockOnly (b) -> sprintf "Block (%s)" (Utils.getUnionCaseName b)
         | PartOnly -> "Part"
 
 ///<summary>

@@ -4,7 +4,7 @@ module GslCore.PrimerDump
 open System.IO
 open GslCore.CommonTypes
 open System
-open GslCore.Utils
+open GslCore
 
 /// Dump out all the primers/primerparts to define the construct
 let simplePrimerDump (file: string) (primers: DivergedPrimerPair list list) (assemblies: DnaAssembly list) =
@@ -42,7 +42,7 @@ let simplePrimerDump (file: string) (primers: DivergedPrimerPair list list) (ass
                 | Some value ->
                     if value.sliceName <> "" then value.sliceName
                     else if value.description <> "" then value.description
-                    else (ambId value.id)
+                    else (Utils.ambId value.id)
                 | None -> ""
 
             if primer.Primer.Length > 0 then

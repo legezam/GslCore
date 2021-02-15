@@ -6,7 +6,7 @@ open GslCore.AstErrorHandling
 open System.Text
 open Amyris.ErrorHandling
 open GslCore.Constants
-open GslCore.Utils
+open GslCore
 open GslCore.PragmaTypes
 open FSharp.Collections.ParallelSeq
 
@@ -279,7 +279,7 @@ let decompile tree =
                     newline ()
 
         | ParseError (x) -> failwithf "Parse error found during AST code generation: %A" x
-        | x -> nonExhaustiveError x
+        | x -> Utils.nonExhaustiveError x
 
     _print tree initialPrintState
 
@@ -341,7 +341,7 @@ let children node =
     | FunctionDef ({ x = f; positions = _ }) -> Seq.singleton f.body
     | FunctionCall ({ x = fc; positions = _ }) -> Seq.ofList fc.args
     | Assembly ({ x = parts; positions = _ }) -> Seq.ofList parts
-    | x -> nonExhaustiveError x
+    | x -> Utils.nonExhaustiveError x
 
 ///Visit every AST node in the tree starting at the top and returning children in depth-first
 ///left-to-right order.
@@ -603,7 +603,7 @@ let foldmap mode
             | Assembly (aw) ->
                 collect (List.map foldDropState aw.x)
                 >>= (fun newParts -> ok (Assembly({ aw with x = newParts })))
-            | x -> nonExhaustiveError x
+            | x -> Utils.nonExhaustiveError x
 
         // depending on the direction switch, either first transform the node and then its children,
         // or transform the children first and then the current node.  This is the difference between

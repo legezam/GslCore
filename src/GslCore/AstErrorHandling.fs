@@ -4,7 +4,7 @@ open GslCore.AstTypes
 open Amyris.ErrorHandling
 open FSharp.Text.Parsing
 open System.Diagnostics
-open GslCore.Utils
+open GslCore
 open GslCore.Constants
 
 // ================
@@ -49,7 +49,7 @@ type AstMessage =
     /// Pretty-print an AST message including context in source code.
     member msg.Longform(showStackTrace, sourceCode: GslSourceCode) =
 
-        let msgTypeName = GetUnionCaseName msg.msgType
+        let msgTypeName = Utils.getUnionCaseName msg.msgType
         // get the best position we can
         let pos =
             match msg.sourcePosition, msg.node.pos with
@@ -73,7 +73,7 @@ type AstMessage =
 
     /// Pretty-print a short summart of an AST message.
     member msg.Summary =
-        let msgTypeName = GetUnionCaseName msg.msgType
+        let msgTypeName = Utils.getUnionCaseName msg.msgType
         // get the best position we can
         match msg.sourcePosition, msg.node.pos with
         | Some (p), _
