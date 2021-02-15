@@ -55,7 +55,7 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
                 | Some (p) ->
-                    let providedName = p.args.[0] // get the first argument to the name pragma
+                    let providedName = p.Arguments.[0] // get the first argument to the name pragma
                     sprintf "#name %s" providedName
 
                 // if no name is provided, use this as the default donor name
@@ -122,7 +122,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
                 | Some (p) ->
-                    let providedName = p.args.[0] // get the first argument to the name pragma
+                    let providedName = p.Arguments.[0] // get the first argument to the name pragma
                     sprintf "#name %s" providedName
 
                 // if no name is provided, use this as the default donor name

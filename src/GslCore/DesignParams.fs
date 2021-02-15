@@ -12,7 +12,7 @@ open GslCore.PcrParamParse
 /// </summary>
 let revisePP (p: PrimerParams) (arguments: string list) =
     arguments
-    |> List.fold (fun pp a -> pp >>= (parseArgUpdatePP a)) (ok p)
+    |> List.fold (fun pp a -> pp >>= (PcrParameterParser.parseArgUpdatePP a)) (ok p)
 
 type DesignParams =
     { targetTm: float<C>
@@ -30,7 +30,7 @@ let initialDesignParams =
       overlapMinLen = Default.MinOverlapLength }
 
 let updateDPFromPragma (p: Pragma) designParams =
-    match p.name, p.args with
+    match p.name, p.Arguments with
     | "pcrparams", args ->
         revisePP designParams.pp args
         >>= (fun pp -> ok { designParams with pp = pp })

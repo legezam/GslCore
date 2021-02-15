@@ -300,7 +300,7 @@ type Plugin =
       /// behaviors provided by this plugin
       behaviors: PluginBehaviorWrapper list
       /// new pragmas provided by this plugin
-      providesPragmas: PragmaDef list
+      providesPragmas: PragmaDefinition list
       /// new capabilities enabled by this plugin
       providesCapas: string list }
     /// Return specs for any command line args this plugin provides.

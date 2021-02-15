@@ -165,7 +165,7 @@ uADH2; dADH2
 
         Assert.AreEqual(1, pragmas.Length)
 
-        Assert.IsTrue(pragmas.Head.hasVal "flavor:vanilla")
+        Assert.IsTrue(pragmas.Head.HasVal "flavor:vanilla")
 
     [<Test>]
     member __.TwoSerialTags() =
@@ -180,8 +180,8 @@ uADH2; dADH2
             Assert.AreEqual(1, pragmas1.Length)
             Assert.AreEqual(1, pragmas2.Length)
 
-            Assert.IsTrue(pragmas1.Head.hasVal "flavor:vanilla")
-            Assert.IsTrue(pragmas2.Head.hasVal "temp:hot")
+            Assert.IsTrue(pragmas1.Head.HasVal "flavor:vanilla")
+            Assert.IsTrue(pragmas2.Head.HasVal "temp:hot")
         | x -> failwithf "bad config %A in TwoSerialTags" x
 
     [<Test>]
@@ -194,7 +194,7 @@ uADH2; dADH2
         match results with
         | [ _assembly1, pragmas1 ] ->
             match pragmas1 with
-            | [ p ] -> Assert.AreEqual([ "flavor:vanilla"; "temp:hot" ], p.args)
+            | [ p ] -> Assert.AreEqual([ "flavor:vanilla"; "temp:hot" ], p.Arguments)
 
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
@@ -211,7 +211,7 @@ uADH2; dADH2
         match results with
         | [ _assembly1, pragmas1 ] ->
             match pragmas1 with
-            | [ p ] -> Assert.AreEqual([ "flavor:vanilla"; "temp:hot" ], p.args)
+            | [ p ] -> Assert.AreEqual([ "flavor:vanilla"; "temp:hot" ], p.Arguments)
 
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
@@ -231,12 +231,12 @@ uADH2; dADH2
                     ([ "flavor:vanilla"
                        "temp:hot"
                        "condiment:ketchup" ],
-                     p.args)
+                     p.Arguments)
 
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
             match pragmas2 with
-            | [ p ] -> Assert.AreEqual([ "id:1234" ], p.args)
+            | [ p ] -> Assert.AreEqual([ "id:1234" ], p.Arguments)
 
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
@@ -252,7 +252,7 @@ uADH2; dADH2
 
         Assert.AreEqual(1, pragmas.Length)
 
-        Assert.IsTrue(pragmas.Head.hasVal "flavor:vanilla")
+        Assert.IsTrue(pragmas.Head.HasVal "flavor:vanilla")
 
     [<Test>]
     member __.OneGlobalOneScopedTag() =
@@ -265,8 +265,8 @@ uADH2; dADH2
         | [ _assembly1, pragmas ] ->
             match pragmas with
             | [ p1; p2 ] ->
-                Assert.AreEqual([ "flavor:vanilla" ], p1.args)
-                Assert.AreEqual([ "temp:hot" ], p2.args)
+                Assert.AreEqual([ "flavor:vanilla" ], p1.Arguments)
+                Assert.AreEqual([ "temp:hot" ], p2.Arguments)
 
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
@@ -283,14 +283,14 @@ uADH2; dADH2
         | [ _assembly1, pragmas1; _assembly2, pragmas2 ] ->
             match pragmas1 with
             | [ p1; p2 ] ->
-                Assert.AreEqual([ "flavor:vanilla" ], p1.args)
-                Assert.AreEqual([ "temp:hot" ], p2.args)
+                Assert.AreEqual([ "flavor:vanilla" ], p1.Arguments)
+                Assert.AreEqual([ "temp:hot" ], p2.Arguments)
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
             match pragmas2 with
             | [ p1; p2 ] ->
-                Assert.AreEqual([ "flavor:vanilla" ], p1.args)
-                Assert.AreEqual([ "condiment:ketchup" ], p2.args)
+                Assert.AreEqual([ "flavor:vanilla" ], p1.Arguments)
+                Assert.AreEqual([ "condiment:ketchup" ], p2.Arguments)
             | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
 
         | x -> failwithf "bad assembly pattern %A in OneGlobalTwoScopedTag" x
@@ -374,12 +374,12 @@ uADH2; dADH2
 
         let pragmaCollection =
             createPragmaCollection [ for pragma in input.PragmaTags do
-                                         { Pragma.args = [ pragma ]
-                                           definition = TaggingPlugin.tagPragmaDef }
+                                         { Pragma.Arguments = [ pragma ]
+                                           Definition = TaggingPlugin.tagPragmaDef }
 
                                      for pragma in input.GlobalPragmaTags do
-                                         { Pragma.args = [ pragma ]
-                                           definition = TaggingPlugin.gTagPragmaDef } ]
+                                         { Pragma.Arguments = [ pragma ]
+                                           Definition = TaggingPlugin.gTagPragmaDef } ]
 
         let context = TestTagging.dummyContext
 

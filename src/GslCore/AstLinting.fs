@@ -9,7 +9,7 @@ open GslCore.AstErrorHandling
 open Amyris.ErrorHandling
 open System.Text.RegularExpressions
 
-let private rabitPartRegex = Regex("R\d+")
+let private rabitPartRegex = Regex("R\d+", RegexOptions.Compiled ||| RegexOptions.CultureInvariant)
 
 let private warnOnPartThatIsLikelyVariable node =
     match node with

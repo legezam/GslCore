@@ -460,7 +460,7 @@ let private expandMut verbose
 
                 let asAACheck =
                     match a.pragmas.TryFind("warnoff") with
-                    | Some (p) -> not (p.hasVal "asaacheck")
+                    | Some (p) -> not (p.HasVal "asaacheck")
                     | None -> true
 
                 if verbose then printfn "***** %A" a.pragmas
@@ -512,7 +512,7 @@ let private expandMut verbose
 
                 let asAACheck =
                     match a.pragmas.TryFind("warnoff") with
-                    | Some (p) -> not (p.hasVal "asaacheck")
+                    | Some (p) -> not (p.HasVal "asaacheck")
                     | None -> true
 
                 // Check if there is a style pragma on the part itself.  User can designate

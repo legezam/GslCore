@@ -190,7 +190,7 @@ let rec printPPP ppp =
             ""
         else
             ppp.pr.pmap
-            |> Seq.map (fun pv -> sprintf "#%s %s" pv.Key (pv.Value.args |> String.concat " "))
+            |> Seq.map (fun pv -> sprintf "#%s %s" pv.Key (pv.Value.Arguments |> String.concat " "))
             |> fun ss -> String.Join(";", ss)
             |> sprintf "{%s}"
 

@@ -32,25 +32,25 @@ let parseTags (args: string list) =
 let validateTag args = parseTags args >>= (fun _ -> ok ())
 
 let tagPragmaDef =
-    { name = "tag"
-      argShape = AtLeast 1
-      scope = BlockOnly(TransientCumulative)
-      desc = "tag assemblies with terms from a namespace."
-      invertsTo = None
-      validate = validateTag }
+    { Name = "tag"
+      Shape = AtLeast 1
+      Scope = BlockOnly(TransientCumulative)
+      Description = "tag assemblies with terms from a namespace."
+      InvertsTo = None
+      Validate = validateTag }
 
 let gTagPragmaDef =
-    { name = "gtag"
-      argShape = AtLeast 1
-      scope = BlockOnly(PersistentCumulative)
-      desc = "global tag assemblies with tags from a namespace."
-      invertsTo = None
-      validate = validateTag }
+    { Name = "gtag"
+      Shape = AtLeast 1
+      Scope = BlockOnly(PersistentCumulative)
+      Description = "global tag assemblies with tags from a namespace."
+      InvertsTo = None
+      Validate = validateTag }
 
 /// Take previous #tag namespace:tagvalue  lines and fold into the assembly structure
 let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly) =
     // gtag is global tag, tag is dna assembly tag
-    match List.collect (fun pragma -> pragma.args)
+    match List.collect (fun pragma -> pragma.Arguments)
               ([ a.pragmas.TryFind("tag")
                  a.pragmas.TryFind("gtag") ]
                |> List.choose id) with

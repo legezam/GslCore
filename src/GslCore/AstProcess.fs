@@ -542,7 +542,7 @@ let private compilePragma (legalCapas: Capabilities) context node =
         match context with
         | c :: _ ->
             let errCond =
-                match p.definition.scope, c with
+                match p.Definition.Scope, c with
                 | BlockOnly _, BlockLevel
                 | PartOnly, PartLevel
                 | BlockOrPart _, _ -> None
@@ -561,7 +561,7 @@ let private compilePragma (legalCapas: Capabilities) context node =
     // check if this pragma is a capability declaration.
     // if so, validate it.
     let checkCapa (p: Pragma) =
-        if p.IsCapa && not (legalCapas.Contains(p.args.[0])) then
+        if p.IsCapa && not (legalCapas.Contains(p.Arguments.[0])) then
             let goodCapas =
                 legalCapas
                 |> Set.toList
@@ -636,8 +636,8 @@ let private unpackParts nodes =
 ///</summary>
 let private shiftFusePragmaAndReverseList parts =
     let fp =
-        { definition = fusePragmaDef
-          args = [] }
+        { Definition = fusePragmaDef
+          Arguments = [] }
 
     let shiftOne (shiftedParts, addFuse) (part: Node<ParsePart>) =
         let pragmas = getPragmas part
@@ -666,7 +666,7 @@ let private invertPragmas parts =
         |> Seq.map (fun p ->
             match pragmaInverts p with
             | None -> p
-            | Some (invertsTo) -> { p with definition = invertsTo })
+            | Some (invertsTo) -> { p with Definition = invertsTo })
         |> createPragmaCollection
         |> replacePragmas part)
 
@@ -795,7 +795,7 @@ let updatePragmaEnvironment mode s node =
                 { s with
                       capabilities = s.capabilities.Add(capa) }
             | _ -> // general pragma case
-                if prag.isTransient then
+                if prag.IsTransient then
                     { s with
                           unassignedTransients = s.unassignedTransients.Add(prag) }
                 else
@@ -820,7 +820,7 @@ let updatePragmaEnvironment mode s node =
 
 /// Helper error for pragma collision.
 let private collidingPragmaError (existing: Pragma) incoming node =
-    let formatPragma p = p.args |> String.concat " "
+    let formatPragma p = p.Arguments |> String.concat " "
 
     let msg =
         sprintf
@@ -836,9 +836,9 @@ let private checkPragmaCollisions (incoming: PragmaCollection) (existing: Pragma
     if not existing.IsEmpty then
         existing.Values
         |> Seq.map (fun p ->
-            match incoming.TryFind(p.definition) with
+            match incoming.TryFind(p.Definition) with
             | Some (colliding) ->
-                if p.args <> colliding.args then // pragma collision with unequal arguments
+                if p.Arguments <> colliding.Arguments then // pragma collision with unequal arguments
                     collidingPragmaError p colliding node
                 else
                     ok () // identical arguments, ignore collision
@@ -866,8 +866,8 @@ let private stuffPragmasIntoAssembly s node =
             let pragsWithWarnoff =
                 if not s.warnOffs.IsEmpty then
                     newPrags.Add
-                        ({ definition = warnoffPragmaDef
-                           args = Set.toList s.warnOffs })
+                        ({ Definition = warnoffPragmaDef
+                           Arguments = Set.toList s.warnOffs })
                 else
                     newPrags
 
@@ -995,7 +995,7 @@ let stripVariables =
 let private collectWarning node =
     match node with
     | Pragma (p) when p.x.IsWarning ->
-        let msg = p.x.args |> String.concat " "
+        let msg = p.x.Arguments |> String.concat " "
         let warnMsg = warningMessage msg node
         warn warnMsg node // add a warning into the message stream
     | _ -> ok node
@@ -1044,8 +1044,8 @@ let private nameAssembly node =
                      .Replace("@", "(@)")
 
              let namePragma =
-                 { definition = namePragmaDef
-                   args = [ name ] }
+                 { Definition = namePragmaDef
+                   Arguments = [ name ] }
 
              let mergedPrags = pragmas.Add(namePragma)
              let namedAssembly = Part(replacePragmas aw mergedPrags)
@@ -1115,8 +1115,8 @@ let private expandRoughage (rw: Node<Roughage>) =
     let markerPragma =
         Pragma
             ({ x =
-                   { definition = markersetPragmaDef
-                     args = [ marker ] }
+                   { Definition = markersetPragmaDef
+                     Arguments = [ marker ] }
                positions = rw.positions })
 
     let l2Elements =

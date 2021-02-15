@@ -137,9 +137,9 @@ let decompile tree =
                 append " "
                 _print v { state with quoteStrings = false } // don't quote string pragma values
         | Pragma ({ x = p; positions = _ }) ->
-            appendf "#%s" p.definition.name
+            appendf "#%s" p.Definition.Name
 
-            for arg in p.args do
+            for arg in p.Arguments do
                 appendf " %s" arg
         | FunctionDef ({ x = fd; positions = _ }) ->
             // declaration line

@@ -169,7 +169,7 @@ let getLinkerSetsForDesign (aIn: DnaAssembly) =
         let invalidLinkerWarn a b =
             let linkerWarnOff =
                 match aIn.pragmas.TryFind("warnoff") with
-                | Some (w) -> w.hasVal ("zeronine")
+                | Some (w) -> w.HasVal ("zeronine")
                 | None -> false
 
             not linkerWarnOff

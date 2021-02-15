@@ -65,7 +65,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
               { Position =
                     match pragmas.TryFind "promlen" with
                     | None -> -gd.getPromLen ()
-                    | Some p -> p.args.[0] |> int |> (*) -1<OneOffset>
+                    | Some p -> p.Arguments.[0] |> int |> (*) -1<OneOffset>
                 RelativeTo = FivePrime }
           lApprox = true
           rApprox = false
@@ -85,7 +85,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
               { Position =
                     match pragmas.TryFind "termlen" with
                     | None -> gd.getTermLen ()
-                    | Some p -> p.args.[0] |> int |> (*) 1<OneOffset>
+                    | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
     | DOWNSTREAM ->
         { left = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
@@ -123,7 +123,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
               { Position =
                     match pragmas.TryFind "termlenmrna" with
                     | None -> gd.getTermLenMRNA ()
-                    | Some p -> p.args.[0] |> int |> (*) 1<OneOffset>
+                    | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
 
 
@@ -562,7 +562,7 @@ let expandGenePart verbose
 
 let private determineTopology (pragmas: PragmaCollection): Topology =
     match pragmas.TryFind(Topology.PragmaName) with
-    | Some (pragma) -> pragma.args |> Topology.parse |> returnOrFail
+    | Some (pragma) -> pragma.Arguments |> Topology.parse |> returnOrFail
     | None -> Linear
 
 /// Take a parsed assembly definition and translate it

@@ -187,30 +187,30 @@ gBAZ"""
         let namePrag =
             Pragma
                 (nodeWrap
-                    { definition = PragmaTypes.namePragmaDef
-                      args = [ "foobar" ] })
+                    { Definition = PragmaTypes.namePragmaDef
+                      Arguments = [ "foobar" ] })
 
         let namePrag2 =
             Pragma
                 (nodeWrap
-                    { definition = PragmaTypes.namePragmaDef
-                      args = [ "shouldOnlyBeOnInner" ] })
+                    { Definition = PragmaTypes.namePragmaDef
+                      Arguments = [ "shouldOnlyBeOnInner" ] })
 
         let seedPrag =
             Pragma
                 (nodeWrap
-                    { definition =
+                    { Definition =
                           PragmaTypes.getLegalPragmas().TryFind("seed")
                               .Value
-                      args = [ "123" ] })
+                      Arguments = [ "123" ] })
 
         let seedPrag2 =
             Pragma
                 (nodeWrap
-                    { definition =
+                    { Definition =
                           PragmaTypes.getLegalPragmas().TryFind("seed")
                               .Value
-                      args = [ "456" ] })
+                      Arguments = [ "456" ] })
 
         let barGenePart = basePartWrap (createGenePart "gBAR")
         let bazGenePart = basePartWrap (createGenePart "gBAZ")
@@ -257,7 +257,7 @@ gBAZ"""
                     ({ npw with
                            x =
                                { npw.x with
-                                     args = [ "differentName" ] } })
+                                     Arguments = [ "differentName" ] } })
 
             Block
                 ({ x = [ newNamePrag; assem ]
