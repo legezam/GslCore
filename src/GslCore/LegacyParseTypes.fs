@@ -26,14 +26,14 @@ type SliceContext =
 /// Requires the length of the feature being sliced to be interpreted correctly.
 let getBoundsFromSlice (slice: Slice) featureLength context =
     let left =
-        match slice.left.relTo with
-        | FivePrime -> slice.left.x
-        | ThreePrime -> (featureLength + 1) * 1<OneOffset> + slice.left.x
+        match slice.left.RelativeTo with
+        | FivePrime -> slice.left.Position
+        | ThreePrime -> (featureLength + 1) * 1<OneOffset> + slice.left.Position
 
     let right =
-        match slice.right.relTo with
-        | FivePrime -> slice.right.x
-        | ThreePrime -> (featureLength + 1) * 1<OneOffset> + slice.right.x
+        match slice.right.RelativeTo with
+        | FivePrime -> slice.right.Position
+        | ThreePrime -> (featureLength + 1) * 1<OneOffset> + slice.right.Position
 
     match context with
     | Genomic ->
@@ -125,8 +125,8 @@ type L2Line =
 let printRP (l: RelPos) =
     sprintf
         "%A/%s"
-        l.x
-        (match l.relTo with
+        l.Position
+        (match l.RelativeTo with
          | FivePrime -> "S"
          | ThreePrime -> "E")
 
@@ -134,13 +134,13 @@ let printSlice (s: Slice) =
     sprintf
         "[%s%A%s:%s%A%s]"
         (if s.lApprox then "~" else "")
-        s.left.x
-        (match s.left.relTo with
+        s.left.Position
+        (match s.left.RelativeTo with
          | FivePrime -> "S"
          | ThreePrime -> "E")
         (if s.rApprox then "~" else "")
-        s.right.x
-        (match s.right.relTo with
+        s.right.Position
+        (match s.right.RelativeTo with
          | FivePrime -> "S"
          | ThreePrime -> "E")
 

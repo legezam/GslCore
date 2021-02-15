@@ -110,12 +110,12 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
 
                     // Start off assuming it's the full DNA slice
                     let startSlice =
-                        { left = { x = 1<OneOffset>; relTo = FivePrime }
+                        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
                           lApprox = false
                           rApprox = false
                           right =
-                              { x = -1<OneOffset>
-                                relTo = ThreePrime } }
+                              { Position = -1<OneOffset>
+                                RelativeTo = ThreePrime } }
 
                     // Apply the slice(s) to get a final coordinate range
                     let finalSlice =
@@ -144,10 +144,10 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
                       template = Some finalDNA
                       sourceChr = "library"
                       sourceFr =
-                          (finalSlice.left.x / (1<OneOffset>) - 1)
+                          (finalSlice.left.Position / (1<OneOffset>) - 1)
                           * 1<ZeroOffset>
                       sourceTo =
-                          (finalSlice.right.x / (1<OneOffset>) - 1)
+                          (finalSlice.right.Position / (1<OneOffset>) - 1)
                           * 1<ZeroOffset>
                       sourceFwd = true
                       sourceFrApprox = false
@@ -239,12 +239,12 @@ let fetchFullPartSequence (_ (* verbose*) : bool) (library: SequenceLibrary) (pa
 let getExtPartSlice (verbose: bool) (partId: PartIdLegacy) =
     // Start off assuming it's the full DNA slice
     let startSlice =
-        { left = { x = 1<OneOffset>; relTo = FivePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
-              { x = -1<OneOffset>
-                relTo = ThreePrime } }
+              { Position = -1<OneOffset>
+                RelativeTo = ThreePrime } }
 
     // Apply the slice(s) to get a final coordinate range
     let finalSlice =
@@ -323,10 +323,10 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
           amplified = true
           sourceChr = extPart.source
           sourceFr =
-              (finalSlice.left.x / (1<OneOffset>) - 1)
+              (finalSlice.left.Position / (1<OneOffset>) - 1)
               * 1<ZeroOffset>
           sourceTo =
-              (finalSlice.right.x / (1<OneOffset>) - 1)
+              (finalSlice.right.Position / (1<OneOffset>) - 1)
               * 1<ZeroOffset>
           sourceFwd = true
           sourceFrApprox = false

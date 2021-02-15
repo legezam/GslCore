@@ -20,21 +20,21 @@ let rec applySlices verbose (mods: Mod list) (s: Slice) =
               lApprox = (if sl.lApprox then true else s.lApprox)
               rApprox = (if sl.rApprox then true else s.rApprox)
               left =
-                  match sl.left.relTo with
+                  match sl.left.RelativeTo with
                   | FivePrime ->
-                      { x = addOneOffset FivePrime sl.left.x s.left.x
-                        relTo = s.left.relTo }
+                      { Position = addOneOffset FivePrime sl.left.Position s.left.Position
+                        RelativeTo = s.left.RelativeTo }
                   | ThreePrime ->
-                      { x = addOneOffset ThreePrime sl.left.x s.right.x
-                        relTo = s.right.relTo }
+                      { Position = addOneOffset ThreePrime sl.left.Position s.right.Position
+                        RelativeTo = s.right.RelativeTo }
               right =
-                  match sl.right.relTo with
+                  match sl.right.RelativeTo with
                   | FivePrime ->
-                      { x = addOneOffset FivePrime sl.right.x s.left.x
-                        relTo = s.left.relTo }
+                      { Position = addOneOffset FivePrime sl.right.Position s.left.Position
+                        RelativeTo = s.left.RelativeTo }
                   | ThreePrime ->
-                      { x = addOneOffset ThreePrime sl.right.x s.right.x
-                        relTo = s.right.relTo } }
+                      { Position = addOneOffset ThreePrime sl.right.Position s.right.Position
+                        RelativeTo = s.right.RelativeTo } }
 
         applySlices verbose tl s'
     | x :: tl ->

@@ -4,6 +4,7 @@ module GslCore.Utils
 open System
 open System.Reflection
 open System.Text
+open Amyris.Bio.primercore
 open Microsoft.FSharp.Core.Printf
 open Microsoft.FSharp.Reflection
 
@@ -15,6 +16,8 @@ let ambId (i: int option) =
 
 /// Produce a padding string of spaces n long
 let pad n = String.replicate n " "
+
+let strToTempC (s: string): float<C> = (float s) * 1.0<C>
 
 let limitTo n (s: string) =
     if s.Length > n then s.Substring(0, n) else s

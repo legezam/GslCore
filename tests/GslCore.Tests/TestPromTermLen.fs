@@ -44,7 +44,7 @@ type TestPromTermLen() =
         same
             "terminator length test"
             termLen
-            ((part.right.x - part.left.x + 1<OneOffset>)
+            ((part.right.Position - part.left.Position + 1<OneOffset>)
              / 1<OneOffset>) // +1 since ends are inclusive
 
         let part =
@@ -53,7 +53,7 @@ type TestPromTermLen() =
         same
             "promoter length test"
             promLen
-            ((part.right.x - part.left.x + 1<OneOffset>)
+            ((part.right.Position - part.left.Position + 1<OneOffset>)
              / 1<OneOffset>) // +1 since ends are inclusive
 
         let mRNA =
@@ -62,7 +62,7 @@ type TestPromTermLen() =
         same
             "termmrna length test"
             termLenMRNA
-            (((mRNA.right.x - 1<OneOffset>) + 1<OneOffset>)
+            (((mRNA.right.Position - 1<OneOffset>) + 1<OneOffset>)
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
@@ -96,7 +96,7 @@ type TestPromTermLen() =
 
     [<Test>]
     member __.TestDefaultTerminatorLen() =
-        checkOneGenome emptyPragmas "TestGenome" promLenDefault termLenDefault termLenMRNADefault
+        checkOneGenome emptyPragmas "TestGenome" Default.PromoterLength Default.TerminatorLength Default.MRNATerminatorLength
 
     [<Test>]
     member __.TestCustomTerminatorLen() =
@@ -108,12 +108,12 @@ type TestPromTermLen() =
 
     [<Test>]
     member __.TestPromLenPragma() =
-        testPragma "promlen" "123" "TestGenome" 123 termLenDefault termLenMRNADefault
+        testPragma "promlen" "123" "TestGenome" 123 Default.TerminatorLength Default.MRNATerminatorLength
 
     [<Test>]
     member __.TestTermLenPragma() =
-        testPragma "termlen" "123" "TestGenome" promLenDefault 123 termLenMRNADefault
+        testPragma "termlen" "123" "TestGenome" Default.PromoterLength 123 Default.MRNATerminatorLength
 
     [<Test>]
     member __.TestTermLenMRNAPragma() =
-        testPragma "termlenmrna" "123" "TestGenome" promLenDefault termLenDefault 123
+        testPragma "termlenmrna" "123" "TestGenome" Default.PromoterLength Default.TerminatorLength 123

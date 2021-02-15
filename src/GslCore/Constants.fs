@@ -1,41 +1,64 @@
 ﻿/// Numeric and string constants, as well as some broadly-needed domain types.
-module GslCore.Constants
+namespace GslCore.Constants
 
 open Amyris.Bio.primercore
 
-let ryseLinkerTargetDefault = 60.0<C> // melting temp for linker overhang melting temp
-let seamlessTargetDefault = 68.0<C> // higher temp for seamless junctions
-let seamlessOverlapTargetDefault = 68.0<C> // Temperature for internal overlap region of a seamless junction
-let overlapMinLenDefault = 24
-let approxMargin = 50
-let primerMaxDefault = 60
-let primerMinDefault = 20
-let maxNameLen = 600 // see also thumper restriction in thumper.fs
-let maxThumperOligo = 80
-let flanklenDefault = 500
-/// Terminator length default value (can be overriden in genome def)
-let termLenDefault = 500
+module Default =
+    [<Literal>]
+    let RyseLinkerTargetTemp = 60.0<C> // melting temp for linker overhang melting temp
 
-/// Terminator length default value when part of an 'm' mRNA part (can be overriden in genome def)
-let termLenMRNADefault = 200
+    [<Literal>]
+    let SeamlessTargetTemp = 68.0<C> // higher temp for seamless junctions
 
-/// Promoter length default value (can be overriden in genome def)
-let promLenDefault = 500
+    [<Literal>]
+    let SeamlessOverlapTargetTemp = 68.0<C> // Temperature for internal overlap region of a seamless junction
 
-/// Classic allele swap codon replacement min frequency
-let minHBCodonUsage = 0.05
+    [<Literal>]
+    let MinOverlapLength = 24
 
-let strToTempC (s: string): float<C> = (float s) * 1.0<C>
+    [<Literal>]
+    let ApproxMargin = 50
 
-let defaultRefGenome = "cenpk"
+    [<Literal>]
+    let PrimerMaxLength = 60
 
-let aaLegal = "ACDEFGHIKLMNPQRSTVWY*" |> Set.ofSeq
+    [<Literal>]
+    let PrimerMinLength = 20
 
-/// List of approved linker abbreviations.
-let legalLinkers =
-    [ '0' .. '9' ] @ [ 'A' .. 'E' ]
-    |> List.map (fun c -> sprintf "%c" c)
-    |> Set.ofSeq
+    [<Literal>]
+    let NameMaxLength = 600 // see also thumper restriction in thumper.fs
+
+    [<Literal>]
+    let ThumperMaxOligoLength = 80
+
+    [<Literal>]
+    let FlankLength = 500
+    /// Terminator length default value (can be overriden in genome def)
+    [<Literal>]
+    let TerminatorLength = 500
+
+    /// Terminator length default value when part of an 'm' mRNA part (can be overriden in genome def)
+    [<Literal>]
+    let MRNATerminatorLength = 200
+
+    /// Promoter length default value (can be overriden in genome def)
+    [<Literal>]
+    let PromoterLength = 500
+
+    /// Classic allele swap codon replacement min frequency
+    [<Literal>]
+    let MinHBCodonUsage = 0.05
+
+    [<Literal>]
+    let RefGenome = "cenpk"
+
+    let ValidAminoAcids: Set<char> = "ACDEFGHIKLMNPQRSTVWY*" |> Set.ofSeq
+
+    /// List of approved linker abbreviations.
+    let ValidLinkers: Set<string> =
+        [ '0' .. '9' ] @ [ 'A' .. 'E' ]
+        |> List.map (sprintf "%c")
+        |> Set.ofSeq
 
 [<Measure>]
 type OneOffset
@@ -43,29 +66,34 @@ type OneOffset
 [<Measure>]
 type ZeroOffset
 
+module ZeroOffset =
+    /// Drop the units from a ZeroOffset int.
+    let toInt (input: int<ZeroOffset>): int = input / 1<ZeroOffset>
+
+    /// Convert a ZeroOffset int into a OneOffset int.
+    let toOne (input: int<ZeroOffset>): int<OneOffset> =
+        let unitless = toInt input
+
+        if unitless >= 0 then unitless + 1 else unitless
+        * 1<OneOffset>
+
+module OneOffset =
+    /// Convert a OneOffset int into a ZeroOffset int.
+    let toZero (input: int<OneOffset>): int<ZeroOffset> =
+        match input / 1<OneOffset> with
+        | 0 -> 0
+        | x when x > 0 -> (x - 1)
+        | x -> x
+        * 1<ZeroOffset>
+
 type GeneEnd =
     | FivePrime
     | ThreePrime
 
-type RelPos = { x: int<OneOffset>; relTo: GeneEnd }
+type RelPos =
+    { Position: int<OneOffset>
+      RelativeTo: GeneEnd }
 
-/// Drop the units from a ZeroOffset int.
-let z2i (z: int<ZeroOffset>) = z / 1<ZeroOffset>
-
-/// Convert a ZeroOffset int into a OneOffset int.
-let zero2One (z: int<ZeroOffset>) =
-    let unitless = z2i z
-
-    if unitless >= 0 then unitless + 1 else unitless
-    * 1<OneOffset>
-
-/// Convert a OneOffset int into a ZeroOffset int.
-let one2Zero (z: int<OneOffset>) =
-    match z / 1<OneOffset> with
-    | 0 -> 0
-    | x when x > 0 -> (x - 1)
-    | x -> x
-    * 1<ZeroOffset>
 
 [<Measure>]
 type PluginScore
@@ -73,8 +101,8 @@ type PluginScore
 /// Domain wrapper type to indicate that a string represents literal GSL source.
 type GslSourceCode =
     | GslSourceCode of string
-    member x.String =
-        let (GslSourceCode (s)) = x
+    member this.String =
+        let (GslSourceCode (s)) = this
         s
 
-    override x.ToString() = x.String
+    override this.ToString() = this.String

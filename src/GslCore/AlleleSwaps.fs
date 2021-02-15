@@ -222,20 +222,20 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDef) (m: Mut
     sprintf
         "%s[~%A:%A] {#name %s.5us};### ;%s[~%A:%A] {#name %s.hb} ; /%c/ {#inline };%s[%A:%A];~ ;%s[%A:~%A]"
         gene
-        (zero2One a)
-        (zero2One b)
+        (ZeroOffset.toOne a)
+        (ZeroOffset.toOne b)
         name
         gene
-        (zero2One a)
-        (zero2One b)
+        (ZeroOffset.toOne a)
+        (ZeroOffset.toOne b)
         name
         m.t  // replacement base
         gene
-        (zero2One (b + 2<ZeroOffset>))
-        (zero2One c)
+        (ZeroOffset.toOne (b + 2<ZeroOffset>))
+        (ZeroOffset.toOne c)
         gene
-        (zero2One (c + 1<ZeroOffset>))
-        (zero2One (c + 1000<ZeroOffset>))
+        (ZeroOffset.toOne (c + 1<ZeroOffset>))
+        (ZeroOffset.toOne (c + 1000<ZeroOffset>))
     |> GslSourceCode
 
 let private classicCodingNT _ (* verbose*) g (_: sgd.Feature) (_: GenomeDef) (m: Mutation) =
@@ -254,8 +254,8 @@ let jobScorerClassicAAMut _ = Some 0.0<PluginScore>
 /// Gene is the actual gene name,  name is the #name entry or full gYNG2$C227Y entry
 let classicAAMut (dp: AlleleSwapDesignParams) =
     let minFreq = 0.05
-    let x1 = z2i dp.mutOff
-    let x2 = (z2i dp.mutOff) + 2
+    let x1 = ZeroOffset.toInt dp.mutOff
+    let x2 = (ZeroOffset.toInt dp.mutOff) + 2
 
     if x2 >= dp.orf.Length + 3 (* include stop codon *)  then
         failwithf
@@ -294,16 +294,16 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
         sprintf
             "%s[~%A:~-100] {#name %s.5us} ;### ;%s[~%A:%A] {#name %s.hb} ;/%O/ {#inline };~ ;%s[%A:~%A]"
             dp.gene
-            (zero2One a)
+            (ZeroOffset.toOne a)
             dp.name
             dp.gene
-            (zero2One a2)
-            (zero2One (dp.mutOff - 1<ZeroOffset>))
+            (ZeroOffset.toOne a2)
+            (ZeroOffset.toOne (dp.mutOff - 1<ZeroOffset>))
             dp.name
             mutSeq
             dp.gene
-            (dp.mutOff + 3<ZeroOffset> |> zero2One)
-            (dp.mutOff + 703<ZeroOffset> |> zero2One)
+            (dp.mutOff + 3<ZeroOffset> |> ZeroOffset.toOne)
+            (dp.mutOff + 703<ZeroOffset> |> ZeroOffset.toOne)
     else
         let mutSeq =
             selectMutCodonLeft dp.codonLookup minFreq currentCodon dp.m.t
@@ -315,7 +315,7 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
         let a' = dp.mutOff - 700<ZeroOffset> // Pick 700 so we can still sequence through
 
         let a =
-            if (zero2One a') = 0<OneOffset> then 1<OneOffset> else zero2One a'
+            if (ZeroOffset.toOne a') = 0<OneOffset> then 1<OneOffset> else ZeroOffset.toOne a'
 
         let c = 200<OneOffset>
 
@@ -323,11 +323,11 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
             "%s[~%A:%A] {#name %s.hb} ;~ ;/%O/ {#inline };%s[%A:~%AE] ;### ;%s[1E:~%AE] {#name %s.3ds} "
             dp.gene
             a
-            ((zero2One (dp.mutOff - 1<ZeroOffset>)))
+            ((ZeroOffset.toOne (dp.mutOff - 1<ZeroOffset>)))
             dp.name
             mutSeq
             dp.gene
-            (dp.mutOff + 3<ZeroOffset> |> zero2One)
+            (dp.mutOff + 3<ZeroOffset> |> ZeroOffset.toOne)
             c
             dp.gene
             (c + 600<OneOffset>)
@@ -393,8 +393,8 @@ let expandAS (providers: AlleleSwapProvider list)
                  (r' + orfPlusMargin) * 1<ZeroOffset>)
             |> DnaOps.revCompIf (not f.fwd)
 
-        let x1 = z2i b
-        let x2 = (z2i b) + 2
+        let x1 = ZeroOffset.toInt b
+        let x2 = (ZeroOffset.toInt b) + 2
 
         if x2 >= orf.Length + 3 then // Include stop codon
             failwithf

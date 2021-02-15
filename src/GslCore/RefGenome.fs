@@ -196,14 +196,14 @@ ERROR: location:
 
         /// default or custom length for flanking regions
         member x.getFlank() =
-            x.EnvLenLookup "flanklen" flanklenDefault
+            x.EnvLenLookup "flanklen" Default.FlankLength
         /// default or custom length for stand alone terminator pieces
-        member x.getTermLen() = x.EnvLenLookup "termlen" termLenDefault
+        member x.getTermLen() = x.EnvLenLookup "termlen" Default.TerminatorLength
         /// default or custom length for terminator part of an mRNA type part
         member x.getTermLenMRNA() =
-            x.EnvLenLookup "termlenmrna" termLenMRNADefault
+            x.EnvLenLookup "termlenmrna" Default.MRNATerminatorLength
         /// default or custom length for promoter
-        member x.getPromLen() = x.EnvLenLookup "promlen" promLenDefault
+        member x.getPromLen() = x.EnvLenLookup "promlen" Default.PromoterLength
     end
 
 
@@ -216,15 +216,15 @@ let getRGNew (rgs: GenomeDefs) (prags: PragmaCollection list) =
         match prags
               |> List.tryPick (fun pr -> pr.TryGetOne("refgenome")) with
         | Some (name) -> name
-        | None -> defaultRefGenome
+        | None -> Default.RefGenome
 
     match rgs.TryFind(rgName) with
     | Some (g) -> ok g
-    | None when rgName = defaultRefGenome ->
+    | None when rgName = Default.RefGenome ->
         fail
             (sprintf
                 "ERROR: unable to load default genome '%s' <currently loaded: %s>"
-                 defaultRefGenome
+                 Default.RefGenome
                  (if rgs.Count = 0
                   then "none"
                   else String.Join(",", [ for k in rgs -> k.Key ])))
@@ -244,4 +244,4 @@ let chooseRefGenome (p: PragmaCollection) =
     | Some (rg) -> rg
     | None ->
         printf "%s" (refGenomeWarning ())
-        defaultRefGenome // Warning - defualts to yeast codon usage
+        Default.RefGenome // Warning - defualts to yeast codon usage

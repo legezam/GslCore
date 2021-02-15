@@ -71,7 +71,7 @@ FEATURES             Location/Qualifiers
                 | FUSIONST -> "red"
 
             let range =
-                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (zero2One p.destFr) (zero2One p.destTo)
+                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (ZeroOffset.toOne p.destFr) (ZeroOffset.toOne p.destTo)
 
             sprintf "     misc_feature    %s
                      /label=%s

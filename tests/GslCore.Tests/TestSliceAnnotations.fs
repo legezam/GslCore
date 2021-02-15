@@ -42,12 +42,12 @@ type TestOrfAnnotation() =
     member x.TestAnnotationFromSlice() =
         // default range for gene
         let basicOrfSlice =
-            { left = { x = 1<OneOffset>; relTo = FivePrime }
+            { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
               lApprox = false
               rApprox = false
               right =
-                  { x = -1<OneOffset>
-                    relTo = ThreePrime } }
+                  { Position = -1<OneOffset>
+                    RelativeTo = ThreePrime } }
 
         let featLen = 100
 

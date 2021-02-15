@@ -115,7 +115,7 @@ FEATURES             Location/Qualifiers
             let colorRev = colorFwd // reserve possibility of different colors for different orientations but for now the same
 
             let range =
-                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (zero2One p.destFr) (zero2One p.destTo)
+                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (ZeroOffset.toOne p.destFr) (ZeroOffset.toOne p.destTo)
 
             let label =
                 if p.sliceName <> "" then p.sliceName

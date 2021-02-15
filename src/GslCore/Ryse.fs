@@ -48,10 +48,10 @@ let extractLinker (s: string) =
     else failwithf "ERROR: unable to parse linker name '%s'" s
 
 let checkLinker (l: Linker) =
-    if not (legalLinkers.Contains(l.l1))
+    if not (Default.ValidLinkers.Contains(l.l1))
     then failwithf "ERROR: linker %s not a legal linker" l.l1
 
-    if not (legalLinkers.Contains(l.l2))
+    if not (Default.ValidLinkers.Contains(l.l2))
     then failwithf "ERROR: linker %s not a legal linker" l.l2
 
 

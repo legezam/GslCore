@@ -128,7 +128,7 @@ type OrfAnnotation =
     /// Return a sequence of the starting indices of every complete codon described by this annotation.
     /// If the Orf is fwd, these will be in increasing order; if rev, decreasing order.
     member x.CompleteCodonIndices() =
-        let left, right = z2i x.left, z2i x.right
+        let left, right = ZeroOffset.toInt x.left, ZeroOffset.toInt x.right
         // the number of bases we need to move inwards from the edge to find the start of the first codon
         let alleleOffset =
             match x.frameOffset with
@@ -158,10 +158,10 @@ let orfAnnotationFromSlice (slice: Slice) (orfLen: int) fwd context =
     let sliceStart, sliceEnd =
         getBoundsFromSlice slice orfLen context
         |> returnOrFail
-        |> (fun (l, r) -> one2Zero l, one2Zero r)
+        |> (fun (l, r) -> OneOffset.toZero l, OneOffset.toZero r)
 
     // compute the actual length of the slice
-    let sliceLen = z2i (sliceEnd - sliceStart) + 1
+    let sliceLen = ZeroOffset.toInt (sliceEnd - sliceStart) + 1
 
     // based on the gene-relative slice coordinates, determine the frame offset of this ORF.
     let frameOffset = orfOffsetFromAlleleOffset sliceStart

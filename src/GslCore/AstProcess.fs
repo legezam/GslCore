@@ -457,7 +457,7 @@ let private buildRelativePosition node =
         let buildNode i e =
             ok
                 (RelPos
-                    ({ x = { x = i; relTo = e }
+                    ({ x = { Position = i; RelativeTo = e }
                        positions = rpw.positions }))
 
         // make sure we have a real value to work with
@@ -1040,7 +1040,7 @@ let private nameAssembly node =
 
              let name =
                  literal
-                     .Substring(0, min literal.Length maxNameLen)
+                     .Substring(0, min literal.Length Default.NameMaxLength)
                      .Replace("@", "(@)")
 
              let namePragma =

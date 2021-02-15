@@ -111,8 +111,8 @@ let decompile tree =
         | RelPos ({ x = rp; positions = _ }) ->
             appendff
                 "%d%s"
-                rp.x
-                (match rp.relTo with
+                rp.Position
+                (match rp.RelativeTo with
                  | FivePrime -> "S"
                  | ThreePrime -> "E")
         | Slice ({ x = s; positions = _ }) ->

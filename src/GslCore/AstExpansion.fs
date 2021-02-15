@@ -279,7 +279,7 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
         // specifying a different reference genome implies a non standard
         // DNA source, so we can use that too (they can override with dnasrc)
         | Some (rg) -> rg.Trim([| ' '; '\t' |])
-        | None -> Constants.defaultRefGenome
+        | None -> Default.RefGenome
 
     /// Parameters to pass to specific L2 algorithm implementation
     let designParams =
@@ -590,7 +590,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
         | INLINEPROT (s) ->
             // Check amino acid sequence is legal
             for c in s do
-                if not (aaLegal.Contains(c))
+                if not (Default.ValidAminoAcids.Contains(c))
                 then failwithf "Protein sequence contains illegal amino acid '%c'" c
 
             let refGenome' =
@@ -705,7 +705,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
 
             // Generate an alternative prefix for the GENEPART on RHS
             let alt =
-                generateRightHB codonUsage minHBCodonUsage targetAALen a.designParams sliceSeqUp (Dna("")) sliceSeq
+                generateRightHB codonUsage Default.MinHBCodonUsage targetAALen a.designParams sliceSeqUp (Dna("")) sliceSeq
             // tricky part - need to slightly adjust the slice range of gp,
             // but that's embedded down in the mod list
 
@@ -720,7 +720,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 { startSlice with
                       left =
                           { startSlice.left with
-                                x = startSlice.left.x + (alt.Length * 1<OneOffset>) } }
+                                Position = startSlice.left.Position + (alt.Length * 1<OneOffset>) } }
 
             assert (alt <> sliceSeq.[0..alt.Length - 1])
             // Assemble new mod list by getting rid of existing slice mods and
@@ -757,7 +757,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
             let targetAALen = getLenPragma pr3
             // Generate an alternative prefix for the GENEPART on RHS
             let alt =
-                generateRightHB codonUsage minHBCodonUsage targetAALen a.designParams sliceSeqUp i sliceSeq
+                generateRightHB codonUsage Default.MinHBCodonUsage targetAALen a.designParams sliceSeqUp i sliceSeq
 
             assert (alt <> sliceSeq.[0..alt.Length - 1])
 
@@ -781,7 +781,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 { startSlice with
                       left =
                           { startSlice.left with
-                                x = startSlice.left.x + (alt.Length * 1<OneOffset>) } }
+                                Position = startSlice.left.Position + (alt.Length * 1<OneOffset>) } }
 
             let newInline = DnaOps.append i alt
 
@@ -822,7 +822,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
             // generate hetblock section off upstream slice
             // Generate an alternative prefix for the GENEPART on LHS
             let alt =
-                generateLeftHB codonUsage minHBCodonUsage targetAALen a.designParams sliceSeq ic sliceSeqDown
+                generateLeftHB codonUsage Default.MinHBCodonUsage targetAALen a.designParams sliceSeq ic sliceSeqDown
             // tricky part - need to slightly adjust the slice range of gp,
             // but that's embedded down in the mod list
 
@@ -838,7 +838,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 { startSlice with
                       right =
                           { startSlice.right with
-                                x = startSlice.right.x - (alt.Length * 1<OneOffset>) } }
+                                Position = startSlice.right.Position - (alt.Length * 1<OneOffset>) } }
 
             let newInline = DnaOps.append alt ic
             assert (alt <> sliceSeq.[sliceSeq.Length - alt.Length..])
@@ -906,7 +906,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                     let alt =
                         generateLeftHB
                             codonUsage
-                            minHBCodonUsage
+                            Default.MinHBCodonUsage
                             targetAALen
                             a.designParams
                             sliceSeq1.dna
@@ -919,7 +919,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                         { s1 with
                               right =
                                   { s1.right with
-                                        x = s1.right.x - (alt.Length * 1<OneOffset>) } }
+                                        Position = s1.right.Position - (alt.Length * 1<OneOffset>) } }
 
                     let newInline = DnaOps.append alt ic
 

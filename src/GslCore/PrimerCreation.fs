@@ -837,10 +837,10 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
                 { tag = if fwd then "PF" else "PR"
                   temp =
                       if fwd then
-                          s.dna.[0..min (s.dna.Length - 1) (2 * approxMargin)]
+                          s.dna.[0..min (s.dna.Length - 1) (2 * Default.ApproxMargin)]
                               .arr
                       else
-                          s.dna.RevComp().[0..min s.dna.Length (2 * approxMargin)]
+                          s.dna.RevComp().[0..min s.dna.Length (2 * Default.ApproxMargin)]
                               .arr
                   align = ANCHOR.CENTERLEFT
                   strand = STRAND.TOP
@@ -1020,7 +1020,7 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
 
         match x with
         | None ->
-            if margin < 3 * approxMargin
+            if margin < 3 * Default.ApproxMargin
             then linkerFwd2Iterative pen (margin + 10)
             else failwithf "failed primer design for design %s in linkerFwd2" errorName
         | Some (oligo) ->
@@ -1032,7 +1032,7 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
               annotation = [] },
             oligo.offset
 
-    linkerFwd2Iterative dp.pp (2 * approxMargin)
+    linkerFwd2Iterative dp.pp (2 * Default.ApproxMargin)
 
 
 /// Modified version that doesn't take sandwich length into account while designing the amp primer
@@ -1097,7 +1097,7 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
 
             match x with
             | None ->
-                if margin < 3 * approxMargin
+                if margin < 3 * Default.ApproxMargin
                 then linkerRev2Iterative pen (margin + 10)
                 else failwithf "failed primer design in linkerRev2 for design %s\nlast task was =%A" errorName task
             | Some (oligo) ->
@@ -1109,7 +1109,7 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
                 oligo.offset
 
 
-    linkerRev2Iterative dp.pp (2 * approxMargin)
+    linkerRev2Iterative dp.pp (2 * Default.ApproxMargin)
 
 /// Chop bases off a primer whose tail is a linker until it meets the length requirement
 let trimLinkerTailBody (dp: DesignParams) (p: Primer) =
@@ -2343,12 +2343,12 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
 
             let primerMaxLen =
                 match a.pragmas.TryGetOne("primermax") with
-                | None -> primerMaxDefault
+                | None -> Default.PrimerMaxLength
                 | Some (v) -> int v
 
             let primerMinLen =
                 match a.pragmas.TryGetOne("primermin") with
-                | None -> primerMinDefault
+                | None -> Default.PrimerMinLength
                 | Some (v) -> int v
 
             procAssembly

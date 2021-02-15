@@ -21,13 +21,13 @@ let validateMods errorRef (where: AstTypes.SourcePosition list) (mods: Mod list)
     for m in mods do
         match m with
         | SLICE (s) ->
-            if s.left.relTo = s.right.relTo
-               && s.left.x > s.right.x then
+            if s.left.RelativeTo = s.right.RelativeTo
+               && s.left.Position > s.right.Position then
                 // TODO: better to report coordinates of slice text rather than gene
                 failwithf
                     "slice left %A greater than right %A %O in %s"
-                    s.left.x
-                    s.right.x
+                    s.left.Position
+                    s.right.Position
                     (AstTypes.formatSourcePositionList where)
                     errorRef
         | _ -> () // No checks for now TODO
@@ -38,14 +38,14 @@ let validateMods errorRef (where: AstTypes.SourcePosition list) (mods: Mod list)
 /// Final start of the piece.  Determine which end we are working relative to
 let adjustToPhysical (feat: sgd.Feature) (f: RelPos) =
     let featOffset =
-        match f.relTo, feat.fwd with
+        match f.RelativeTo, feat.fwd with
         | FivePrime, true
         | ThreePrime, false -> feat.l
         | ThreePrime, true
         | FivePrime, false -> feat.r
 
     let geneRelativeOffset =
-        match f.relTo, f.x / 1<OneOffset> with
+        match f.RelativeTo, f.Position / 1<OneOffset> with
         | FivePrime, o when o > 0 -> o - 1
         | FivePrime, o -> o
         | ThreePrime, o when o > 0 -> o
@@ -62,69 +62,69 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
     match gPart with
     | PROMOTER ->
         { left =
-              { x =
+              { Position =
                     match pragmas.TryFind "promlen" with
                     | None -> -gd.getPromLen ()
                     | Some p -> p.args.[0] |> int |> (*) -1<OneOffset>
-                relTo = FivePrime }
+                RelativeTo = FivePrime }
           lApprox = true
           rApprox = false
-          right = { x = -1<OneOffset>; relTo = FivePrime } }
+          right = { Position = -1<OneOffset>; RelativeTo = FivePrime } }
     | UPSTREAM ->
         { left =
-              { x = -gd.getFlank ()
-                relTo = FivePrime }
+              { Position = -gd.getFlank ()
+                RelativeTo = FivePrime }
           lApprox = true
           rApprox = false
-          right = { x = -1<OneOffset>; relTo = FivePrime } }
+          right = { Position = -1<OneOffset>; RelativeTo = FivePrime } }
     | TERMINATOR ->
-        { left = { x = 1<OneOffset>; relTo = ThreePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
           lApprox = false
           rApprox = true
           right =
-              { x =
+              { Position =
                     match pragmas.TryFind "termlen" with
                     | None -> gd.getTermLen ()
                     | Some p -> p.args.[0] |> int |> (*) 1<OneOffset>
-                relTo = ThreePrime } }
+                RelativeTo = ThreePrime } }
     | DOWNSTREAM ->
-        { left = { x = 1<OneOffset>; relTo = ThreePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
           lApprox = false
           rApprox = true
           right =
-              { x = gd.getFlank ()
-                relTo = ThreePrime } }
+              { Position = gd.getFlank ()
+                RelativeTo = ThreePrime } }
     | FUSABLEORF ->
-        { left = { x = 1<OneOffset>; relTo = FivePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
-              { x = -4<OneOffset>
-                relTo = ThreePrime } }
+              { Position = -4<OneOffset>
+                RelativeTo = ThreePrime } }
     | ORF ->
-        { left = { x = 1<OneOffset>; relTo = FivePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
-              { x = -1<OneOffset>
-                relTo = ThreePrime } }
+              { Position = -1<OneOffset>
+                RelativeTo = ThreePrime } }
     | GENE ->
-        { left = { x = 1<OneOffset>; relTo = FivePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
-              { x = -1<OneOffset>
-                relTo = ThreePrime } }
+              { Position = -1<OneOffset>
+                RelativeTo = ThreePrime } }
     | MRNA ->
-        { left = { x = 1<OneOffset>; relTo = FivePrime }
+        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
           lApprox = false
           rApprox = true
           right =
-              { x =
+              { Position =
                     match pragmas.TryFind "termlenmrna" with
                     | None -> gd.getTermLenMRNA ()
                     | Some p -> p.args.[0] |> int |> (*) 1<OneOffset>
-                relTo = ThreePrime } }
+                RelativeTo = ThreePrime } }
 
 
 /// Translate gene part label.  Raises an exception for errors.
@@ -269,7 +269,7 @@ let expandGenePart verbose
     // part from the default reference genome, so we should make the
     // dnaSource field reflect this
     let dnaSource =
-        if specifiedDnaSource = "" then defaultRefGenome else specifiedDnaSource
+        if specifiedDnaSource = "" then Default.RefGenome else specifiedDnaSource
 
 
     // Check the genes are legal
@@ -328,10 +328,10 @@ let expandGenePart verbose
               dna = finalDNA
               sourceChr = "library"
               sourceFr =
-                  (finalSlice.left.x / (1<OneOffset>) - 1)
+                  (finalSlice.left.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
               sourceTo =
-                  (finalSlice.right.x / (1<OneOffset>) - 1)
+                  (finalSlice.right.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
               sourceFwd = true
               sourceFrApprox = false
@@ -400,11 +400,11 @@ let expandGenePart verbose
             // Calculate some adjusted boundaries in case the left/right edges are approximate
             let leftAdj =
                 { finalSlice.left with
-                      x = finalSlice.left.x - (approxMargin * 1<OneOffset>) }
+                      Position = finalSlice.left.Position - (Default.ApproxMargin * 1<OneOffset>) }
 
             let rightAdj =
                 { finalSlice.right with
-                      x = finalSlice.right.x + (approxMargin * 1<OneOffset>) }
+                      Position = finalSlice.right.Position + (Default.ApproxMargin * 1<OneOffset>) }
 
             { lApprox = finalSlice.lApprox
               left = (if finalSlice.lApprox then leftAdj else finalSlice.left)
@@ -483,19 +483,19 @@ let expandGenePart verbose
             if ppp.fwd then description1 else "!" + description1
 
         let promStart =
-            { x = -300<OneOffset>
-              relTo = FivePrime }
+            { Position = -300<OneOffset>
+              RelativeTo = FivePrime }
 
-        let promEnd = { x = -1<OneOffset>; relTo = FivePrime }
-        let termStart = { x = 1<OneOffset>; relTo = ThreePrime }
+        let promEnd = { Position = -1<OneOffset>; RelativeTo = FivePrime }
+        let termStart = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
 
         let termEnd =
-            { x = 150<OneOffset>
-              relTo = ThreePrime }
+            { Position = 150<OneOffset>
+              RelativeTo = ThreePrime }
 
         let near (a: RelPos) (b: RelPos) (tolerance) =
-            a.relTo = b.relTo
-            && abs ((a.x - b.x) / 1<OneOffset>) < tolerance
+            a.RelativeTo = b.RelativeTo
+            && abs ((a.Position - b.Position) / 1<OneOffset>) < tolerance
 
         let breed =
             match breed1 with
@@ -508,8 +508,8 @@ let expandGenePart verbose
                 elif near z.left promStart 400
                      && near z.right promEnd 40 then
                     B_PROMOTER
-                elif z.left.x = 1<OneOffset>
-                     && z.left.relTo = FivePrime
+                elif z.left.Position = 1<OneOffset>
+                     && z.left.RelativeTo = FivePrime
                      && near z.right termEnd 100 then
                     B_GST
                 else

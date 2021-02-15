@@ -71,8 +71,8 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                 | INLINEST -> "Label"
                 | _ -> "Gene"
 
-            let fr = (zero2One p.destFr)
-            let t = (zero2One p.destTo)
+            let fr = (ZeroOffset.toOne p.destFr)
+            let t = (ZeroOffset.toOne p.destTo)
 
             sprintf @"<FEATURE name=""%s"">
                     <TYPE>%s</TYPE>
@@ -127,7 +127,7 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                                 " (dp.rev.Primer.ToString())
                         // .......[XXXXXXXXXXXXXXXXXXX].........
                         //  <bbbbbbtttttttttttttttttttt  (body and tail of primer)
-                        (zero2One (* (dp.rev.tail.Length-1) * 1<ZeroOffset>  *) (p.destFr + prefix - 1<ZeroOffset>))  // from
+                        (ZeroOffset.toOne (* (dp.rev.tail.Length-1) * 1<ZeroOffset>  *) (p.destFr + prefix - 1<ZeroOffset>))  // from
                         dp.rev.Primer.Length  //length
                         dp.rev.Primer.Length
                     |> w
@@ -172,7 +172,7 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                         ((p.destTo
                           - (* (dp.fwd.tail.Length-1)*1<ZeroOffset> *) prefixFwd
                           + 1<ZeroOffset>)
-                         |> zero2One) dp.fwd.Primer.Length dp.fwd.Primer.Length
+                         |> ZeroOffset.toOne) dp.fwd.Primer.Length dp.fwd.Primer.Length
                     |> w
 
         sprintf @"

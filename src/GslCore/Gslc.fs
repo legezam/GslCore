@@ -18,7 +18,7 @@ open GslCore.AstErrorHandling
 open Amyris.Bio
 open primercore
 open Utils
-open Constants
+open GslCore.Constants
 open PluginTypes
 open AstTypes
 open ProcessCmdLineArgs
@@ -44,7 +44,7 @@ let testPrimer () =
           align = ANCHOR.LEFT
           strand = STRAND.TOP
           offset = 0
-          targetTemp = ryseLinkerTargetDefault
+          targetTemp = Default.RyseLinkerTargetTemp
           sequencePenalties = None }
 
     let res = oligoDesign true pen task

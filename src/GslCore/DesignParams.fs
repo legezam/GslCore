@@ -24,10 +24,10 @@ type DesignParams =
 /// Starting design parameters for construction
 let initialDesignParams =
     { pp = defaultParams
-      targetTm = ryseLinkerTargetDefault
-      seamlessOverlapTm = seamlessTargetDefault
+      targetTm = Default.RyseLinkerTargetTemp
+      seamlessOverlapTm = Default.SeamlessTargetTemp
       overlapParams = defaultParams
-      overlapMinLen = overlapMinLenDefault }
+      overlapMinLen = Default.MinOverlapLength }
 
 let updateDPFromPragma (p: Pragma) designParams =
     match p.name, p.args with
@@ -43,7 +43,7 @@ let updateDPFromPragma (p: Pragma) designParams =
     | "targettm", v :: _ ->
         ok
             { designParams with
-                  targetTm = strToTempC v }
+                  targetTm = Utils.strToTempC v }
     | "minoverlaplen", v :: _ ->
         ok
             { designParams with
@@ -51,7 +51,7 @@ let updateDPFromPragma (p: Pragma) designParams =
     | "seamlessoverlaptm", v :: _ ->
         ok
             { designParams with
-                  seamlessOverlapTm = strToTempC v }
+                  seamlessOverlapTm = Utils.strToTempC v }
     | "atpenalty", v :: _ ->
         ok
             { designParams with
