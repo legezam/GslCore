@@ -2,23 +2,22 @@
 
 open NUnit.Framework
 open Amyris.ErrorHandling
-open PragmaTypes
+open GslCore.PragmaTypes
 open Amyris.Bio.primercore
-open DesignParams
-open AstTypes
-open AstFixtures
-open AstProcess
-open AstAlgorithms
-open AstAssertions
-open AstErrorHandling
-open Constants
+open GslCore.DesignParams
+open GslCore.AstTypes
+open GslCore.AstFixtures
+open GslCore.AstProcess
+open GslCore.AstAlgorithms
+open GslCore.AstAssertions
+open GslCore.AstErrorHandling
+open GslCore.Constants
 
 [<TestFixture>]
 type TestPragmas() =
 
     [<SetUp>]
-    member x.SetUp() =
-        finalizePragmas []
+    member x.SetUp() = finalizePragmas []
 
     [<Test>]
     member x.TestBadPragmasLocal() =
@@ -27,8 +26,13 @@ type TestPragmas() =
 
         let goodName = "warn"
         let goodOption = "test"
-        Assert.Throws (fun () -> returnOrFail (buildPragma badName [badOption]) |> ignore) |> ignore
-        Assert.DoesNotThrow (fun () -> buildPragma goodName [goodOption] |> ignore)
+
+        Assert.Throws(fun () ->
+            returnOrFail (buildPragma badName [ badOption ])
+            |> ignore)
+        |> ignore
+
+        Assert.DoesNotThrow(fun () -> buildPragma goodName [ goodOption ] |> ignore)
 
 
     [<Test>]
@@ -36,15 +40,20 @@ type TestPragmas() =
     member x.TestPcrParamsParsing() =
         let doParse ifGood ifBad args =
             match revisePP defaultParams args with
-            | Ok(r, _) -> ifGood r
-            | Bad(msgs) -> ifBad msgs
+            | Ok (r, _) -> ifGood r
+            | Bad (msgs) -> ifBad msgs
 
-        let shouldPass = doParse ignore (fun errs -> Assert.Fail(String.concat ", " errs))
-        let shouldFail = doParse (fun _ -> Assert.Fail("Parsing didn't fail.")) ignore
+        let shouldPass =
+            doParse ignore (fun errs -> Assert.Fail(String.concat ", " errs))
 
-        shouldPass ["mon=50mM"; "primer=5.mM"]
-        shouldFail ["incrediblybadargument"]
-        shouldFail ["mon=2.0uM"; "anotherbadargument"]
+        let shouldFail =
+            doParse (fun _ -> Assert.Fail("Parsing didn't fail.")) ignore
+
+        shouldPass [ "mon=50mM"; "primer=5.mM" ]
+        shouldFail [ "incrediblybadargument" ]
+
+        shouldFail [ "mon=2.0uM"
+                     "anotherbadargument" ]
 
 [<TestFixture>]
 type TestPragmasAST() =
@@ -56,18 +65,19 @@ type TestPragmasAST() =
         >=> resolveVariablesStrict
         >=> stripVariables
         >=> reduceMathExpressions
-        >=> (buildPragmas (["capa1"; "capa2"] |> Set.ofList))
+        >=> (buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList))
 
     let compilePragmas = compile pragmaBuildPipeline
 
     let checkPragmaIsBuilt node =
         match node with
-        | Pragma(p) -> good
-        | ParsePragma(p) -> errorf Error "Pragma '%s' was not built." p.x.name node
+        | Pragma (p) -> good
+        | ParsePragma (p) -> errorf Error "Pragma '%s' was not built." p.x.name node
         | _ -> good
 
     let pragmaBuildTest source =
         let source = GslSourceCode source
+
         source
         |> compilePragmas
         >>= validate checkPragmaIsBuilt
@@ -80,8 +90,8 @@ type TestPragmasAST() =
         >=> stuffPragmasIntoAssemblies
 
     [<SetUp>]
-    member x.SetUp() = initGlobals()
-       
+    member x.SetUp() = initGlobals ()
+
     [<Test>]
     member x.TestBasicPragmaBuild() =
         let source = """
@@ -125,9 +135,10 @@ bar("qux")
         source
         |> GslSourceCode
         |> compile pragmaBuildPipeline
-        |> assertFailMany
-            [PragmaError; PragmaError]
-            [Some("#fuse is used at block-level"); Some("#capa is used at part-level")]
+        |> assertFailMany [ PragmaError; PragmaError ] [
+            Some("#fuse is used at block-level")
+            Some("#capa is used at part-level")
+           ]
         |> ignore
 
 
@@ -138,9 +149,11 @@ bar("qux")
         source
         |> GslSourceCode
         |> compile pragmaBuildPipeline
-        |> assertWarnMany
-            [DeprecationWarning; DeprecationWarning]
-            [Some("#stitch is deprecated"); Some("#stitch is deprecated")]
+        |> assertWarnMany [ DeprecationWarning
+                            DeprecationWarning ] [
+            Some("#stitch is deprecated")
+            Some("#stitch is deprecated")
+           ]
         // test the deprecation warning deduplication mechanism
         |> snd
         |> deduplicateMessages
@@ -163,44 +176,97 @@ do
     gBAR
 end
 gBAZ"""
-        
+
         // outer assemblies shouldn't reprint their pragma context as that isn't idiomatic GSL
         sourceCompareTest stuffPragmasPipeline source source
 
-        let reducedAst = returnOrFail (compile stuffPragmasPipeline (source |> GslSourceCode))
+        let reducedAst =
+            returnOrFail (compile stuffPragmasPipeline (source |> GslSourceCode))
 
         // we need to dive into the AST to check this
-        let namePrag = Pragma(nodeWrap {definition=PragmaTypes.namePragmaDef; args=["foobar"]})
-        let namePrag2 = Pragma(nodeWrap {definition=PragmaTypes.namePragmaDef; args=["shouldOnlyBeOnInner"]})
-        let seedPrag = Pragma(nodeWrap {definition=PragmaTypes.getLegalPragmas().TryFind("seed").Value; args=["123"]})
-        let seedPrag2 = Pragma(nodeWrap {definition=PragmaTypes.getLegalPragmas().TryFind("seed").Value; args=["456"]})
+        let namePrag =
+            Pragma
+                (nodeWrap
+                    { definition = PragmaTypes.namePragmaDef
+                      args = [ "foobar" ] })
+
+        let namePrag2 =
+            Pragma
+                (nodeWrap
+                    { definition = PragmaTypes.namePragmaDef
+                      args = [ "shouldOnlyBeOnInner" ] })
+
+        let seedPrag =
+            Pragma
+                (nodeWrap
+                    { definition =
+                          PragmaTypes.getLegalPragmas().TryFind("seed")
+                              .Value
+                      args = [ "123" ] })
+
+        let seedPrag2 =
+            Pragma
+                (nodeWrap
+                    { definition =
+                          PragmaTypes.getLegalPragmas().TryFind("seed")
+                              .Value
+                      args = [ "456" ] })
+
         let barGenePart = basePartWrap (createGenePart "gBAR")
         let bazGenePart = basePartWrap (createGenePart "gBAZ")
-        let fooAssembly = assemble [fooGenePart]
-        let barAssembly = assemble [barGenePart]
-        let bazAssembly = assemble [bazGenePart]
-        let fooAssemblyWithPragmas = addPragsToPart [namePrag; seedPrag] fooAssembly
-        let barAssemblyWithPragmas = addPragsToPart [namePrag2; seedPrag2] barAssembly
-        let bazAssemblyWithPragmas = addPragsToPart [seedPrag] bazAssembly
-       
-        let innerBlock = blockify [seedPrag2; barAssemblyWithPragmas]
+        let fooAssembly = assemble [ fooGenePart ]
+        let barAssembly = assemble [ barGenePart ]
+        let bazAssembly = assemble [ bazGenePart ]
+
+        let fooAssemblyWithPragmas =
+            addPragsToPart [ namePrag; seedPrag ] fooAssembly
+
+        let barAssemblyWithPragmas =
+            addPragsToPart [ namePrag2; seedPrag2 ] barAssembly
+
+        let bazAssemblyWithPragmas = addPragsToPart [ seedPrag ] bazAssembly
+
+        let innerBlock =
+            blockify [ seedPrag2
+                       barAssemblyWithPragmas ]
+
         assertTreesEqual
-            (treeify [namePrag; seedPrag; fooAssemblyWithPragmas; namePrag2; innerBlock; bazAssemblyWithPragmas]) reducedAst
+            (treeify [ namePrag
+                       seedPrag
+                       fooAssemblyWithPragmas
+                       namePrag2
+                       innerBlock
+                       bazAssemblyWithPragmas ])
+            reducedAst
 
     [<Test>]
     member x.TestNoCollisions() =
         // A pragma collision is almost impossible to create in source code, which is a good sign I guess.
         // Create an artificial AST to make sure the error is triggered.
         let source = "#name foobar\ngFOO; gBAR"
-        let tree = compile stuffPragmasPipeline (GslSourceCode(source)) |> returnOrFail
+
+        let tree =
+            compile stuffPragmasPipeline (GslSourceCode(source))
+            |> returnOrFail
         // now replace the outer name pragma and make sure the second pass triggers the collision error
         match tree.wrappedNode with
-        | Block({x=[Pragma(npw); assem]; positions=p}) -> 
-            let newNamePrag = Pragma({npw with x = {npw.x with args = ["differentName"]}})
-            Block({x=[newNamePrag; assem]; positions=p})
+        | Block ({ x = [ Pragma (npw); assem ]
+                   positions = p }) ->
+            let newNamePrag =
+                Pragma
+                    ({ npw with
+                           x =
+                               { npw.x with
+                                     args = [ "differentName" ] } })
+
+            Block
+                ({ x = [ newNamePrag; assem ]
+                   positions = p })
         | _ -> failwith "Didn't unwrap correctly."
-        |> AstTreeHead |> stuffPragmasPipeline
+        |> AstTreeHead
+        |> stuffPragmasPipeline
         |> assertFail
-                PragmaError
-                (Some("The pragma #name is set in this assembly as well as in the enclosing environment with conflicting values."))
+            PragmaError
+               (Some
+                   ("The pragma #name is set in this assembly as well as in the enclosing environment with conflicting values."))
         |> ignore

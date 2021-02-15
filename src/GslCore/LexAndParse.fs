@@ -1,12 +1,13 @@
 ﻿/// Entry points for lexing and parsing.
-module LexAndParse
-open Constants
+module GslCore.LexAndParse
+
+open GslCore.Constants
 open GslParser
 open GslLexer
 open FSharp.Text.Lexing
 open Amyris.ErrorHandling
-open AstTypes
-open AstErrorHandling
+open GslCore.AstTypes
+open GslCore.AstErrorHandling
 open System.Diagnostics
 open System
 
@@ -15,22 +16,25 @@ open System
 let createGslTokenizer verbose =
     let currentTokenizer = ref Main
     let setTokenizer mode = currentTokenizer := mode
+
     let tokenize verbose (buf: LexBuffer<_>) =
         if verbose then
             // show progress tokenizing
             if buf.EndPos.Line % 1000 = 0 then
                 printf "%d ... " buf.EndPos.Line
                 Console.Out.Flush()
+
         let tokenizer =
             match !currentTokenizer with
             | Main -> main setTokenizer
             | PragmaLine -> pragmaLine setTokenizer
             | InlinePragma -> inlinePragmaParts setTokenizer
             | InlineRoughage -> roughage setTokenizer
+
         let t = tokenizer buf
-        if verbose then
-            printfn "%A" t
+        if verbose then printfn "%A" t
         t
+
     tokenize verbose
 
 /// Just perform lexing.  For testing/debugging purposes.
@@ -39,14 +43,16 @@ let lexTest verbose inputText =
 
     let tokenizer = createGslTokenizer verbose
 
-    let rec nextToken() =
+    let rec nextToken () =
         let t = tokenizer lexbuf
 
-        if t = EOF then ()
+        if t = EOF then
+            ()
         else
             printf "%A\n" t
-            nextToken()
-    nextToken()
+            nextToken ()
+
+    nextToken ()
 
 let private doLexParse verbose inBuffer =
     if verbose then printfn "Starting tree parse...\n"
@@ -60,7 +66,7 @@ let private doLexParse verbose inBuffer =
 // =====================
 
 /// Produce a string representation of a parser token ID.
-let private tokenIdToString t = 
+let private tokenIdToString t =
     match t with
     | TOKEN_LPAREN -> "("
     | TOKEN_RPAREN -> ")"
@@ -93,31 +99,31 @@ let private tokenIdToString t =
     | TOKEN_COMMA -> ","
     | TOKEN_HYPHEN -> "-"
     | TOKEN_OPENSQBRACKET -> "["
-    | TOKEN_DOLLAR-> "$"
-    | TOKEN_CLOSESQBRACKET-> "]"
-    | TOKEN_SEMICOLON-> ";"
-    | TOKEN_MARKER-> "###"
-    | TOKEN_TILDE-> "~"
-    | TOKEN_VARIABLE-> "variable"
-    | TOKEN_PNAME-> "pragma name"
-    | TOKEN_PVALUE-> "pragma value"
-    | TOKEN_DNAMUTATION-> "dna mutation"
-    | TOKEN_AAMUTATION-> "amino acid mutation"
-    | TOKEN_LINKER-> "linker"
-    | TOKEN_QUOTED_STRING-> "quoted string"
-    | TOKEN_DOCSTRING-> "docstring"
-    | TOKEN_STRING-> "string"
-    | TOKEN_INT-> "int"
-    | TOKEN_ID-> "identifier"
+    | TOKEN_DOLLAR -> "$"
+    | TOKEN_CLOSESQBRACKET -> "]"
+    | TOKEN_SEMICOLON -> ";"
+    | TOKEN_MARKER -> "###"
+    | TOKEN_TILDE -> "~"
+    | TOKEN_VARIABLE -> "variable"
+    | TOKEN_PNAME -> "pragma name"
+    | TOKEN_PVALUE -> "pragma value"
+    | TOKEN_DNAMUTATION -> "dna mutation"
+    | TOKEN_AAMUTATION -> "amino acid mutation"
+    | TOKEN_LINKER -> "linker"
+    | TOKEN_QUOTED_STRING -> "quoted string"
+    | TOKEN_DOCSTRING -> "docstring"
+    | TOKEN_STRING -> "string"
+    | TOKEN_INT -> "int"
+    | TOKEN_ID -> "identifier"
     | TOKEN_end_of_input -> "EOF"
     | TOKEN_error -> "error token"
 
 let private tokenTagToString idx =
-    idx
-    |> tokenTagToTokenId
-    |> tokenIdToString
+    idx |> tokenTagToTokenId |> tokenIdToString
 
-let private ignoredTokens = [TOKEN_error; TOKEN_end_of_input] |> Set.ofList
+let private ignoredTokens =
+    [ TOKEN_error; TOKEN_end_of_input ] |> Set.ofList
+
 let private acceptedToken t = not (ignoredTokens.Contains(t))
 
 
@@ -137,32 +143,37 @@ let private createErrorNode (inBuffer: LexBuffer<_>) =
     // the end position of the buffer is pretty much always one column further than the end of
     // the token of interest
     let shiftedPos =
-        if inBuffer.EndPos.Column > 0 then inBuffer.EndPos.ShiftColumnBy(-1)
-        else inBuffer.EndPos
-    let pos = {s = shiftedPos; e = shiftedPos}
-    ParseError({x=""; positions=[pos]})
+        if inBuffer.EndPos.Column > 0 then inBuffer.EndPos.ShiftColumnBy(-1) else inBuffer.EndPos
+
+    let pos = { s = shiftedPos; e = shiftedPos }
+    ParseError({ x = ""; positions = [ pos ] })
 
 /// If exn is a GslParseError, format it.
 /// Otherwise, return None.
 let private parseExceptionToError (errNode: AstNode) exn =
     match exn with
-    | GslParseError(context) -> 
+    | GslParseError (context) ->
         let tokenName: string option =
             context.currentToken
-            |> Option.map (unbox >> tagOfToken >> tokenTagToTokenId >> tokenIdToString)
+            |> Option.map
+                (unbox
+                 >> tagOfToken
+                 >> tokenTagToTokenId
+                 >> tokenIdToString)
+
         let msg = context.message
 
         let fullMsg =
             match tokenName with
-            | Some(t) -> sprintf "%s; found '%s', expected one of [%s]." msg t (formatTokens context)
+            | Some (t) -> sprintf "%s; found '%s', expected one of [%s]." msg t (formatTokens context)
             | None -> msg
 
-        Some(
-            {msg = fullMsg;
-             sourcePosition = errNode.pos
-             node = errNode;
-             msgType = ParserError;
-             stackTrace = Some(StackTrace(exn))})
+        Some
+            ({ msg = fullMsg
+               sourcePosition = errNode.pos
+               node = errNode
+               msgType = ParserError
+               stackTrace = Some(StackTrace(exn)) })
     | _ -> None
 
 let lexAndParse verbose (source: GslSourceCode) =
@@ -170,8 +181,9 @@ let lexAndParse verbose (source: GslSourceCode) =
 
     let convertException exn =
         let errNode = createErrorNode inBuffer
+
         match parseExceptionToError errNode exn with
-        | Some(msg) -> msg
+        | Some (msg) -> msg
         | None -> exceptionToError ParserError errNode exn
 
     let doLexParseCaptureException =

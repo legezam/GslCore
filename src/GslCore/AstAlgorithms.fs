@@ -1,12 +1,13 @@
 ﻿/// Generic algorithms for operating on ASTs.
-module AstAlgorithms
-open AstTypes
-open AstErrorHandling
+module GslCore.AstAlgorithms
+
+open GslCore.AstTypes
+open GslCore.AstErrorHandling
 open System.Text
 open Amyris.ErrorHandling
-open Constants
-open Utils
-open PragmaTypes
+open GslCore.Constants
+open GslCore.Utils
+open GslCore.PragmaTypes
 open FSharp.Collections.ParallelSeq
 
 
@@ -16,9 +17,9 @@ open FSharp.Collections.ParallelSeq
 
 /// Keep track of state while printing.
 type PrintState =
-   {indentLevel: int;
-    insideAssembly: bool;
-    quoteStrings: bool}
+    { indentLevel: int
+      insideAssembly: bool
+      quoteStrings: bool }
 
 /// Decompile an AST back into GSL source code.
 let decompile tree =
@@ -32,20 +33,24 @@ let decompile tree =
     let append (s: string) = sb.Append(s) |> ignore
     let appendf fmt s = append (sprintf fmt s)
     let appendff fmt s0 s1 = append (sprintf fmt s0 s1)
-    let newline() = append "\n"
+    let newline () = append "\n"
 
     // default state for decompiling a top-level block
     let initialPrintState =
-        {indentLevel = 0; insideAssembly = false; quoteStrings = true}
+        { indentLevel = 0
+          insideAssembly = false
+          quoteStrings = true }
 
     /// Recursively print an entire AST.
     /// TargetIndent is the level of block indentation we are currently sitting at.
     let rec _print node state =
         /// Indent to one level above the current indentation level.
         /// Useful for rewriting docstrings as they live inside parts rather than blocks.
-        let minorIndent() = append (String.replicate (max 0 (state.indentLevel-1)) INDENT)
+        let minorIndent () =
+            append (String.replicate (max 0 (state.indentLevel - 1)) INDENT)
         /// Indent to the full current level.
-        let fullIndent() = append (String.replicate state.indentLevel INDENT)
+        let fullIndent () =
+            append (String.replicate state.indentLevel INDENT)
 
         let printSemicolonSeparatedList (elements: AstNode list) =
             let nElem = elements.Length
@@ -60,51 +65,57 @@ let decompile tree =
         | BookkeepingNode _ -> ()
         | Splice _ -> failwithf "Cannot decompile a bootstrap splice marker.  The tree must be spliced first."
         // leaf nodes are easy
-        | Int({x=i; positions=_}) -> appendf "%d" i
-        | Float({x=i; positions=_}) -> appendf "%f" i
-        | String({x=i; positions=_}) ->
-            if state.quoteStrings then appendf "\"%s\"" i
-            else append i
-        | Docstring(dw) ->
-            appendf "///%s" dw.x
-        | TypedVariable({x=(name, _); positions=_}) -> appendf "&%s" name
-        | TypedValue({x=(_, inner); positions=_}) -> _print inner state
-        | VariableBinding({x=vb; positions=_}) ->
+        | Int ({ x = i; positions = _ }) -> appendf "%d" i
+        | Float ({ x = i; positions = _ }) -> appendf "%f" i
+        | String ({ x = i; positions = _ }) -> if state.quoteStrings then appendf "\"%s\"" i else append i
+        | Docstring (dw) -> appendf "///%s" dw.x
+        | TypedVariable ({ x = (name, _); positions = _ }) -> appendf "&%s" name
+        | TypedValue ({ x = (_, inner); positions = _ }) -> _print inner state
+        | VariableBinding ({ x = vb; positions = _ }) ->
             appendf "let %s = " vb.name
             _print vb.value state
-        | BinaryOperation({x=binop; positions=_}) ->
+        | BinaryOperation ({ x = binop; positions = _ }) ->
             // Explicitly group every binary in parens to keep things unambiguous.
             append "("
             _print binop.left state
-            append (match binop.op with | Add -> " + " | Subtract -> " - " | Multiply -> " * " | Divide -> " / ")
+
+            append
+                (match binop.op with
+                 | Add -> " + "
+                 | Subtract -> " - "
+                 | Multiply -> " * "
+                 | Divide -> " / ")
+
             _print binop.right state
             append ")"
-        | Negation({x=inner; positions=_}) ->
+        | Negation ({ x = inner; positions = _ }) ->
             append "-"
             _print inner state
         // basic parts
-        | Marker(_) -> append "###"
-        | PartId({x=name; positions=_}) -> appendf "@%s" name
-        | InlineDna({x=dna; positions=_}) -> appendf "/%s/" dna
-        | InlineProtein({x=pseq; positions=_}) -> appendf "/$%s/" pseq
-        | HetBlock(_) -> append "~"
-        | Gene({x=pg; positions=_}) ->
+        | Marker _ -> append "###"
+        | PartId ({ x = name; positions = _ }) -> appendf "@%s" name
+        | InlineDna ({ x = dna; positions = _ }) -> appendf "/%s/" dna
+        | InlineProtein ({ x = pseq; positions = _ }) -> appendf "/$%s/" pseq
+        | HetBlock _ -> append "~"
+        | Gene ({ x = pg; positions = _ }) ->
             match pg.linker with
-            | Some({l1=l1; l2=l2; orient=o}) ->
-                append (sprintf "%s-%s-%s-%s" l1 l2 o pg.gene)
+            | Some ({ l1 = l1; l2 = l2; orient = o }) -> append (sprintf "%s-%s-%s-%s" l1 l2 o pg.gene)
             | None -> append pg.gene
         // part mods
-        | ParseRelPos({x=rp; positions=_}) ->
+        | ParseRelPos ({ x = rp; positions = _ }) ->
             _print rp.i state
+
             match rp.qualifier with
-            | Some(rpq) -> append (relPosQualifierToString rpq)
+            | Some (rpq) -> append (relPosQualifierToString rpq)
             | None -> ()
-        | RelPos({x=rp; positions=_}) ->
+        | RelPos ({ x = rp; positions = _ }) ->
             appendff
                 "%d%s"
                 rp.x
-                (match rp.relTo with | FivePrime -> "S" | ThreePrime -> "E")
-        | Slice({x=s; positions=_}) ->
+                (match rp.relTo with
+                 | FivePrime -> "S"
+                 | ThreePrime -> "E")
+        | Slice ({ x = s; positions = _ }) ->
             append "["
             if s.lApprox then append "~"
             _print s.left state
@@ -112,52 +123,61 @@ let decompile tree =
             if s.rApprox then append "~"
             _print s.right state
             append "]"
-        | Mutation({x=mut; positions=_}) ->
-            match mut.mType with | AA -> append "$" | NT -> append "*"
+        | Mutation ({ x = mut; positions = _ }) ->
+            match mut.mType with
+            | AA -> append "$"
+            | NT -> append "*"
+
             append (sprintf "%c%d%c" mut.f mut.loc mut.t)
-        | DotMod({x=s; positions=_}) -> appendf ".%s" s
-        | ParsePragma({x=pp; positions=_}) ->
+        | DotMod ({ x = s; positions = _ }) -> appendf ".%s" s
+        | ParsePragma ({ x = pp; positions = _ }) ->
             appendf "#%s" pp.name
+
             for v in pp.values do
                 append " "
-                _print v {state with quoteStrings = false} // don't quote string pragma values
-        | Pragma({x=p; positions=_}) ->
+                _print v { state with quoteStrings = false } // don't quote string pragma values
+        | Pragma ({ x = p; positions = _ }) ->
             appendf "#%s" p.definition.name
+
             for arg in p.args do
                 appendf " %s" arg
-        | FunctionDef({x=fd; positions=_}) ->
+        | FunctionDef ({ x = fd; positions = _ }) ->
             // declaration line
             appendff "let %s(%s) =" fd.name (String.concat ", " fd.argNames)
-            newline()
+            newline ()
             // print the enclosed block
             _print fd.body state
-            minorIndent()
+            minorIndent ()
             append "end"
-        | FunctionCall({x=fc; positions=_}) ->
+        | FunctionCall ({ x = fc; positions = _ }) ->
             appendf "%s(" fc.name
             // the args are nodes, so recurse and add separators
             let rec printArgs args =
-                let stateInner = {state with insideAssembly = true}
+                let stateInner = { state with insideAssembly = true }
+
                 match args with
                 | [] -> ()
-                | [a] -> _print a stateInner
-                | hd::tl ->
+                | [ a ] -> _print a stateInner
+                | hd :: tl ->
                     _print hd stateInner
                     append ", "
                     printArgs tl
+
             printArgs fc.args
             append ")"
-        | Part({x=p; positions=_}) ->
+        | Part ({ x = p; positions = _ }) ->
             // Print the base part.
             // Need to make sure subassemblies are grouped in parens.
             // TODO: decide what we want to do about assemblies with only one part.
             let enclose =
                 state.insideAssembly
-                && match p.basePart with | Assembly(_) -> true | _ -> false
+                && match p.basePart with
+                   | Assembly _ -> true
+                   | _ -> false
 
             // Any deeper recursion is inside a part and ought to enclose its assemblies in parens.
             // Inner parts should also emit pragmas.
-            let revisedState = {state with insideAssembly = true}
+            let revisedState = { state with insideAssembly = true }
 
             if not p.fwd then append "!"
 
@@ -172,36 +192,40 @@ let decompile tree =
             if state.insideAssembly && not (p.pragmas.IsEmpty) then
                 append " {"
                 let nPragmas = p.pragmas.Length
+
                 p.pragmas
                 |> List.iteri (fun i prag ->
                     _print prag revisedState
-                    if i < nPragmas-1 then append " ")
+                    if i < nPragmas - 1 then append " ")
+
                 append "}"
-        | Assembly({x=parts; positions=_}) ->
+        | Assembly ({ x = parts; positions = _ }) ->
             // print all the parts in the assembly separated by semicolons
             printSemicolonSeparatedList parts
-        | L2Id(lw) -> append lw.x.String
-        | L2Element(lw) ->
+        | L2Id (lw) -> append lw.x.String
+        | L2Element (lw) ->
             _print lw.x.promoter state
             append ">"
             _print lw.x.target state
-        | L2Expression(lw) ->
+        | L2Expression (lw) ->
             let nParts = lw.x.parts.Length
+
             match lw.x.locus with
-            | Some(l) ->
+            | Some (l) ->
                 _print l state
                 append "^"
                 if nParts > 0 then append " ; "
             | None -> ()
+
             printSemicolonSeparatedList lw.x.parts
-        | Roughage({x=rLine; positions=_}) ->
-            // decompile lines of rougage as individual blocks 
+        | Roughage ({ x = rLine; positions = _ }) ->
+            // decompile lines of rougage as individual blocks
             append "<@ "
 
-            let header = 
+            let header =
                 match rLine.locus, rLine.marker with
-                | Some(lw), Some(mw) -> [sprintf "%s^[%s]" lw.x.String mw.x]
-                | Some(lw), None -> [sprintf "%s^" lw.x.String]
+                | Some (lw), Some (mw) -> [ sprintf "%s^[%s]" lw.x.String mw.x ]
+                | Some (lw), None -> [ sprintf "%s^" lw.x.String ]
                 | None, _ -> []
 
             // Now individual elements
@@ -209,42 +233,52 @@ let decompile tree =
                 rLine.parts
                 |> List.map (fun rew ->
                     let re = rew.x
+
                     let elementHead =
                         let pt1 = re.pt1
+
                         match re.pt2 with
-                        | Some(pt2) ->
-                            sprintf "%s-%s" (pt1.x.ToString(RoughageRev)) (pt2.x.ToString(RoughageFwd))
-                        | None ->
-                            pt1.x.ToString(RoughageFwd)
-                    let elementTail = match re.marker with Some(mw) -> sprintf "[%s]" mw.x | None -> ""
-                    elementHead + elementTail
-                )
-            append (String.concat "::" (header@tail))
+                        | Some (pt2) -> sprintf "%s-%s" (pt1.x.ToString(RoughageRev)) (pt2.x.ToString(RoughageFwd))
+                        | None -> pt1.x.ToString(RoughageFwd)
+
+                    let elementTail =
+                        match re.marker with
+                        | Some (mw) -> sprintf "[%s]" mw.x
+                        | None -> ""
+
+                    elementHead + elementTail)
+
+            append (String.concat "::" (header @ tail))
             append " @>"
-        | Block({x=lines; positions=_}) ->
+        | Block ({ x = lines; positions = _ }) ->
             for l in lines do
-                let printInnerLine() = _print l {state with indentLevel = state.indentLevel + 1}
+                let printInnerLine () =
+                    _print
+                        l
+                        { state with
+                              indentLevel = state.indentLevel + 1 }
+
                 match l with
                 | BookkeepingNode _ -> () // ignore bookkeeping nodes in blocks
-                | Block(_) ->
+                | Block _ ->
                     // we need to wrap an inner block in do/end
                     // we also delegate newlines and indentation to the inner block
-                    fullIndent()
+                    fullIndent ()
                     append "do"
-                    newline()
+                    newline ()
 
-                    printInnerLine()
+                    printInnerLine ()
 
-                    fullIndent()
+                    fullIndent ()
                     append "end"
-                    newline()
+                    newline ()
                 | _ ->
                     // regular lines need to be indented and have newlines added after them
-                    fullIndent()
-                    printInnerLine()
-                    newline()
+                    fullIndent ()
+                    printInnerLine ()
+                    newline ()
 
-        | ParseError(x) -> failwithf "Parse error found during AST code generation: %A" x
+        | ParseError (x) -> failwithf "Parse error found during AST code generation: %A" x
         | x -> nonExhaustiveError x
 
     _print tree initialPrintState
@@ -260,50 +294,67 @@ let children node =
     match node with
     | Leaf _ -> Seq.empty
     // variable binding
-    | VariableBinding(vb) -> Seq.singleton vb.x.value
+    | VariableBinding (vb) -> Seq.singleton vb.x.value
     // typed value
-    | TypedValue({x = (_, n); positions = _}) -> Seq.singleton n
+    | TypedValue ({ x = (_, n); positions = _ }) -> Seq.singleton n
     // Simple operations on values
-    | BinaryOperation({x = binOp; positions = _}) -> seq {
-        yield binOp.left
-        yield binOp.right }
-    | Negation({x = n; positions = _}) -> Seq.singleton n
+    | BinaryOperation ({ x = binOp; positions = _ }) ->
+        seq {
+            yield binOp.left
+            yield binOp.right
+        }
+    | Negation ({ x = n; positions = _ }) -> Seq.singleton n
     // Slicing
-    | ParseRelPos({x = {i = n; qualifier = _;}; positions = _}) -> Seq.singleton n
-    | Slice({x = slice; positions = _}) -> seq {
-        yield slice.left
-        yield slice.right }
+    | ParseRelPos ({ x = { i = n; qualifier = _ }
+                     positions = _ }) -> Seq.singleton n
+    | Slice ({ x = slice; positions = _ }) ->
+        seq {
+            yield slice.left
+            yield slice.right
+        }
     // generic part with mods, pragmas, direction
-    | Part({x = part; positions = _}) -> seq {
-        yield part.basePart
-        yield! Seq.ofList part.mods
-        yield! Seq.ofList part.pragmas }
+    | Part ({ x = part; positions = _ }) ->
+        seq {
+            yield part.basePart
+            yield! Seq.ofList part.mods
+            yield! Seq.ofList part.pragmas
+        }
     // L2 elements
-    | L2Element(lw) -> seq {
-        yield lw.x.promoter
-        yield lw.x.target }
-    | L2Expression(lw) -> seq {
-        match lw.x.locus with | Some(l) -> yield l | None -> ()
-        yield! Seq.ofList lw.x.parts }
+    | L2Element (lw) ->
+        seq {
+            yield lw.x.promoter
+            yield lw.x.target
+        }
+    | L2Expression (lw) ->
+        seq {
+            match lw.x.locus with
+            | Some (l) -> yield l
+            | None -> ()
+
+            yield! Seq.ofList lw.x.parts
+        }
     // pragmas
-    | ParsePragma({x = pp; positions = _}) -> Seq.ofList pp.values
+    | ParsePragma ({ x = pp; positions = _ }) -> Seq.ofList pp.values
     // Block of code
-    | Block({x = nodes; positions = _}) -> Seq.ofList nodes
+    | Block ({ x = nodes; positions = _ }) -> Seq.ofList nodes
     // Function definition and call
-    | FunctionDef({x = f; positions = _}) -> Seq.singleton f.body
-    | FunctionCall({x = fc; positions = _}) -> Seq.ofList fc.args
-    | Assembly({x = parts; positions = _}) -> Seq.ofList parts
+    | FunctionDef ({ x = f; positions = _ }) -> Seq.singleton f.body
+    | FunctionCall ({ x = fc; positions = _ }) -> Seq.ofList fc.args
+    | Assembly ({ x = parts; positions = _ }) -> Seq.ofList parts
     | x -> nonExhaustiveError x
 
 ///Visit every AST node in the tree starting at the top and returning children in depth-first
 ///left-to-right order.
 let traverse (tree: AstTreeHead) =
-    let rec _traverse node = seq {
-        // yield this node
-        yield node
-        // recurse into its children
-        for child in children node do
-            yield! _traverse child }
+    let rec _traverse node =
+        seq {
+            // yield this node
+            yield node
+            // recurse into its children
+            for child in children node do
+                yield! _traverse child
+        }
+
     _traverse tree.wrappedNode
 
 // =========================
@@ -314,20 +365,24 @@ type NodeTransformResult = Result<AstNode, AstMessage>
 
 type TreeTransformResult = Result<AstTreeHead, AstMessage>
 
-type FoldMapDirection = | TopDown | BottomUp
+type FoldMapDirection =
+    | TopDown
+    | BottomUp
 
 ///<summary>
 /// State update functions can update the state before the node transformation, using the original
 /// node and the incoming state, and they can operate again on pre-transformation node and the
 /// state resulting from the pre-transformation update.  Virtually all transformations should be
 /// exclusively PreTransform with no PostTransform mode, as the behavior of foldmap in this mode
-/// ensures that natual block scoping rules apply.  However, transient pragmas have challenging 
+/// ensures that natual block scoping rules apply.  However, transient pragmas have challenging
 /// semantics and require special treatment, so the pragma collection function requires both of
 /// these modes to ensure that blocks capture the transient pragma state, leaving a clean slate
 /// in the outer scope.  Note that state updates ALWAYS operate on the pre-transformation node
 /// and NEVER the post-transformation node.
 ///</summary>
-type StateUpdateMode = | PreTransform | PostTransform
+type StateUpdateMode =
+    | PreTransform
+    | PostTransform
 
 /// Create a state update function that only ever operates in PreTransform mode.
 let pretransformOnly f mode s n =
@@ -335,7 +390,9 @@ let pretransformOnly f mode s n =
     | PreTransform -> f s n
     | PostTransform -> s
 
-type FoldmapMode = | Serial | Parallel
+type FoldmapMode =
+    | Serial
+    | Parallel
 
 ///<summary>
 /// Produce a new AST by recursively transforming nodes, keeping track of block-accumulated state.
@@ -356,14 +413,13 @@ type FoldmapMode = | Serial | Parallel
 ///</summary>
 // FIXME: this function really needs a drawing to be clear.  Document this using a graph example.
 // IMPORTANT: please take great care if editing this algorithmn!
-let foldmap
-        mode
-        direction
-        (stateUpdate: StateUpdateMode -> 'S -> AstNode -> 'S)
-        (initialState: 'S)
-        (f: 'S -> AstNode -> NodeTransformResult)
-        (tree: AstTreeHead)
-    : TreeTransformResult =
+let foldmap mode
+            direction
+            (stateUpdate: StateUpdateMode -> 'S -> AstNode -> 'S)
+            (initialState: 'S)
+            (f: 'S -> AstNode -> NodeTransformResult)
+            (tree: AstTreeHead)
+            : TreeTransformResult =
 
     /// Inner recursive call.
     let rec _foldmap s node =
@@ -381,21 +437,34 @@ let foldmap
         // Parts have quite a few children, so break this out as a function for cleanliness.
         let processPart (pw: Node<ParsePart>) =
             let pp = pw.x
+
             tupleResults3
                 (foldDropState pp.basePart)
                 (collect (List.map foldDropState pp.mods))
                 (collect (List.map foldDropState pp.pragmas))
             >>= (fun (bp, mods, prags) ->
-                ok (Part({pw with x = {pp with basePart = bp; mods = mods; pragmas = prags}})))
+                ok
+                    (Part
+                        ({ pw with
+                               x =
+                                   { pp with
+                                         basePart = bp
+                                         mods = mods
+                                         pragmas = prags } })))
 
         // L2 expressions are a bit complicated, so break this out for cleanliness.
         let processL2Expression (lw: Node<L2Expression>) =
             let l2e = lw.x
-            tupleResults
-                (l2e.locus |> optionalResult foldDropState)
-                (collect (List.map foldDropState l2e.parts))
+
+            tupleResults (l2e.locus |> optionalResult foldDropState) (collect (List.map foldDropState l2e.parts))
             >>= (fun (locus, parts) ->
-                ok (L2Expression(({lw with x = {l2e with locus = locus; parts = parts}}))))
+                ok
+                    (L2Expression
+                        (({ lw with
+                                x =
+                                    { l2e with
+                                          locus = locus
+                                          parts = parts } }))))
 
         ///<summary>
         /// Here is the tricky business of ensuring the state accumulates over a block but resets
@@ -408,13 +477,13 @@ let foldmap
             /// The resulting list of nodes needs to be reversed.
             let foldAndAccum (s, transformedNodes) n =
                 let newState, transformedNode = _foldmap s n
-                (newState, transformedNode::transformedNodes)
+                (newState, transformedNode :: transformedNodes)
 
             // The _ on the line below drops the state accumulated over the block.
             let (_, newLineResults) = List.fold foldAndAccum (state, []) bw.x
             // merge the new line results into one result
             collect (Seq.rev newLineResults)
-            >>= (fun newLines -> ok (Block({bw with x = newLines})))
+            >>= (fun newLines -> ok (Block({ bw with x = newLines })))
 
         /// Performs processing of each node in a block in parallel, with the same semantics as serial.
         let processBlockParallel (bw: Node<AstNode list>) =
@@ -427,11 +496,11 @@ let foldmap
 
             let statesForNodes =
                 nodeArray
-                |> Array.fold
-                    (fun inputStates n ->
-                        let outputState = computeStateForNextNode (List.head inputStates) n
-                        outputState::inputStates)
-                    [state]
+                |> Array.fold (fun inputStates n ->
+                    let outputState =
+                        computeStateForNextNode (List.head inputStates) n
+
+                    outputState :: inputStates) [ state ]
                 |> List.tail // we don't need the output from the last node
                 |> List.rev
                 |> Array.ofList
@@ -440,76 +509,108 @@ let foldmap
 
             let nCores = System.Environment.ProcessorCount
             // leave one for the OS, make sure at least 1!
-            let useNCores = nCores - 1 |> max 1 
+            let useNCores = nCores - 1 |> max 1
 
             Array.zip statesForNodes nodeArray
-            |> PSeq.map (fun (inputState, n) ->
-                _foldmap inputState n |> snd)
+            |> PSeq.map (fun (inputState, n) -> _foldmap inputState n |> snd)
             |> PSeq.withDegreeOfParallelism useNCores
             |> PSeq.toArray
             |> collect
-            >>= (fun newLines -> ok (Block({bw with x = newLines})))
+            >>= (fun newLines -> ok (Block({ bw with x = newLines })))
 
         /// Recursive into the children of a node.
         let transformChildren n =
             // recurse into children of the revised node
             match n with
             | Leaf n -> ok n // leaf nodes need no recursion
-            | VariableBinding(b) ->
+            | VariableBinding (b) ->
                 foldDropState b.x.value
-                >>= (fun newInner -> ok (VariableBinding({b with x = {b.x with value = newInner}})))
-            | TypedValue(tv) -> 
+                >>= (fun newInner ->
+                    ok
+                        (VariableBinding
+                            ({ b with
+                                   x = { b.x with value = newInner } })))
+            | TypedValue (tv) ->
                 let t, v = tv.x
+
                 foldDropState v
-                >>= (fun newInner -> ok (TypedValue({tv with x = (t, newInner)})))
-            | BinaryOperation(bow) -> 
+                >>= (fun newInner -> ok (TypedValue({ tv with x = (t, newInner) })))
+            | BinaryOperation (bow) ->
                 tupleResults (foldDropState bow.x.left) (foldDropState bow.x.right)
                 >>= (fun (newLeft, newRight) ->
-                    ok (BinaryOperation({bow with x={bow.x with left = newLeft; right = newRight}})))
-            | Negation(nw) ->
+                    ok
+                        (BinaryOperation
+                            ({ bow with
+                                   x =
+                                       { bow.x with
+                                             left = newLeft
+                                             right = newRight } })))
+            | Negation (nw) ->
                 foldDropState nw.x
-                >>= (fun n -> ok (Negation({nw with x=n})))
+                >>= (fun n -> ok (Negation({ nw with x = n })))
             // Slicing
-            | ParseRelPos(rpw) ->
+            | ParseRelPos (rpw) ->
                 foldDropState rpw.x.i
-                >>= (fun n -> ok (ParseRelPos({rpw with x={rpw.x with i = n}})))
-            | Slice(sw) ->
+                >>= (fun n -> ok (ParseRelPos({ rpw with x = { rpw.x with i = n } })))
+            | Slice (sw) ->
                 tupleResults (foldDropState sw.x.left) (foldDropState sw.x.right)
                 >>= (fun (newLeft, newRight) ->
-                    ok (Slice({sw with x={sw.x with left = newLeft; right = newRight}})))
-            | Part(pw) -> processPart pw
-            | L2Element(lw) ->
+                    ok
+                        (Slice
+                            ({ sw with
+                                   x =
+                                       { sw.x with
+                                             left = newLeft
+                                             right = newRight } })))
+            | Part (pw) -> processPart pw
+            | L2Element (lw) ->
                 tupleResults (foldDropState lw.x.promoter) (foldDropState lw.x.target)
                 >>= (fun (newPromoter, newTarget) ->
-                    ok (L2Element({lw with x = {lw.x with promoter = newPromoter; target = newTarget}})))
-            | L2Expression(lw) -> processL2Expression lw
-            | ParsePragma(pw) ->
+                    ok
+                        (L2Element
+                            ({ lw with
+                                   x =
+                                       { lw.x with
+                                             promoter = newPromoter
+                                             target = newTarget } })))
+            | L2Expression (lw) -> processL2Expression lw
+            | ParsePragma (pw) ->
                 collect (List.map foldDropState pw.x.values)
-                >>= (fun newVals -> ok (ParsePragma({pw with x = {pw.x with values = newVals}})))
-            | Block(bw) ->
+                >>= (fun newVals ->
+                    ok
+                        (ParsePragma
+                            ({ pw with
+                                   x = { pw.x with values = newVals } })))
+            | Block (bw) ->
                 match mode with
                 | Parallel -> processBlockParallel bw
                 | Serial -> processBlock bw
             // Function definition and call
-            | FunctionDef(fdw) ->
+            | FunctionDef (fdw) ->
                 foldDropState fdw.x.body
-                >>= (fun newBody -> ok (FunctionDef({fdw with x={fdw.x with body = newBody}})))
-            | FunctionCall(fcw) ->
+                >>= (fun newBody ->
+                    ok
+                        (FunctionDef
+                            ({ fdw with
+                                   x = { fdw.x with body = newBody } })))
+            | FunctionCall (fcw) ->
                 collect (List.map foldDropState fcw.x.args)
-                >>= (fun newArgs -> ok (FunctionCall({fcw with x = {fcw.x with args = newArgs}})))
-            | Assembly(aw) ->
+                >>= (fun newArgs ->
+                    ok
+                        (FunctionCall
+                            ({ fcw with
+                                   x = { fcw.x with args = newArgs } })))
+            | Assembly (aw) ->
                 collect (List.map foldDropState aw.x)
-                >>= (fun newParts -> ok (Assembly({aw with x = newParts})))
+                >>= (fun newParts -> ok (Assembly({ aw with x = newParts })))
             | x -> nonExhaustiveError x
-        
+
         // depending on the direction switch, either first transform the node and then its children,
         // or transform the children first and then the current node.  This is the difference between
         // rebuilding the tree top-down and bottom-up.
         let transformedTree =
             match direction with
-            | TopDown ->
-                f state node
-                >>= transformChildren
+            | TopDown -> f state node >>= transformChildren
             | BottomUp ->
                 // transform the children of the node
                 transformChildren node
@@ -533,13 +634,14 @@ let foldmap
 /// Bottom-up order should be used when a transformation is going to be decreasing the branching of
 /// some part of the tree, like collapsing binary expressions into a single value.
 ///</summary>
-let map mode direction f tree = foldmap mode direction (fun _ _ _ -> ()) () (fun _ n -> f n) tree
+let map mode direction f tree =
+    foldmap mode direction (fun _ _ _ -> ()) () (fun _ n -> f n) tree
 
 
-type ValidationResult = Result<unit,AstMessage>
+type ValidationResult = Result<unit, AstMessage>
 
 /// Validation success with no warning.
-let good : ValidationResult = ok ()
+let good: ValidationResult = ok ()
 
 
 ///<summary>
@@ -552,8 +654,6 @@ let good : ValidationResult = ok ()
 let validate (f: AstNode -> ValidationResult) tree =
     // we can express this operation using map and by doctoring the inputs and outputs.
     // map requires a function that produces a transformation result.
-    let fPassThru (node: AstNode) =
-        f node
-        >>= (fun _ -> ok node) // splice the node into successful validation result which is always ()
+    let fPassThru (node: AstNode) = f node >>= (fun _ -> ok node) // splice the node into successful validation result which is always ()
 
     map Serial TopDown fPassThru tree

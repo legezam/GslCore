@@ -1,10 +1,11 @@
 %{
 // F# code goes here
 open System
-open AstTypes
-open PragmaTypes
+open GslCore.AstTypes
+open GslCore.PragmaTypes
 open Amyris.Bio
-open Constants
+open GslCore.Constants
+open GslCore
 
 let uppercase (s: string) = s.ToUpper()
 

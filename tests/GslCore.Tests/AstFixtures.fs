@@ -1,16 +1,18 @@
 ﻿/// Fixtures and fixture creation for testing the AST.
-module AstFixtures
+module GslCore.AstFixtures
+
 open Amyris.ErrorHandling
-open AstTypes
-open LexAndParse
-open Constants
+open GslCore.AstTypes
+open GslCore.LexAndParse
+open GslCore.Constants
 
 
 /// Parse text and return the contents of the top-level block.
 /// Raise an exception if this fails.
 let bootstrapParseOnly source =
-    match lexAndParse true (GslSourceCode(source)) with | Ok(AstTreeHead(Block(b)), _) -> b.x
-    
+    match lexAndParse true (GslSourceCode(source)) with
+    | Ok (AstTreeHead (Block (b)), _) -> b.x
+
 
 let wrapInt v = Int(nodeWrap v)
 let wrapFloat v = Float(nodeWrap v)
@@ -27,46 +29,86 @@ let assemble = createAssemblyPart
 
 let addPragsToPart prags a =
     match a with
-    | Part(pw) -> Part({pw with x={pw.x with pragmas = prags}})
+    | Part (pw) ->
+        Part
+            ({ pw with
+                   x = { pw.x with pragmas = prags } })
 
 let variableize name v =
     let t =
         match v with
-        | BinaryOperation(_) -> IntType // right now we only support integer math so this is OK
-        | Int(_) -> IntType
-        | Float(_) -> FloatType
-        | String(_) -> StringType
-        | Part(_) -> PartType
-    VariableBinding(nodeWrap {name=name; varType=t; value=v})
+        | BinaryOperation (_) -> IntType // right now we only support integer math so this is OK
+        | Int (_) -> IntType
+        | Float (_) -> FloatType
+        | String (_) -> StringType
+        | Part (_) -> PartType
+
+    VariableBinding(nodeWrap { name = name; varType = t; value = v })
 
 let functionalize name args bodyLines =
-    let locals = FunctionLocals(nodeWrap {names = args})
-    FunctionDef(nodeWrap {name = name; argNames = args; body = blockify (locals::bodyLines)})
+    let locals =
+        FunctionLocals(nodeWrap { names = args })
+
+    FunctionDef
+        (nodeWrap
+            { name = name
+              argNames = args
+              body = blockify (locals :: bodyLines) })
 
 let emptyBlock = Block(nodeWrap [])
 let fooEqual1 = variableize "foo" (wrapInt 1)
 
-let namePragmaFoo = ParsePragma(nodeWrap {name = "name"; values = [String(nodeWrap "foo")]})
+let namePragmaFoo =
+    ParsePragma
+        (nodeWrap
+            { name = "name"
+              values = [ String(nodeWrap "foo") ] })
 
 
-let createGenePart name = Gene(nodeWrap {gene = name; linker = None})
+let createGenePart name =
+    Gene(nodeWrap { gene = name; linker = None })
 // fixtures and helper functions for parts
 let fooGene = createGenePart "gFOO"
 
-let createPart mods prags basePart = Part(nodeWrap {basePart = basePart; mods = mods; pragmas = prags; fwd = true})
+let createPart mods prags basePart =
+    Part
+        (nodeWrap
+            { basePart = basePart
+              mods = mods
+              pragmas = prags
+              fwd = true })
 
 let basePartWrap = createPart [] []
 
 let fooGenePart = basePartWrap fooGene
 
-let relPosLeft = ParseRelPos(nodeWrap {i = Int(nodeWrap 20); qualifier = None; position = Left})
-let relPosRight = ParseRelPos(nodeWrap {i = Int(nodeWrap 200); qualifier = None; position = Right})
-let testSlice = Slice(nodeWrap {left = relPosLeft; right = relPosRight; lApprox = true; rApprox = true})
+let relPosLeft =
+    ParseRelPos
+        (nodeWrap
+            { i = Int(nodeWrap 20)
+              qualifier = None
+              position = Left })
 
-let fooGeneWithSlice = createPart [testSlice] [] fooGene
+let relPosRight =
+    ParseRelPos
+        (nodeWrap
+            { i = Int(nodeWrap 200)
+              qualifier = None
+              position = Right })
 
-let fooGeneWithPragma = createPart [] [namePragmaFoo] fooGene
+let testSlice =
+    Slice
+        (nodeWrap
+            { left = relPosLeft
+              right = relPosRight
+              lApprox = true
+              rApprox = true })
 
-let partVariable name = basePartWrap (TypedVariable(nodeWrap (name, PartType)))
+let fooGeneWithSlice = createPart [ testSlice ] [] fooGene
+
+let fooGeneWithPragma = createPart [] [ namePragmaFoo ] fooGene
+
+let partVariable name =
+    basePartWrap (TypedVariable(nodeWrap (name, PartType)))
 
 let typedValue t v = TypedValue(nodeWrap (t, v))

@@ -1,7 +1,8 @@
-﻿module RycodExample
+﻿module GslCore.RycodExample
 
 /// Example XMLto train FSharp type provider.  NB: not a valid rycod example, has been simplified for brevity
-type ThumperRycod = FSharp.Data.XmlProvider<"""<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+type ThumperRycod =
+    FSharp.Data.XmlProvider<"""<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
 <ryseComponentRequest d1p1:schemaLocation="http://thumper.amyris.local" xmlns:d1p1="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://thumper.amyris.local">
 <rabitSpec name="gYNG2$C227C.hb" breed="X" upstreamLink="0" downstreamLink="2" direction="FWD" id="R.31277" creator="platt">
 <dnaElementSpec speciesVariant="CENPK2">
@@ -28,7 +29,7 @@ GGACAACATAACCAATAGAAGATGGATCCAAGTTTAGTTTTAGAGCAAACGATACAAGATGTGTCCAACCTCCCATCAGA
 </quickChangeSpec>
 </dnaElementSpec>
 </rabitSpec>
- 
+
  <rabitSpec direction="FWD" name="foo6" upstreamLink="2" breed="PsGsT" downstreamLink="3" creator="parry" id="R.31519">
 <dnaElementSpec speciesVariant="CENPK2">
 <upstreamPrimerSpec>

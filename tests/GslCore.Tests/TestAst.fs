@@ -2,17 +2,17 @@
 
 open NUnit.Framework
 open Amyris.ErrorHandling
-open AstTypes
-open AstErrorHandling
-open AstProcess
-open AstLinting
-open AstFixtures
-open AstAssertions
-open AstAlgorithms
-open Constants
+open GslCore.AstTypes
+open GslCore.AstErrorHandling
+open GslCore.AstProcess
+open GslCore.AstLinting
+open GslCore.AstFixtures
+open GslCore.AstAssertions
+open GslCore.AstAlgorithms
+open GslCore.Constants
 
 [<TestFixture>]
-type TestLinting() = 
+type TestLinting() =
 
     [<Test>]
     member x.TestDetectOldVariableSyntax() =
@@ -27,15 +27,16 @@ type TestLinting() =
         "#push\n#pop"
         |> GslSourceCode
         |> compile linters
-        |> assertFailMany
-            [PragmaError; PragmaError]
-            [Some("#push and #pop have been removed"); Some("#push and #pop have been removed")]
+        |> assertFailMany [ PragmaError; PragmaError ] [
+            Some("#push and #pop have been removed")
+            Some("#push and #pop have been removed")
+           ]
         |> ignore
 
-   
+
 
 [<TestFixture>]
-type TestValidation() = 
+type TestValidation() =
 
     let assertValidationFail msgType msgSnippet op tree =
         (validate op tree)
@@ -46,28 +47,27 @@ type TestValidation() =
         let errorText = "test failure"
         let err = createParseError errorText []
 
-        let tree = treeify [err]
-        let failure = assertValidationFail ParserError (Some errorText) checkParseError tree
+        let tree = treeify [ err ]
+
+        let failure =
+            assertValidationFail ParserError (Some errorText) checkParseError tree
+
         Assert.AreEqual(err, failure.node)
 
     [<Test>]
     member x.NoModsAllowed() =
         let source = GslSourceCode("###[2:20]")
         let tree = lexparse source |> returnOrFail
-        assertValidationFail
-            PartError
-            (Some "Can only apply part mods to Gene or PartId, not Marker")
-            checkMods tree
+
+        assertValidationFail PartError (Some "Can only apply part mods to Gene or PartId, not Marker") checkMods tree
         |> ignore
 
     [<Test>]
     member x.NoModsOnAssemblies() =
         let source = GslSourceCode("(pFOO; gFOO)[2:20]")
         let tree = lexparse source |> returnOrFail
-        assertValidationFail
-            PartError
-            (Some "Can only apply part mods to Gene or PartId, not Assembly")
-            checkMods tree
+
+        assertValidationFail PartError (Some "Can only apply part mods to Gene or PartId, not Assembly") checkMods tree
         |> ignore
 
 [<TestFixture>]
@@ -98,14 +98,15 @@ type TestTransformation() =
         >=> stripFunctions
         >=> resolveVariablesStrict
 
-    let fullVariableResolutionTest = sourceCompareTest variableResolutionPipeline
+    let fullVariableResolutionTest =
+        sourceCompareTest variableResolutionPipeline
 
 
     [<SetUp>]
-    member x.SetUp() = initGlobals()
+    member x.SetUp() = initGlobals ()
 
     [<Test>]
-    member x.TestVariableResolutionBasic() = 
+    member x.TestVariableResolutionBasic() =
         variableTest "let foo = gFOO\n&foo" "let foo = gFOO\ngFOO"
 
     [<Test>]
@@ -116,6 +117,7 @@ let bar(p) =
     &p
     &foo
 end"""
+
         let expectedResolution = """
 let foo = gFOO
 let bar(p) =
@@ -134,9 +136,14 @@ end
 &bar
 &baz
 """
+
         GslSourceCode(source)
         |> compile resolveVariables
-        |> assertFailMany [UnresolvedVariable; UnresolvedVariable] [Some("bar"); Some("baz")]
+        |> assertFailMany [ UnresolvedVariable
+                            UnresolvedVariable ] [
+            Some("bar")
+            Some("baz")
+           ]
         |> ignore
 
     [<Test>]
@@ -156,6 +163,7 @@ let qux(a, b) =
     let local2 = &local1 + &bar + &baz + &local1 + &local0
 end
 """
+
         let expected = """
 let foo = 1
 let bar = (1 + 2)
@@ -185,6 +193,7 @@ let y = 1+1
 let z = (4*10)+7-5
 gHO[&x:&z]
 gHO[&y:~&z]"""
+
         let expected = """
 let x = -12
 let y = 2
@@ -207,6 +216,7 @@ let foo(bar) =
 end
 foo(2)
 """
+
         let expected = """
 do
     let bar = 2
@@ -232,6 +242,7 @@ let fooWithFixedArg(qux) =
 end
 fooWithFixedArg(pFOO)
 """
+
         let expected = """
 do
     let qux = pFOO
@@ -255,6 +266,7 @@ let f2(x, y) =
 end
 f2(gBAR, gBAZ)
 """
+
         let expected = """
 do
     let x = gBAR
@@ -283,6 +295,7 @@ let testFunc(a, b) =
 end
 testFunc(&barAlias, &fooAlias)
 """
+
         let expected = """
 let foo = gFOO
 let bar = 1
@@ -307,6 +320,7 @@ let foo(x) =
     bar(&x)
 end
 foo(1)"""
+
         GslSourceCode(source)
         |> compile variableResolutionPipeline
         |> assertFail RecursiveFunctionCall None
@@ -324,12 +338,13 @@ let testFunc(int, part) =
 end
 testFunc(&fooPart, &fooInt)
 """
+
         GslSourceCode(source)
         |> compile variableResolutionPipeline
-        |> assertFailMany
-            [TypeError; TypeError]
-            [Some("The variable int has been inferred to have the type Part");
-             Some("The variable part has been inferred to have the type Int")]
+        |> assertFailMany [ TypeError; TypeError ] [
+            Some("The variable int has been inferred to have the type Part")
+            Some("The variable part has been inferred to have the type Int")
+           ]
         |> ignore
 
     [<Test>]
@@ -341,32 +356,42 @@ end
 foo(gFOO)
 foo(gFOO, pFOO, dFOO)
 """
+
         GslSourceCode(source)
         |> compile variableResolutionPipeline
-        |> assertFailMany
-            [TypeError; TypeError]
-            [Some("Function 'foo' expects 2 arguments but received 1.");
-             Some("Function 'foo' expects 2 arguments but received 3.")]
+        |> assertFailMany [ TypeError; TypeError ] [
+            Some("Function 'foo' expects 2 arguments but received 1.")
+            Some("Function 'foo' expects 2 arguments but received 3.")
+           ]
         |> ignore
 
     [<Test>]
     member x.TestFlattenAssemblies() =
-        let source = "gFOO ; (pBAR ; (gBAR ; dBAR) {#name inner}) {#seed 123} ; gBAZ"
-        let expected = "gFOO ; pBAR {#seed 123} ; gBAR {#name inner #seed 123} ; dBAR {#name inner #seed 123} ; gBAZ"
+        let source =
+            "gFOO ; (pBAR ; (gBAR ; dBAR) {#name inner}) {#seed 123} ; gBAZ"
+
+        let expected =
+            "gFOO ; pBAR {#seed 123} ; gBAR {#name inner #seed 123} ; dBAR {#name inner #seed 123} ; gBAZ"
 
         flattenAssemblyTest source expected
 
     [<Test>]
     member x.TestFlattenReverseAssemblies() =
-        let source = "gFOO ; !(pBAR {#fuse} ; !gBAR ; gBAZ) ; gQUX"
-        let expected = "gFOO ; !gBAZ ; gBAR {#fuse} ; !pBAR ; gQUX"
+        let source =
+            "gFOO ; !(pBAR {#fuse} ; !gBAR ; gBAZ) ; gQUX"
+
+        let expected =
+            "gFOO ; !gBAZ ; gBAR {#fuse} ; !pBAR ; gQUX"
 
         flattenAssemblyTest source expected
 
     [<Test>]
     member x.TestFlattenReverseWithInvertPragmas() =
-        let source = "gFOO ; !(pBAR {#rabitstart} ; !gBAR {#rabitend} ; gBAZ) ; gQUX"
-        let expected = "gFOO ; !gBAZ ; gBAR {#rabitstart} ; !pBAR {#rabitend} ; gQUX"
+        let source =
+            "gFOO ; !(pBAR {#rabitstart} ; !gBAR {#rabitend} ; gBAZ) ; gQUX"
+
+        let expected =
+            "gFOO ; !gBAZ ; gBAR {#rabitstart} ; !pBAR {#rabitend} ; gQUX"
 
         flattenAssemblyTest source expected
 

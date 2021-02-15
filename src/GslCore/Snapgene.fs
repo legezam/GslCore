@@ -1,51 +1,59 @@
-﻿module Snapgene
+﻿module GslCore.Snapgene
 
 open System.IO
 open System
-open CommonTypes
-open Constants
+open GslCore.CommonTypes
+open GslCore.Constants
 open Amyris.Bio.utils
-open Utils
-open Genbank
-open PragmaTypes
+open GslCore.Utils
+open GslCore.Genbank
+open GslCore.PragmaTypes
 
-let topologyToString : Topology -> string =
+let topologyToString: Topology -> string =
     function
     | Linear -> "linear"
     | Circular -> "circular"
 
 /// Emit Snapgene (genbank) format
 ///  outDir : string   tag: string  prefix for files  assemblies : List of AssemblyOut
-let dumpSnapgene
-    (outDir : string)
-    (tag : string)
-    (assemblies : DnaAssembly list)
-    (primers : DivergedPrimerPair list list option) : unit =
-    
+let dumpSnapgene (outDir: string)
+                 (tag: string)
+                 (assemblies: DnaAssembly list)
+                 (primers: DivergedPrimerPair list list option)
+                 : unit =
+
     // pair up the primer list (if they exist) with the matching assembly
-    let assemWithPrimers =  
+    let assemWithPrimers =
         match primers with
         | Some p -> p
         | None -> List.init assemblies.Length (fun _ -> [])
         |> List.zip assemblies
 
-    for (a,primers) in assemWithPrimers do
+    for (a, primers) in assemWithPrimers do
 
-        let path = sprintf "%s.%d.dna" tag 
-                    (match a.id with 
-                        | None -> failwithf "unassigned assembly id in %s" a.name
-                        | Some(i) -> i 
-                    )
-                    |> opj outDir
+        let path =
+            sprintf
+                "%s.%d.dna"
+                tag
+                (match a.id with
+                 | None -> failwithf "unassigned assembly id in %s" a.name
+                 | Some (i) -> i)
+            |> opj outDir
+
         printf "Writing snapgene output to dir=%s tag=%s path=%s\n" outDir tag path
 
 
         use outF = new StreamWriter(path)
-        let w (s:string) = outF.Write(s)
-        
-        // "Exported" // snapgene fails to color anything if it's named anything else locusName 
+        let w (s: string) = outF.Write(s)
+
+        // "Exported" // snapgene fails to color anything if it's named anything else locusName
         let locusName = sprintf "Exported GSL %s" tag
-        let totLength = a.dnaParts |> List.map (fun p -> p.dna.Length) |> Seq.sum
+
+        let totLength =
+            a.dnaParts
+            |> List.map (fun p -> p.dna.Length)
+            |> Seq.sum
+
         let now = DateTime.Now
         let topology = a.topology |> topologyToString
         (* // constraints on header format per SnapGene direct correspandance
@@ -53,7 +61,7 @@ let dumpSnapgene
         1) LOCUS must contain "Exported".
         2) Last reference TITLE must be "Direct Submission".
         3) Last reference JOURNAL must contain "SnapGene".
-            (In the past we did require it contain "Exported from SnapGene" or "Exported from SnapGene Viewer" 
+            (In the past we did require it contain "Exported from SnapGene" or "Exported from SnapGene Viewer"
             but we recently relaxed that requirement. The change is in version 4.1.)
         *)
         sprintf "LOCUS       %-22s %d bp ds-DNA     %s   SYN %2d-%s-%d
@@ -75,19 +83,17 @@ FEATURES             Location/Qualifiers
                      /organism=\"synthetic DNA construct\"
                      /mol_type=\"other DNA\"
                      /note=\"color: #ffffff\"
-"           locusName 
-            totLength  // header line locus length
-            topology
-            now.Day (mon.[now.Month-1]) now.Year  // header line date
+"        locusName totLength  // header line locus length
+            topology now.Day (mon.[now.Month - 1]) now.Year  // header line date
             totLength  // length for REFERENCE line
-            (mon.[now.Month-1]) now.Day now.Year  // Journal export date
+            (mon.[now.Month - 1]) now.Day now.Year  // Journal export date
             totLength // source length line
         |> w
 
         for p in a.dnaParts do
-            let colorFwd = 
-                match p.sliceType with 
-                | REGULAR -> 
+            let colorFwd =
+                match p.sliceType with
+                | REGULAR ->
                     match p.breed with
                     | Breed.B_UPSTREAM -> "#009933"
                     | Breed.B_DOWNSTREAM -> "#009933"
@@ -102,78 +108,76 @@ FEATURES             Location/Qualifiers
                     | Breed.B_MARKER -> "#336600"
                     | Breed.B_X -> "#000000"
                 | LINKER -> "#FF0000"
-                | MARKER -> "yellow" 
-                | INLINEST -> "green" 
+                | MARKER -> "yellow"
+                | INLINEST -> "green"
                 | FUSIONST -> "red"
+
             let colorRev = colorFwd // reserve possibility of different colors for different orientations but for now the same
-            let range = sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (zero2One p.destFr) (zero2One p.destTo)
-            let label = 
-                if p.sliceName <> "" then 
-                    p.sliceName 
-                 else if p.description <> "" then 
-                    p.description 
-                 else (ambId p.id)
+
+            let range =
+                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (zero2One p.destFr) (zero2One p.destTo)
+
+            let label =
+                if p.sliceName <> "" then p.sliceName
+                else if p.description <> "" then p.description
+                else (ambId p.id)
+
             sprintf "     misc_feature    %s
                      /label=\"%s\"
                      /note=\"%s\"
-                     /note=\"color: %s; direction: %s\"\n"
-                        range 
-                        label
-                        label
-                        (if p.destFwd then colorFwd else colorRev)
-                        (if p.destFwd then "RIGHT" else "LEFT")
+                     /note=\"color: %s; direction: %s\"\n" range label label (if p.destFwd then colorFwd else colorRev)
+                (if p.destFwd then "RIGHT" else "LEFT")
             |> w
 
         // Primer emission
-        let makeRange l r = sprintf "%A..%A" (l+1) (r+1) // +1 for human friendly coords
+        let makeRange l r = sprintf "%A..%A" (l + 1) (r + 1) // +1 for human friendly coords
         let complement s = sprintf "complement(%s)" s
 
-        let emitPrimer isFwd (primer:Primer) =
-            let searchDna = if isFwd then primer.Primer else primer.Primer.RevComp()
-            let ampBody = 
-                match primer.Interval DNAIntervalType.AMP with 
-                    | Some(i) -> primer.Primer.[i.il..i.ir]
-                    | None -> primer.body
+        let emitPrimer isFwd (primer: Primer) =
+            let searchDna =
+                if isFwd then primer.Primer else primer.Primer.RevComp()
+
+            let ampBody =
+                match primer.Interval DNAIntervalType.AMP with
+                | Some (i) -> primer.Primer.[i.il..i.ir]
+                | None -> primer.body
             //search using either the ampBody or reverse complement of it depending on direction of primer
-            let searchBody =  if isFwd then ampBody else ampBody.RevComp()
+            let searchBody =
+                if isFwd then ampBody else ampBody.RevComp()
             // this isn't an ideal way to place primers but simpler than trying to infer coordinates during emission
             // will break if there are multiple binding sites but that might be a good thing to alert user
-            let left = a.Sequence().IndicesOf(searchDna) |> Seq.head 
-            let right = left + primer.Primer.Length-1
+            let left =
+                a.Sequence().IndicesOf(searchDna) |> Seq.head
+
+            let right = left + primer.Primer.Length - 1
             // naming primers using part it binds to
-            let containsPrimer (part:DNASlice) = 
-                part.dna.Contains searchBody
+            let containsPrimer (part: DNASlice) = part.dna.Contains searchBody
             let bindingPart = List.tryFind containsPrimer a.dnaParts
+
             let name =
                 match bindingPart with
-                | Some value -> 
-                    if value.sliceName <> "" then
-                        value.sliceName
-                    else if value.description <> "" then
-                        value.description
+                | Some value ->
+                    if value.sliceName <> "" then value.sliceName
+                    else if value.description <> "" then value.description
                     else (ambId value.id)
                 | None -> ""
-            
-            sprintf "     primer_bind     %s 
+
+            sprintf "     primer_bind     %s
              /note=\"%s_%s\"
-             /note=\"color: #a020f0; sequence: %s; direction: %s\"\n" 
-                (makeRange left right |> if isFwd then (id) else complement)  
-                name
-                (if isFwd then "fwd" else "rev")
-                primer.Primer.str
+             /note=\"color: #a020f0; sequence: %s; direction: %s\"\n"
+                (makeRange left right
+                 |> if isFwd then (id) else complement) name (if isFwd then "fwd" else "rev") primer.Primer.str
                 (if isFwd then "RIGHT" else "LEFT")
             |> w
 
-        for pp in primers do 
+        for pp in primers do
             match pp with
             | GAP -> () // nothing to emit
             | SANDWICHGAP -> () // nothing to emit
-            | DPP(dpp) ->
+            | DPP (dpp) ->
                 if dpp.fwd.Primer.Length > 0 then emitPrimer true dpp.fwd
                 if dpp.rev.Primer.Length > 0 then emitPrimer false dpp.rev
 
         "ORIGIN\n" |> w
-        
-        a.Sequence()
-        |> formatGB
-        |> w
+
+        a.Sequence() |> formatGB |> w

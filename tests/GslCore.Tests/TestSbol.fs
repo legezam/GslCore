@@ -4,10 +4,10 @@ open System.Xml
 open NUnit.Framework
 open Amyris.Dna
 
-open SbolExample
+open GslCore.SbolExample
 
 [<TestFixture>]
-type TestSbolProvider() = 
+type TestSbolProvider() =
 
     [<Test>]
     member x.TestSbolParsing() =
@@ -23,33 +23,45 @@ type TestSbolProvider() =
     </gbom:gslProgram>
   </sbol:ComponentDefinition>
 </gbom:gbom>"""
-        let parsedInput = SbolExample.SBOLProvider.Parse(testSbolInput)
-        Assert.AreEqual (parsedInput.ComponentDefinitions.Length, 1)
+
+        let parsedInput =
+            SbolExample.SBOLProvider.Parse(testSbolInput)
+
+        Assert.AreEqual(parsedInput.ComponentDefinitions.Length, 1)
         let cd = parsedInput.ComponentDefinitions.[0]
-        Assert.AreEqual (cd.Title, Some("child1"))
+        Assert.AreEqual(cd.Title, Some("child1"))
         Assert.IsEmpty parsedInput.Sequences
 
     [<Test>]
     member x.TestSbolEmitting() =
         let seq = seqFromDna (Dna "ATCG")
         let subseq = seqFromDna (Dna "AAAA")
+
         let subcd =
-           {id={identity="test subcomp URI"; name=None; description=None};
-            roles=["test sc role URI"];
-            sequence=Some(subseq);
-            subcomponents=[];
-            gslProg=None}
+            { id =
+                  { identity = "test subcomp URI"
+                    name = None
+                    description = None }
+              roles = [ "test sc role URI" ]
+              sequence = Some(subseq)
+              subcomponents = []
+              gslProg = None }
+
         let cd =
-           //{id={identity="test URI"; name=Some("test name"); description=Some("test desc")};
-           {id={identity="test URI"; name=None; description=None};
-            roles=["test role URI"];
-            sequence=Some(seq);
-            subcomponents=[subcd.asSubcomponent([], ["test role"])];
-            gslProg=None}
-        let gbom = compileGbom [cd]
-        let gbomSub = compileGbom [cd; subcd]
+            //{id={identity="test URI"; name=Some("test name"); description=Some("test desc")};
+            { id =
+                  { identity = "test URI"
+                    name = None
+                    description = None }
+              roles = [ "test role URI" ]
+              sequence = Some(seq)
+              subcomponents = [ subcd.asSubcomponent ([], [ "test role" ]) ]
+              gslProg = None }
+
+        let gbom = compileGbom [ cd ]
+        let gbomSub = compileGbom [ cd; subcd ]
         use x = new XmlTextWriter(stdout)
-                    
+
         x.Formatting <- Formatting.Indented
         gbom.XElement.WriteTo(x)
         gbomSub.XElement.WriteTo(x)

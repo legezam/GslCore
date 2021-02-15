@@ -1,17 +1,18 @@
 ﻿/// Test helper functions and assertions.
-module AstAssertions
+module GslCore.AstAssertions
+
 open System
 open NUnit.Framework
 open Amyris.ErrorHandling
-open AstTypes
-open AstErrorHandling
-open AstAlgorithms
-open AstFixtures
-open LexAndParse
-open Constants
+open GslCore.AstTypes
+open GslCore.AstErrorHandling
+open GslCore.AstAlgorithms
+open GslCore.AstFixtures
+open GslCore.LexAndParse
+open GslCore.Constants
 
 /// Initialize any globals that need to be set for tests.
-let initGlobals() = PragmaTypes.finalizePragmas []
+let initGlobals () = PragmaTypes.finalizePragmas []
 
 /// Lex and parse, in verbose mode.
 let lexparse = lexAndParse true
@@ -22,16 +23,16 @@ let lexparse = lexAndParse true
 let assertTreesEqual (expected: AstTreeHead) (actual: AstTreeHead) =
     if expected <> actual then
         let dumpAst node =
-            let items = traverse expected |> Seq.map (fun n -> sprintf "%+A" n) |> List.ofSeq
+            let items =
+                traverse expected
+                |> Seq.map (fun n -> sprintf "%+A" n)
+                |> List.ofSeq
+
             String.Join(", ", items)
 
         let msg =
-            sprintf
-                "ASTs were not equal.\nExpected:\n%s\n\nActual:\n%s\nExpected nodes:\n%+A\nActual nodes:\n%+A"
-                (decompile expected.wrappedNode)
-                (decompile actual.wrappedNode)
-                (expected)
-                (actual)
+            sprintf "ASTs were not equal.\nExpected:\n%s\n\nActual:\n%s\nExpected nodes:\n%+A\nActual nodes:\n%+A"
+                (decompile expected.wrappedNode) (decompile actual.wrappedNode) (expected) (actual)
 
         Assert.Fail(msg)
 
@@ -41,61 +42,61 @@ let assertDecompilesTo (source: string) (tree: AstTreeHead) =
     let treeAsText = decompile tree.wrappedNode
 
     let cleanString (s: string) = s.Trim().Replace("\r\n", "\n")
-    let expected, actual = cleanString source, cleanString treeAsText
+
+    let expected, actual =
+        cleanString source, cleanString treeAsText
 
     // search for where the two strings differ, if they do
     let diffPos =
         Seq.zip (Seq.cast<char> expected) (Seq.cast<char> actual)
         |> Seq.indexed
         |> Seq.tryPick (fun (i, (ec, ac)) -> if ec <> ac then Some(i) else None)
+
     match diffPos with
-    | Some(p) ->
+    | Some (p) ->
         let printSplitAtFirstDiff (s: string) =
-            sprintf "%s(###diff site###)%s"
-                s.[..p-1] s.[p..]
+            sprintf "%s(###diff site###)%s" s.[..p - 1] s.[p..]
+
         let msg =
-            (sprintf "Expected and actual source differs at character %d.\nExpected:\n%s\n\nActual:\n%s"
-                p
-                expected
-                (printSplitAtFirstDiff actual))
+            (sprintf "Expected and actual source differs at character %d.\nExpected:\n%s\n\nActual:\n%s" p expected
+                 (printSplitAtFirstDiff actual))
+
         Assert.Fail(msg)
     | None ->
         // if they were the same when zipped, make sure they were the same length!
         if expected.Length <> actual.Length then
-            Assert.Fail(
-                sprintf
-                    "Expected string with %d characters, got a string with %d instead.\nExpected:\n%s\n\nActual:\n%s"
-                    expected.Length
-                    actual.Length
-                    expected
-                    actual)
+            Assert.Fail
+                (sprintf "Expected string with %d characters, got a string with %d instead.\nExpected:\n%s\n\nActual:\n%s"
+                     expected.Length actual.Length expected actual)
 
 /// Assert that source compiles to an AST with the same top level block contents as the list of items passed.
 /// Also assert that the tree decompiles correctly to the same literal source which was passed in.
 let assertRoundtrip source astItems =
-    let tree = lexparse (GslSourceCode(source)) |> returnOrFail
+    let tree =
+        lexparse (GslSourceCode(source)) |> returnOrFail
+
     assertTreesEqual (treeify astItems) tree
     assertDecompilesTo source tree
 
 /// Parse and run op on parsed tree.
-let compile op source =
-    lexparse source
-    >>= op
+let compile op source = lexparse source >>= op
 
 /// Fail if the incoming result is Bad.
 /// Optionally pass in source code for message printing.
 let failIfBad sourceCode r =
     let printMsg (m: AstMessage) =
         match sourceCode with
-        | Some(s) -> m.Longform(false, s)
+        | Some (s) -> m.Longform(false, s)
         | None -> m.Summary
+
     match r with
-    | Bad(errs) -> 
+    | Bad (errs) ->
         errs
         |> Seq.map printMsg
         |> String.concat "\n"
         |> Assert.Fail
     | _ -> ()
+
     r
 
 ///<summary>
@@ -105,8 +106,9 @@ let failIfBad sourceCode r =
 ///</summary>
 let sourceCompareTest op sourceIn expectedSource =
     let source = GslSourceCode sourceIn
+
     source
-    |> compile op 
+    |> compile op
     |> failIfBad (Some(source))
     |> returnOrFail
     |> assertDecompilesTo expectedSource
@@ -119,40 +121,45 @@ let testExpectedReprinting sourceIn expectedOut =
     sourceCompareTest (promote id) sourceIn expectedOut
 
 
-let checkMessages
-        (expectedTypes: AstMessageType list)
-        (textSnippets: string option list)
-        (msgs: AstMessage list) =
+let checkMessages (expectedTypes: AstMessageType list) (textSnippets: string option list) (msgs: AstMessage list) =
 
-    Assert.AreEqual(
-        expectedTypes.Length,
-        textSnippets.Length,
-        "Please provide the same number of expected types and text snippets.")
+    Assert.AreEqual
+        (expectedTypes.Length,
+         textSnippets.Length,
+         "Please provide the same number of expected types and text snippets.")
 
-    if expectedTypes.Length <> msgs.Length then
-        Assert.Fail(sprintf "Wrong number of errors.  Expected %d, got %d: %+A" expectedTypes.Length msgs.Length msgs)
+    if expectedTypes.Length <> msgs.Length
+    then Assert.Fail(sprintf "Wrong number of errors.  Expected %d, got %d: %+A" expectedTypes.Length msgs.Length msgs)
 
     // optionally check text snippet inclusion
-    let textSnips = textSnippets |> List.map (fun (s: string option) -> defaultArg s "")
+    let textSnips =
+        textSnippets
+        |> List.map (fun (s: string option) -> defaultArg s "")
+
     Seq.zip3 msgs expectedTypes textSnips
     |> Seq.iter (fun (msg, ft, ts) ->
         Assert.AreEqual(ft, msg.msgType)
         Assert.That(msg.msg.Contains(ts), sprintf "Didn't find '%s' in '%s'" ts msg.msg))
+
     msgs
 
 /// Assert that a result is a success with many warnings, with matching types and message texts.
 /// Returns the value and messages for further processing. Otherwise, fail.
 let assertWarnMany failTypes textSnippets r =
     match r with
-    | Ok(v, msgs) ->
-        checkMessages failTypes textSnippets msgs |> ignore
+    | Ok (v, msgs) ->
+        checkMessages failTypes textSnippets msgs
+        |> ignore
+
         (v, msgs)
     | x ->
         Assert.Fail(sprintf "Validation test didn't succeed.  Result was %A" x)
         failwith "" // need this line to allow compiler to return msg value above
 
 let assertWarn failType textSnippet r =
-    let (v, msgs) = assertWarnMany [failType] [textSnippet] r
+    let (v, msgs) =
+        assertWarnMany [ failType ] [ textSnippet ] r
+
     (v, msgs.[0])
 
 /// Assert that a result is a failure with many messages, with matching types and message texts.
@@ -167,6 +174,7 @@ let assertFailMany failTypes textSnippets r =
 /// Assert that a result is a failure with a single message, with matching type and message text.
 /// Return the failure message for further processing. Otherwise, fail.
 let assertFail failType textSnippet r =
-    let msgs = assertFailMany [failType] [textSnippet] r
-    msgs.[0]
+    let msgs =
+        assertFailMany [ failType ] [ textSnippet ] r
 
+    msgs.[0]

@@ -1,17 +1,17 @@
 ﻿namespace GslCore.Tests
 
 open NUnit.Framework
-open Constants
+open GslCore.Constants
 open Amyris.ErrorHandling
-open AstTypes
-open AstErrorHandling
-open AstAlgorithms
-open AstExpansion
-open AstAssertions
-open LegacyParseTypes
+open GslCore.AstTypes
+open GslCore.AstErrorHandling
+open GslCore.AstAlgorithms
+open GslCore.AstExpansion
+open GslCore.AstAssertions
+open GslCore.LegacyParseTypes
 
 [<TestFixture>]
-type TestBootstrapping() = 
+type TestBootstrapping() =
 
     /// Very dumb expansion rule that just reprints the asseembly.
     let reprintAssembly a =
@@ -20,18 +20,22 @@ type TestBootstrapping() =
         s
 
     /// Expansion rule that always raises an exception.
-    let expansionFail _ = failwith "Expansion failed with an exception."
+    let expansionFail _ =
+        failwith "Expansion failed with an exception."
 
     let bootstrapToTree node =
-        match node with Splice(nodes) -> AstTreeHead(Block(nodeWrap (List.ofArray nodes)))
+        match node with
+        | Splice (nodes) -> AstTreeHead(Block(nodeWrap (List.ofArray nodes)))
 
     let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty
 
-    let compilePhase1NoCapas = GslSourceCode >> (compile (phase1 Set.empty))
+    let compilePhase1NoCapas =
+        GslSourceCode >> (compile (phase1 Set.empty))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =
         let source = GslSourceCode source
+
         source
         |> bootstrapPhase1NoCapas []
         |> lift bootstrapToTree
@@ -41,15 +45,19 @@ type TestBootstrapping() =
 
 
     let testPhase1 node =
-        let bootstrapOperation = bootstrapExpandLegacyAssembly Error reprintAssembly bootstrapPhase1NoCapas
+        let bootstrapOperation =
+            bootstrapExpandLegacyAssembly Error reprintAssembly bootstrapPhase1NoCapas
+
         executeBootstrap bootstrapOperation Serial node
 
     let testCaptureException node =
-        let bootstrapOperation = bootstrapExpandLegacyAssembly Error expansionFail bootstrapPhase1NoCapas
+        let bootstrapOperation =
+            bootstrapExpandLegacyAssembly Error expansionFail bootstrapPhase1NoCapas
+
         executeBootstrap bootstrapOperation Serial node
 
     [<SetUp>]
-    member x.SetUp() = initGlobals()
+    member x.SetUp() = initGlobals ()
 
 
     [<Test>]
@@ -58,11 +66,14 @@ type TestBootstrapping() =
 
     [<Test>]
     member x.SmokeTestFullPhase1Bootstrap() =
-        let source = "gFOO ; ### ; ~ ; gFOO[1S:30E] {#name foo}"
-        let compiledTree = 
+        let source =
+            "gFOO ; ### ; ~ ; gFOO[1S:30E] {#name foo}"
+
+        let compiledTree =
             compilePhase1NoCapas source
             |> failIfBad (Some(GslSourceCode source))
             |> returnOrFail
+
         compiledTree
         |> testPhase1
         |> failIfBad None
@@ -74,10 +85,10 @@ type TestBootstrapping() =
     [<Test>]
     member x.TestCaptureExpansionFailure() =
         let source = "gFOO" // doesn't matter what's in here for this test
+
         compilePhase1NoCapas source
         |> failIfBad (Some(GslSourceCode source))
         |> returnOrFail
         |> testCaptureException
         |> assertFail (Error) (Some "Expansion failed with an exception.")
         |> ignore
-
