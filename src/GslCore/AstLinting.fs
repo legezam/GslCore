@@ -14,12 +14,12 @@ let private rabitPartRegex = Regex("R\d+", RegexOptions.Compiled ||| RegexOption
 let private warnOnPartThatIsLikelyVariable node =
     match node with
     | PartId (pw) ->
-        if rabitPartRegex.IsMatch(pw.x) then
+        if rabitPartRegex.IsMatch(pw.Value) then
             good
         else
             let msgText =
                 sprintf "The syntax for using a variable has changed to &myVar from @myVar.\n@%s looks like it should probably be &%s."
-                    pw.x pw.x
+                    pw.Value pw.Value
 
             let warnMsg = warningMessage msgText node
             warn warnMsg ()
@@ -28,7 +28,7 @@ let private warnOnPartThatIsLikelyVariable node =
 let private failOnPushAndPop node =
     match node with
     | ParsePragma (pp) ->
-        if pp.x.name = "push" || pp.x.name = "pop"
+        if pp.Value.name = "push" || pp.Value.name = "pop"
         then error
                  PragmaError
                  "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."

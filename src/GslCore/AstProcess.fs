@@ -20,11 +20,11 @@ open GslCore.Pragma
 let getPragmasStrict (part: Node<ParsePart>): Result<PragmaCollection, AstMessage> =
     let getBuiltPragma (node: AstNode) =
         match node with
-        | Pragma pragmaWrapper -> ok (pragmaWrapper.x)
-        | ParsePragma parsePragmaWrapper -> unbuiltPragmaError None parsePragmaWrapper.x.name node
+        | Pragma pragmaWrapper -> ok (pragmaWrapper.Value)
+        | ParsePragma parsePragmaWrapper -> unbuiltPragmaError None parsePragmaWrapper.Value.name node
         | x -> internalTypeMismatch None "Pragma" x
 
-    part.x.pragmas
+    part.Value.pragmas
     |> List.map getBuiltPragma
     |> collect
     >>= (fun pragmas ->
@@ -58,7 +58,7 @@ let replacePragmas (part: Node<ParsePart>) (pragmaCollection: PragmaCollection):
         |> List.ofSeq
 
     { part with
-          x = { part.x with pragmas = astPragmas } }
+          Value = { part.Value with pragmas = astPragmas } }
 
 /// Merge a pragma collection into a part, clobbering existing pragmas.
 /// Add a warning if there are any collisions.
@@ -97,7 +97,7 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
 /// Return an error if this node is a parse error.
 let checkParseError node =
     match node with
-    | ParseError (ew) -> error ParserError ew.x node
+    | ParseError (ew) -> error ParserError ew.Value node
     | _ -> good
 
 // ===============
@@ -106,7 +106,7 @@ let checkParseError node =
 
 let validatePart op node =
     match node with
-    | Part ({ x = pp; positions = _ }) -> op pp
+    | Part ({ Value = pp; Positions = _ }) -> op pp
     | _ -> good
 
 // FIXME: this may be either a step too far, or just on example of something we need a lot more of
@@ -139,7 +139,7 @@ let private updateRecursiveCheckState mode (s: string list) node =
     match node with
     | FunctionDef (fd) ->
         match mode with
-        | PreTransform -> fd.x.name :: s
+        | PreTransform -> fd.Value.name :: s
         | PostTransform ->
             match s with
             | [] -> []
@@ -149,11 +149,11 @@ let private updateRecursiveCheckState mode (s: string list) node =
 /// If we find a function call to a function def we're already inside, fail.
 let private checkRecursiveCall (s: string list) node =
     match node with
-    | FunctionCall (fc) when s |> List.contains fc.x.name ->
+    | FunctionCall (fc) when s |> List.contains fc.Value.name ->
         errorf
             RecursiveFunctionCall
             "Found a recursive call to '%s'. GSL does not support recursive functions."
-            fc.x.name
+            fc.Value.name
             node
     | _ -> ok node
 
@@ -176,7 +176,7 @@ type VariableResolutionWrapper =
 /// Shadowing is allowed, and the latest declared name takes precedence.
 type VariableBindings = Map<string, VariableResolutionWrapper>
 
-let private addBinding (bindings: VariableBindings) (vb: Node<VariableBinding>) = bindings.Add(vb.x.name, VBinding vb)
+let private addBinding (bindings: VariableBindings) (vb: Node<VariableBinding>) = bindings.Add(vb.Value.name, VBinding vb)
 let private addFuncLocal (bindings: VariableBindings) name = bindings.Add(name, FLocal)
 
 /// Given an AST node, update the variable resolution state.
@@ -190,7 +190,7 @@ let private updateVariableResolutionInner (s: VariableBindings) n =
         // variable that aliases itself from an outer scope.  Ignore this.
         s
     | VariableBinding (vb) -> addBinding s vb
-    | FunctionLocals (pf) -> pf.x.names |> List.fold addFuncLocal s
+    | FunctionLocals (pf) -> pf.Value.names |> List.fold addFuncLocal s
     | _ -> s
 
 let private updateVariableResolution =
@@ -234,14 +234,14 @@ let private typeCheck varName node targetType boundValueType boundValue =
 /// If that declaration itself was a variable aliasing (let foo = &bar), recurse
 /// down until we resolve to a fully typed variable.
 let rec private resolveVariableRecursive mode (s: VariableBindings) targetType (tv: Node<string * GslVarType>) node =
-    let varName, _ = tv.x
+    let varName, _ = tv.Value
     // first see if we have this guy in our bindings at all
     match s.TryFind(varName) with
     | Some (VBinding (v)) -> // this name is resolves to a bound variable
         // does it have the right type in this context?
-        let declaredType = v.x.varType
+        let declaredType = v.Value.varType
 
-        match declaredType, v.x.value with
+        match declaredType, v.Value.value with
         | NotYetTyped, TypedVariable (tvInner) ->
             // if this variable is just a reference to another variable, we need to recurse on it.
             resolveVariableRecursive mode s targetType tvInner node
@@ -265,7 +265,7 @@ let rec private resolveVariableRecursive mode (s: VariableBindings) targetType (
 let private resolveVariable mode (s: VariableBindings) (n: AstNode) =
     match n with
     | TypedVariable (tv) ->
-        let targetType = snd tv.x
+        let targetType = snd tv.Value
         // might resolve to another variable, so we need to do this recursively
         resolveVariableRecursive mode s targetType tv n
     | x -> ok x
@@ -305,7 +305,7 @@ let private collectFunctionDef mode (s: FunctionInliningState) node =
         match mode with
         | PreTransform ->
             { s with
-                  defs = s.defs.Add(fw.x.name, fw.x)
+                  defs = s.defs.Add(fw.Value.name, fw.Value)
                   insideDefDepth = s.insideDefDepth + 1 }
         | PostTransform ->
             { s with
@@ -335,7 +335,7 @@ let private checkArgs fd (fc: FunctionCall) fcNode =
 let private localVarFromTypedValueAndName (vb: VariableBindings) (name, node) =
     match node with
     | TypedValue (tvw) ->
-        let (varType, v) = tvw.x
+        let (varType, v) = tvw.Value
         // using the existing variable bindings, resolve any variables contained in this value
         // this ensures that function locals never resolve to each other.
         AstTreeHead(v)
@@ -343,11 +343,11 @@ let private localVarFromTypedValueAndName (vb: VariableBindings) (name, node) =
         >>= (fun (AstTreeHead (newVal)) ->
             ok
                 (VariableBinding
-                    ({ x =
+                    ({ Value =
                            { name = name
                              varType = varType
                              value = newVal }
-                       positions = tvw.positions })))
+                       Positions = tvw.Positions })))
     | x -> internalTypeMismatch (Some "function call") "typed value" x
 
 
@@ -356,7 +356,7 @@ let private localVarFromTypedValueAndName (vb: VariableBindings) (name, node) =
 let private inlinePassedArgs (vb: VariableBindings) (fd, fc: FunctionCall) =
     match fd.body with
     | Block (bw) ->
-        match bw.x with
+        match bw.Value with
         // We require a block whose head is a FunctionLocal or something is fishy.
         | hd :: tl when (match hd with
                          // We require a block whose head is a FunctionLocal or something is fishy.
@@ -368,7 +368,7 @@ let private inlinePassedArgs (vb: VariableBindings) (fd, fc: FunctionCall) =
             |> collect
             // if unpacking and conversion succeeded, make a new block with the
             // variable declarations followed by the rest of the block
-            >>= (fun vbs -> ok (Block({ bw with x = vbs @ tl })))
+            >>= (fun vbs -> ok (Block({ bw with Value = vbs @ tl })))
         | _ -> error (InternalError(TypeError)) "No function locals node found in function defintion block." fd.body
     | x -> internalTypeMismatch (Some "function body") "Block" x
 
@@ -376,13 +376,13 @@ let private inlinePassedArgs (vb: VariableBindings) (fd, fc: FunctionCall) =
 let private inlineFunctionCall (s: FunctionInliningState) (node: AstNode) =
     match node with
     | FunctionCall (fcw) when s.insideDefDepth = 0 -> // only do inlining if we're not inside a def
-        let fc = fcw.x
+        let fc = fcw.Value
 
         match s.defs.TryFind(fc.name) with
         | Some (fd) ->
             // Helper function to add new position to an AST node
             let addPositions (node: AstNode) =
-                ok (prependPositionsAstNode fcw.positions node)
+                ok (prependPositionsAstNode fcw.Positions node)
 
             // inline the args into the function call block
             // this new block replaces the function call
@@ -420,18 +420,18 @@ let private reduceMathExpression node =
     let negationErrMsg = wrongTypeErrorMsg "negation"
 
     match node with
-    | BinaryOperation ({ x = bo; positions = pos }) ->
+    | BinaryOperation ({ Value = bo; Positions = pos }) ->
         match bo.left, bo.right with
         | Int (l), Int (r) ->
             // two concrete integers, we can operate on them
             let result =
                 match bo.op with
-                | Add -> l.x + r.x
-                | Subtract -> l.x - r.x
-                | Multiply -> l.x * r.x
-                | Divide -> l.x / r.x
+                | Add -> l.Value + r.Value
+                | Subtract -> l.Value - r.Value
+                | Multiply -> l.Value * r.Value
+                | Divide -> l.Value / r.Value
 
-            ok (Int({ x = result; positions = pos }))
+            ok (Int({ Value = result; Positions = pos }))
         // If we don't have two ints (because one or both are still variables), we can't reduce but
         // this is an OK state of affairs.
         | AllowedInMathExpression _, AllowedInMathExpression _ -> ok node
@@ -442,14 +442,14 @@ let private reduceMathExpression node =
         | x, y ->
             error TypeError (binOpErrMsg x) x
             |> mergeMessages [ errorMessage TypeError (binOpErrMsg y) y ]
-    | Negation ({ x = inner; positions = pos }) ->
+    | Negation ({ Value = inner; Positions = pos }) ->
         match inner with
-        | Int ({ x = i; positions = _ }) ->
+        | Int ({ Value = i; Positions = _ }) ->
             let v = -1 * i
-            ok (Int({ x = v; positions = pos }))
-        | Float ({ x = i; positions = _ }) ->
+            ok (Int({ Value = v; Positions = pos }))
+        | Float ({ Value = i; Positions = _ }) ->
             let v = -1.0 * i
-            ok (Float({ x = v; positions = pos }))
+            ok (Float({ Value = v; Positions = pos }))
         // If we have a variable, it should be numeric.  If so, we're ok
         | IntVariable _
         | FloatVariable _ -> ok node
@@ -468,17 +468,17 @@ let reduceMathExpressions = map Serial BottomUp reduceMathExpression
 let private buildRelativePosition node =
     match node with
     | ParseRelPos (rpw) ->
-        let prp = rpw.x
+        let prp = rpw.Value
 
         let buildNode i e =
             ok
                 (RelPos
-                    ({ x = { Position = i; RelativeTo = e }
-                       positions = rpw.positions }))
+                    ({ Value = { Position = i; RelativeTo = e }
+                       Positions = rpw.Positions }))
 
         // make sure we have a real value to work with
         match prp.i with
-        | Int ({ x = i; positions = _ }) -> ok i
+        | Int ({ Value = i; Positions = _ }) -> ok i
         | x -> internalTypeMismatch (Some "relative position building") "Int" x
         >>= (fun i ->
             match prp.qualifier with
@@ -604,16 +604,16 @@ let private compilePragma (legalCapas: Capabilities)
 
     let checkPragmaArg: AstNode -> Result<string, AstMessage> =
         function
-        | String stringWrapper -> ok stringWrapper.x
-        | Int intWrapper -> ok (intWrapper.x.ToString())
-        | Float floatWrapper -> ok (floatWrapper.x.ToString())
-        | TypedVariable ({ x = (name, _); positions = _ }) as astNode ->
+        | String stringWrapper -> ok stringWrapper.Value
+        | Int intWrapper -> ok (intWrapper.Value.ToString())
+        | Float floatWrapper -> ok (floatWrapper.Value.ToString())
+        | TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
             errorf (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name astNode
         | x -> internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
 
     match node with
     | ParsePragma pragmaWrapper ->
-        let pragma = pragmaWrapper.x
+        let pragma = pragmaWrapper.Value
         /// Building pragmas returns strings at the moment.
         /// Wrap them in an AST message.
         // TODO: fix this sad state of affairs once the big changes have landed in default.
@@ -632,8 +632,8 @@ let private compilePragma (legalCapas: Capabilities)
         >>= (fun builtPragma ->
             ok
                 (Pragma
-                    ({ x = builtPragma
-                       positions = pragmaWrapper.positions })))
+                    ({ Value = builtPragma
+                       Positions = pragmaWrapper.Positions })))
     | _ -> ok node
 
 /// Build genuine pragmas from reduced parsed pragmas.
@@ -717,16 +717,16 @@ let private explodeAssembly (pragmaCache: PragmaBuilder)
                             =
     // This operation is trivial if the assembly is in the forward orientation.
     // If it needs to reverse, it is rather tedious.
-    let subparts = unpackParts assemblyBasePart.x
+    let subparts = unpackParts assemblyBasePart.Value
 
     let correctlyOrientedParts =
-        if assemblyPart.x.fwd then
+        if assemblyPart.Value.fwd then
             ok subparts
         else
             subparts
             |> List.map (fun p ->
                 { p with
-                      x = { p.x with fwd = not p.x.fwd } }) // flip the part
+                      Value = { p.Value with fwd = not p.Value.fwd } }) // flip the part
             |> List.map (invertPragma pragmaCache) // flip the pragmas
             |> shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
     // now that the parts are correctly oriented, stuff the assembly pragmas into them
@@ -741,15 +741,15 @@ let private explodeAssembly (pragmaCache: PragmaBuilder)
 // FIXME: we should probably be more careful with mods here
 let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<ParsePart>) =
     let outerPragmas = getPragmas outerPart
-    let joinedMods = innerPart.x.mods @ outerPart.x.mods
-    let newDir = not (innerPart.x.fwd <> outerPart.x.fwd) // should be rev if one or the other is rev.
+    let joinedMods = innerPart.Value.mods @ outerPart.Value.mods
+    let newDir = not (innerPart.Value.fwd <> outerPart.Value.fwd) // should be rev if one or the other is rev.
 
     mergePragmas innerPart outerPragmas
     >>= (fun newInner ->
         let newInnerWithOuterMods =
             { newInner with
-                  x =
-                      { newInner.x with
+                  Value =
+                      { newInner.Value with
                             mods = joinedMods
                             fwd = newDir } }
 
@@ -764,7 +764,7 @@ let private flattenAssembly (pragmaCache: PragmaBuilder) node =
     match node with
     | AssemblyPart (assemblyPart, assemblyBasePart) ->
         // iterate over the parts in the assembly, accumulating lists of parts we will concatenate
-        assemblyBasePart.x
+        assemblyBasePart.Value
         |> Seq.map (fun part ->
             match part with
             | AssemblyPart (sap, sabp) -> explodeAssembly pragmaCache sap sabp
@@ -774,12 +774,12 @@ let private flattenAssembly (pragmaCache: PragmaBuilder) node =
             let newBasePart =
                 Assembly
                     ({ assemblyBasePart with
-                           x = List.concat partLists })
+                           Value = List.concat partLists })
 
             Part
                 ({ assemblyPart with
-                       x =
-                           { assemblyPart.x with
+                       Value =
+                           { assemblyPart.Value with
                                  basePart = newBasePart } }))
     | RecursivePart (outer, inner) ->
         // flatten parts that have another part as their base part due to using a single-part variable in an assembly
@@ -824,7 +824,7 @@ let updatePragmaEnvironment (mode: StateUpdateMode) (environment: PragmaEnvironm
     | PreTransform ->
         match node with
         | Pragma pragmaWrapper ->
-            let pragma = pragmaWrapper.x
+            let pragma = pragmaWrapper.Value
             // handle some special cases
             let isWarning = pragma |> Pragma.isWarning
             let ignoresWarning = pragma |> Pragma.ignoresWarning
@@ -967,7 +967,7 @@ let updateDocstringEnvironmentInner s node =
     match node with
     | Docstring (dw) ->
         { s with
-              unassigned = dw.x :: s.unassigned }
+              unassigned = dw.Value :: s.unassigned }
     | Part _ -> // assign these docs to this node, need to reverse the list
         { s with
               assigned = List.rev s.unassigned
@@ -986,7 +986,7 @@ let updateDocstringEnvironment =
 let private checkGeneName (rgs: GenomeDefs) (library: Map<string, Dna>) assemblyPragmas node =
     match node with
     | GenePart (pp, gp) ->
-        let geneName = gp.x.gene.[1..].ToUpper()
+        let geneName = gp.Value.gene.[1..].ToUpper()
         let partPragmas = getPragmas pp
 
         getRGNew rgs [ partPragmas; assemblyPragmas ]
@@ -996,7 +996,7 @@ let private checkGeneName (rgs: GenomeDefs) (library: Map<string, Dna>) assembly
                || library.ContainsKey(geneName) then
                 good
             else
-                errorf PartError "Unknown gene: '%s'." geneName (pp.x.basePart))
+                errorf PartError "Unknown gene: '%s'." geneName (pp.Value.basePart))
     | _ -> good
 
 /// Check all the gene names in the context of a single assembly.
@@ -1005,7 +1005,7 @@ let private checkGeneNamesInAssembly (rgs: GenomeDefs) library node =
     | AssemblyPart (pw, aw) ->
         let assemblyPrags = getPragmas pw
 
-        aw.x
+        aw.Value
         |> List.map (checkGeneName rgs library assemblyPrags)
         |> collectValidations
     | _ -> good
@@ -1037,8 +1037,8 @@ let cleanVariable node =
 let private cleanBlock cleaner node =
     match node with
     | Block (bw) ->
-        let newBlockContents = bw.x |> List.choose cleaner
-        Block({ bw with x = newBlockContents })
+        let newBlockContents = bw.Value |> List.choose cleaner
+        Block({ bw with Value = newBlockContents })
     | _ -> node
 
 /// Strip function defintions from tree.
@@ -1055,8 +1055,8 @@ let stripVariables =
 
 let private collectWarning (node: AstNode): Result<AstNode, AstMessage> =
     match node with
-    | Pragma pragma when pragma.x |> Pragma.isWarning ->
-        let msg = pragma.x.Arguments |> String.concat " "
+    | Pragma pragma when pragma.Value |> Pragma.isWarning ->
+        let msg = pragma.Value.Arguments |> String.concat " "
         let warnMsg = warningMessage msg node
         warn warnMsg node // add a warning into the message stream
     | _ -> ok node
@@ -1138,13 +1138,13 @@ let nameAssemblies =
 // we need the pragma context to do this
 
 let private validateRoughageLine (rw: Node<Roughage>) =
-    let r = rw.x
+    let r = rw.Value
     // Rule 1:  must be able to work out the locus.  Locus can be either explicit (ho^) or
     //          implicit pSLN1>YNG1  but can't have just bidirectional promoters with no explicit locus  e.g.   ADH1<pGAL1-pGAL10>ADH2
     let hasLocus =
         r.locus.IsSome
         || (r.parts.Length > 0
-            && not r.parts.Head.x.pt2.IsSome)
+            && not r.parts.Head.Value.pt2.IsSome)
 
     let node = Roughage(rw)
 
@@ -1154,7 +1154,7 @@ let private validateRoughageLine (rw: Node<Roughage>) =
 
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
 let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
-    let roughage = roughageWrapper.x
+    let roughage = roughageWrapper.Value
     // FIXME Hard coded mapping of markers for now
     let markerMapping (s: string) =
         match s with
@@ -1167,7 +1167,7 @@ let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
         | x -> x // TODO: more generalized support not hard coded
 
     let l2ElementFromRoughagePair (ptw: Node<RoughagePTPair>) =
-        let pt = ptw.x
+        let pt = ptw.Value
         let promoter = L2Id(pt.promoter)
         let target = L2Id(pt.target)
         createL2Element promoter target
@@ -1180,16 +1180,16 @@ let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
 
     let markerPragma =
         Pragma
-            ({ x =
+            ({ Value =
                    { Pragma.Definition = BuiltIn.markersetPragmaDef
                      Arguments = [ marker ] }
-               positions = roughageWrapper.positions })
+               Positions = roughageWrapper.Positions })
 
     let l2Elements =
         [ for p in roughage.parts do
-            yield l2ElementFromRoughagePair p.x.pt1
+            yield l2ElementFromRoughagePair p.Value.pt1
 
-            match p.x.pt2 with
+            match p.Value.pt2 with
             | Some (pt) -> yield l2ElementFromRoughagePair pt
             | None -> () ]
 
@@ -1202,8 +1202,8 @@ let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
 
     // wrap the marker pragma and the L2 line up in a block
     Block
-        ({ x = [ markerPragma; l2Expression ]
-           positions = [] })
+        ({ Value = [ markerPragma; l2Expression ]
+           Positions = [] })
 
 let private expandRoughageLine node =
     match node with

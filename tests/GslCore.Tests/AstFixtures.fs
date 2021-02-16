@@ -11,7 +11,7 @@ open GslCore.Constants
 /// Raise an exception if this fails.
 let bootstrapParseOnly source =
     match lexAndParse true (GslSourceCode(source)) with
-    | Ok (AstTreeHead (Block (b)), _) -> b.x
+    | Ok (AstTreeHead (Block (b)), _) -> b.Value
 
 
 let wrapInt v = Int(nodeWrap v)
@@ -32,7 +32,7 @@ let addPragsToPart prags a =
     | Part (pw) ->
         Part
             ({ pw with
-                   x = { pw.x with pragmas = prags } })
+                   Value = { pw.Value with pragmas = prags } })
 
 let variableize name v =
     let t =

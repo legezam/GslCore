@@ -13,7 +13,7 @@ open Amyris.Dna
 let rec extractAssemblies (n: AstNode): AstNode list =
     [ match n with
       | Block b ->
-          let result = b.x |> List.collect extractAssemblies
+          let result = b.Value |> List.collect extractAssemblies
           yield! result
       | Splice s ->
           let result =
@@ -23,7 +23,7 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 
           yield! result
       | Part p ->
-          match p.x.basePart with
+          match p.Value.basePart with
           | Assembly a as x -> yield x
           | _ -> ()
       | Assembly a as x -> yield x

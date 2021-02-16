@@ -73,39 +73,39 @@ let bootstrapError expectedType note tree =
 /// locate the source of the error to the line in the original input source.
 let private replaceSourcePosition pos node =
     match node with
-    | Int (nw) -> Int({ nw with positions = pos })
-    | Float (nw) -> Float({ nw with positions = pos })
-    | String (nw) -> String({ nw with positions = pos })
-    | Docstring (nw) -> Docstring({ nw with positions = pos })
-    | TypedVariable (nw) -> TypedVariable({ nw with positions = pos })
-    | TypedValue (nw) -> TypedValue({ nw with positions = pos })
-    | VariableBinding (nw) -> VariableBinding({ nw with positions = pos })
-    | BinaryOperation (nw) -> BinaryOperation({ nw with positions = pos })
-    | Negation (nw) -> Negation({ nw with positions = pos })
-    | ParseRelPos (nw) -> ParseRelPos({ nw with positions = pos })
-    | RelPos (nw) -> RelPos({ nw with positions = pos })
-    | Slice (nw) -> Slice({ nw with positions = pos })
-    | Mutation (nw) -> Mutation({ nw with positions = pos })
-    | DotMod (nw) -> DotMod({ nw with positions = pos })
-    | Part (nw) -> Part({ nw with positions = pos })
-    | Marker (nw) -> Marker({ nw with positions = pos })
-    | PartId (nw) -> PartId({ nw with positions = pos })
-    | InlineDna (nw) -> InlineDna({ nw with positions = pos })
-    | InlineProtein (nw) -> InlineProtein({ nw with positions = pos })
-    | HetBlock (nw) -> HetBlock({ nw with positions = pos })
-    | Gene (nw) -> Gene({ nw with positions = pos })
-    | L2Id (nw) -> L2Id({ nw with positions = pos })
-    | L2Element (nw) -> L2Element({ nw with positions = pos })
-    | L2Expression (nw) -> L2Expression({ nw with positions = pos })
-    | Roughage (nw) -> Roughage({ nw with positions = pos })
-    | ParsePragma (nw) -> ParsePragma({ nw with positions = pos })
-    | Pragma (nw) -> Pragma({ nw with positions = pos })
-    | Block (nw) -> Block({ nw with positions = pos })
-    | FunctionDef (nw) -> FunctionDef({ nw with positions = pos })
-    | FunctionLocals (nw) -> FunctionLocals({ nw with positions = pos })
-    | FunctionCall (nw) -> FunctionCall({ nw with positions = pos })
-    | Assembly (nw) -> Assembly({ nw with positions = pos })
-    | ParseError (nw) -> ParseError({ nw with positions = pos })
+    | Int (nw) -> Int({ nw with Positions = pos })
+    | Float (nw) -> Float({ nw with Positions = pos })
+    | String (nw) -> String({ nw with Positions = pos })
+    | Docstring (nw) -> Docstring({ nw with Positions = pos })
+    | TypedVariable (nw) -> TypedVariable({ nw with Positions = pos })
+    | TypedValue (nw) -> TypedValue({ nw with Positions = pos })
+    | VariableBinding (nw) -> VariableBinding({ nw with Positions = pos })
+    | BinaryOperation (nw) -> BinaryOperation({ nw with Positions = pos })
+    | Negation (nw) -> Negation({ nw with Positions = pos })
+    | ParseRelPos (nw) -> ParseRelPos({ nw with Positions = pos })
+    | RelPos (nw) -> RelPos({ nw with Positions = pos })
+    | Slice (nw) -> Slice({ nw with Positions = pos })
+    | Mutation (nw) -> Mutation({ nw with Positions = pos })
+    | DotMod (nw) -> DotMod({ nw with Positions = pos })
+    | Part (nw) -> Part({ nw with Positions = pos })
+    | Marker (nw) -> Marker({ nw with Positions = pos })
+    | PartId (nw) -> PartId({ nw with Positions = pos })
+    | InlineDna (nw) -> InlineDna({ nw with Positions = pos })
+    | InlineProtein (nw) -> InlineProtein({ nw with Positions = pos })
+    | HetBlock (nw) -> HetBlock({ nw with Positions = pos })
+    | Gene (nw) -> Gene({ nw with Positions = pos })
+    | L2Id (nw) -> L2Id({ nw with Positions = pos })
+    | L2Element (nw) -> L2Element({ nw with Positions = pos })
+    | L2Expression (nw) -> L2Expression({ nw with Positions = pos })
+    | Roughage (nw) -> Roughage({ nw with Positions = pos })
+    | ParsePragma (nw) -> ParsePragma({ nw with Positions = pos })
+    | Pragma (nw) -> Pragma({ nw with Positions = pos })
+    | Block (nw) -> Block({ nw with Positions = pos })
+    | FunctionDef (nw) -> FunctionDef({ nw with Positions = pos })
+    | FunctionLocals (nw) -> FunctionLocals({ nw with Positions = pos })
+    | FunctionCall (nw) -> FunctionCall({ nw with Positions = pos })
+    | Assembly (nw) -> Assembly({ nw with Positions = pos })
+    | ParseError (nw) -> ParseError({ nw with Positions = pos })
     | Splice (x) -> Splice(x)
 
 /// Replace all source positions in a bootstrapped expanded tree with the position of the node
@@ -128,7 +128,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
     /// Unpack a bootstrapped AST to a block or fail.
     let asBlock tree =
         match tree with
-        | AstTreeHead (Block (nw)) -> ok (Splice(Array.ofList nw.x))
+        | AstTreeHead (Block (nw)) -> ok (Splice(Array.ofList nw.Value))
         | AstTreeHead (node) -> bootstrapError "Block" None node
 
     let contextMsg =
@@ -140,8 +140,8 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
             (InternalError(ParserError))
              contextMsg
              (String
-                 ({ x = source.String
-                    positions = originalPosition })))
+                 ({ Value = source.String
+                    Positions = originalPosition })))
     >>= (replaceSourcePositions originalPosition)
     >>= op
     >>= asBlock
@@ -169,7 +169,7 @@ let private containsSplice nodes =
 let private healSplice node =
     match node with
     | Block (bw) ->
-        let nodeList = bw.x
+        let nodeList = bw.Value
         // if no splices, do nothing
         if not (containsSplice nodeList) then
             Block(bw)
@@ -183,7 +183,7 @@ let private healSplice node =
                 |> Array.concat // concat the arrays
                 |> List.ofArray
 
-            Block({ bw with x = newNodeList })
+            Block({ bw with Value = newNodeList })
     | _ -> node
 
 /// Explode all Splices into their enclosing context.
@@ -212,7 +212,7 @@ let bootstrapExpandLegacyAssembly errorMsgType
     | AssemblyPart (apUnpack) ->
         convertAssembly assemblyConversionContext apUnpack
         >>= expandCaptureException
-        >>= (bootstrapOperation ((fst apUnpack).positions))
+        >>= (bootstrapOperation ((fst apUnpack).Positions))
     | _ -> ok node
 
 /// Execute a complete bootstrapped expansion on an AST.
@@ -327,7 +327,7 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     match node with
     | L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
-        match e.x.promoter with
+        match e.Value.promoter with
         | AssemblyPart a -> error L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
             error (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
@@ -347,7 +347,7 @@ let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider 
         | L2Expression (l2e) ->
             convertL2Line pragmaContext l2e
             >>= expandCaptureException
-            >>= (bootstrapPhase1 legalCapas pragmaCache l2e.positions)
+            >>= (bootstrapPhase1 legalCapas pragmaCache l2e.Positions)
         | _ -> ok node
 
     foldmap  // run the bootstrapped expand operation

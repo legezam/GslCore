@@ -14,7 +14,7 @@ type TestLineNumbers() =
     let rec extractAssemblies (n: AstNode): AstNode list =
         [ match n with
           | Block b ->
-              let result = b.x |> List.collect extractAssemblies
+              let result = b.Value |> List.collect extractAssemblies
               yield! result
           | Splice s ->
               let result =
@@ -24,7 +24,7 @@ type TestLineNumbers() =
 
               yield! result
           | Part p ->
-              match p.x.basePart with
+              match p.Value.basePart with
               | Assembly _ as x -> yield x
               | _ -> ()
           | Assembly _ as x -> yield x

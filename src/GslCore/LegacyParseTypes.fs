@@ -215,9 +215,9 @@ let private sliceFromAstSlice (s: ParseSlice) =
     | RelPos (lw), RelPos (rw) ->
         ok
             (SLICE
-                ({ left = lw.x
+                ({ left = lw.Value
                    lApprox = s.lApprox
-                   right = rw.x
+                   right = rw.Value
                    rApprox = s.rApprox }))
     | x, y ->
         let contextStr =
@@ -227,9 +227,9 @@ let private sliceFromAstSlice (s: ParseSlice) =
 
 let private astNodeToLegacyMod node =
     match node with
-    | Slice (sw) -> sliceFromAstSlice sw.x
-    | Mutation (mw) -> ok (MUTATION(mw.x))
-    | DotMod (dm) -> ok (DOTMOD(dm.x))
+    | Slice (sw) -> sliceFromAstSlice sw.Value
+    | Mutation (mw) -> ok (MUTATION(mw.Value))
+    | DotMod (dm) -> ok (DOTMOD(dm.Value))
     | _ -> internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
 
 let private convertMods mods =
@@ -237,26 +237,26 @@ let private convertMods mods =
 
 /// Convert an AST base part into a legacy Part.
 let private createLegacyPart part =
-    match part.x.basePart with
+    match part.Value.basePart with
     | Gene (gw) ->
-        convertMods part.x.mods
+        convertMods part.Value.mods
         >>= (fun mods ->
             let genePart =
-                { gene = gw.x.gene
+                { gene = gw.Value.gene
                   mods = mods
-                  where = gw.positions }
+                  where = gw.Positions }
 
             ok
                 (GENEPART
                     ({ part = genePart
-                       linker = gw.x.linker })))
+                       linker = gw.Value.linker })))
     | Marker _ -> ok MARKERPART
-    | InlineDna (s) -> ok (INLINEDNA(Dna(s.x, true, AllowAmbiguousBases)))
-    | InlineProtein (s) -> ok (INLINEPROT s.x)
+    | InlineDna (s) -> ok (INLINEDNA(Dna(s.Value, true, AllowAmbiguousBases)))
+    | InlineProtein (s) -> ok (INLINEPROT s.Value)
     | HetBlock _ -> ok HETBLOCK
     | PartId (p) ->
-        convertMods part.x.mods
-        >>= (fun mods -> ok (PARTID({ id = p.x; mods = mods })))
+        convertMods part.Value.mods
+        >>= (fun mods -> ok (PARTID({ id = p.Value; mods = mods })))
     | x -> internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
 let private createPPP part =
@@ -267,7 +267,7 @@ let private createPPP part =
             ok
                 { part = legacyPart
                   pr = getPragmas p
-                  fwd = p.x.fwd })
+                  fwd = p.Value.fwd })
     | x -> internalTypeMismatch (Some "legacy part conversion") "Part" x
 
 /// For assembly conversion, we need to accumulate both a pragma environment and docstrings.
@@ -315,7 +315,7 @@ let convertAssembly (context: AssemblyConversionContext)
     
     DesignParams.fromPragmas DesignParams.identity assemblyPragmas
     |> mapMessages (fun message -> errorMessage PragmaError message (Part(partWrapper)))
-    |> tupleResults (aplw.x |> List.map createPPP |> collect)
+    |> tupleResults (aplw.Value |> List.map createPPP |> collect)
     >>= fun (parts, designParams) ->
             ok
                 { Assembly.parts = parts
@@ -326,7 +326,7 @@ let convertAssembly (context: AssemblyConversionContext)
                   designParams = designParams
                   capabilities = context.pragmaEnv.capabilities
                   docStrings = context.docs.assigned
-                  sourcePosition = partWrapper.positions }
+                  sourcePosition = partWrapper.Positions }
 
 // ======================
 // conversion from L2 AST node to legacy L2 line type
@@ -336,12 +336,12 @@ let convertAssembly (context: AssemblyConversionContext)
 let private buildL2Element node =
     match node with
     | L2Element (nw) ->
-        match nw.x.promoter, nw.x.target with
+        match nw.Value.promoter, nw.Value.target with
         | L2Id _, L2Id (tw)
         | Part _, L2Id (tw) ->
             ok
-                { promoter = nw.x.promoter
-                  target = tw.x }
+                { promoter = nw.Value.promoter
+                  target = tw.Value }
 
         | x, y ->
             let contextStr =
@@ -352,16 +352,16 @@ let private buildL2Element node =
 
 let private unpackLocus nodeopt =
     match nodeopt with
-    | Some (L2Id (lw)) -> ok (Some(lw.x))
+    | Some (L2Id (lw)) -> ok (Some(lw.Value))
     | Some (x) -> internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
     | None -> ok None
 
 /// Build a concrete L2 expression from an AST node.
 let private buildL2Expression (ew: Node<L2Expression>) =
-    ew.x.parts
+    ew.Value.parts
     |> List.map buildL2Element
     |> collect
-    |> tupleResults (unpackLocus ew.x.locus)
+    |> tupleResults (unpackLocus ew.Value.locus)
     >>= (fun (locus, parts) -> ok { l2Locus = locus; parts = parts })
 
 /// Build a L2Line from an AST node and pragma environment.

@@ -36,7 +36,7 @@ let l2JobScorer _ = Some 0.0<PluginScore>
 
 let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
 
-    let locusWithPrefix = locus.id.x
+    let locusWithPrefix = locus.id.Value
     assert locus.prefix.IsNone
 
     let locusWithoutPrefix = locusWithPrefix.Substring(1)
@@ -101,9 +101,9 @@ let generateOutputsTitrations (args: L2DesignParams) =
         | [] -> failwithf "ERROR: unexpected empty L2 expression construct with no locus or parts\n"
         | hd :: tl -> hd, tl
     /// the titrated gene
-    let locusGene = locusExp.target.id.x.Substring(1)
+    let locusGene = locusExp.target.id.Value.Substring(1)
 
-    if not (locusExp.target.id.x.ToUpper().StartsWith("G")) then
+    if not (locusExp.target.id.Value.ToUpper().StartsWith("G")) then
         failwithf
             "ERROR: titrating expression target %s must start with g tag (e.g. gADH1). Variables not supported for titrations."
             locusExp.target.String

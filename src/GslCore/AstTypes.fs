@@ -109,14 +109,16 @@ let posBracketTokens left right: SourcePosition = { s = left.pos.s; e = right.po
 [<CustomEquality>]
 [<NoComparison>]
 type Node<'T when 'T: equality> =
-    { x: 'T
-      positions: SourcePosition list }
+    { Value: 'T
+      Positions: SourcePosition list }
     /// Override equality to ignore source code position.  We just care about semantic comparison.
     /// This is mostly to aid in testing.  We shouldn't need to be comparing generic AST nodes during parsing.
     override this.Equals other =
         match other with
-        | :? (Node<'T>) as o -> this.x = o.x
+        | :? (Node<'T>) as o -> this.Value = o.Value
         | _ -> false
+        
+    override this.GetHashCode() = this.Value.GetHashCode()
 
 
 /// Generic helper functions for wrapping node payloads.
@@ -125,23 +127,23 @@ type Node<'T when 'T: equality> =
 /// with first (most recently pushed) value being highest level function call
 let prependPositionsNode (newPositions: SourcePosition list) (node: Node<'T>) =
     { node with
-          positions = newPositions @ node.positions }
+          Positions = newPositions @ node.Positions }
 
 /// Wrap a value in a NodeWrapper without source position.
-let nodeWrap x = { x = x; positions = [] }
+let nodeWrap x = { Value = x; Positions = [] }
 
 /// Wrap a valye in a NodeWrapper with a position taken from a Positioned token.
-let nodeWrapWithTokenPosition (token: Positioned<_>) x = { x = x; positions = [ token.pos ] }
+let nodeWrapWithTokenPosition (token: Positioned<_>) x = { Value = x; Positions = [ token.pos ] }
 
 /// Convert a Positioned token into a node by applying a function to the token's payload.
 let tokenAsNodeAfter f (token: Positioned<_>) =
-    { x = f (token.i)
-      positions = [ token.pos ] }
+    { Value = f (token.i)
+      Positions = [ token.pos ] }
 
 /// Straight-up convert a Positioned token into a node.
 let tokenAsNode (token: Positioned<_>) =
-    { x = token.i
-      positions = [ token.pos ] }
+    { Value = token.i
+      Positions = [ token.pos ] }
 
 // ==================
 // AST type declaration
@@ -271,39 +273,39 @@ and AstNode =
     /// the highest level call is first and lowest last.
     member x.positions =
         match x with
-        | Int (nw) -> nw.positions
-        | Float (nw) -> nw.positions
-        | String (nw) -> nw.positions
-        | Docstring (nw) -> nw.positions
-        | TypedVariable (nw) -> nw.positions
-        | TypedValue (nw) -> nw.positions
-        | VariableBinding (nw) -> nw.positions
-        | BinaryOperation (nw) -> nw.positions
-        | Negation (nw) -> nw.positions
-        | ParseRelPos (nw) -> nw.positions
-        | RelPos (nw) -> nw.positions
-        | Slice (nw) -> nw.positions
-        | Mutation (nw) -> nw.positions
-        | DotMod (nw) -> nw.positions
-        | Part (nw) -> nw.positions
-        | Marker (nw) -> nw.positions
-        | PartId (nw) -> nw.positions
-        | InlineDna (nw) -> nw.positions
-        | InlineProtein (nw) -> nw.positions
-        | HetBlock (nw) -> nw.positions
-        | Gene (nw) -> nw.positions
-        | L2Id (nw) -> nw.positions
-        | L2Element (nw) -> nw.positions
-        | L2Expression (nw) -> nw.positions
-        | Roughage (nw) -> nw.positions
-        | ParsePragma (nw) -> nw.positions
-        | Pragma (nw) -> nw.positions
-        | Block (nw) -> nw.positions
-        | FunctionDef (nw) -> nw.positions
-        | FunctionLocals (nw) -> nw.positions
-        | FunctionCall (nw) -> nw.positions
-        | Assembly (nw) -> nw.positions
-        | ParseError (nw) -> nw.positions
+        | Int (nw) -> nw.Positions
+        | Float (nw) -> nw.Positions
+        | String (nw) -> nw.Positions
+        | Docstring (nw) -> nw.Positions
+        | TypedVariable (nw) -> nw.Positions
+        | TypedValue (nw) -> nw.Positions
+        | VariableBinding (nw) -> nw.Positions
+        | BinaryOperation (nw) -> nw.Positions
+        | Negation (nw) -> nw.Positions
+        | ParseRelPos (nw) -> nw.Positions
+        | RelPos (nw) -> nw.Positions
+        | Slice (nw) -> nw.Positions
+        | Mutation (nw) -> nw.Positions
+        | DotMod (nw) -> nw.Positions
+        | Part (nw) -> nw.Positions
+        | Marker (nw) -> nw.Positions
+        | PartId (nw) -> nw.Positions
+        | InlineDna (nw) -> nw.Positions
+        | InlineProtein (nw) -> nw.Positions
+        | HetBlock (nw) -> nw.Positions
+        | Gene (nw) -> nw.Positions
+        | L2Id (nw) -> nw.Positions
+        | L2Element (nw) -> nw.Positions
+        | L2Expression (nw) -> nw.Positions
+        | Roughage (nw) -> nw.Positions
+        | ParsePragma (nw) -> nw.Positions
+        | Pragma (nw) -> nw.Positions
+        | Block (nw) -> nw.Positions
+        | FunctionDef (nw) -> nw.Positions
+        | FunctionLocals (nw) -> nw.Positions
+        | FunctionCall (nw) -> nw.Positions
+        | Assembly (nw) -> nw.Positions
+        | ParseError (nw) -> nw.Positions
         | Splice _ -> []
 
     /// Get a string representation of the type of this node.
@@ -390,8 +392,8 @@ and L2Id =
       id: Node<string> }
     member x.String =
         match x.prefix with
-        | None -> x.id.x
-        | Some (prefix) -> sprintf "%s.%s" prefix.x x.id.x
+        | None -> x.id.Value
+        | Some (prefix) -> sprintf "%s.%s" prefix.Value x.id.Value
 
 /// Level 2 element, eg pABC1>gDEF2.
 /// Both subnodes should resolve to L2Id.
@@ -413,8 +415,8 @@ and RoughagePTPair =
       target: Node<L2Id> }
     member x.ToString(dir) =
         match dir with
-        | RoughageFwd -> sprintf "%s>%s" x.promoter.x.String x.target.x.String
-        | RoughageRev -> sprintf "%s<%s" x.target.x.String x.promoter.x.String
+        | RoughageFwd -> sprintf "%s>%s" x.promoter.Value.String x.target.Value.String
+        | RoughageRev -> sprintf "%s<%s" x.target.Value.String x.promoter.Value.String
 
 and RoughagePartDirection =
     | RoughageFwd
@@ -434,10 +436,10 @@ and Roughage =
     member x.HasMarker =
         match x.marker with
         | None -> // No marker attached to the locus knockout
-            match x.parts |> List.tryPick (fun re -> re.x.marker) with
+            match x.parts |> List.tryPick (fun re -> re.Value.marker) with
             | None -> None // No marker attached to a part either
-            | Some (mw) -> Some(mw.x)
-        | Some (mw) -> Some(mw.x) // Yes there is a marker attached to the locus knockout
+            | Some (mw) -> Some(mw.Value)
+        | Some (mw) -> Some(mw.Value) // Yes there is a marker attached to the locus knockout
 
 /// Helper function for pushing new source code positions onto stack during function expansion
 /// Most recently (first) postition refers to highest level function invocation.
@@ -517,7 +519,7 @@ let (|Leaf|_|) node =
 let (|AssemblyPart|GenePart|RecursivePart|Other|) node =
     match node with
     | Part (pw) ->
-        match pw.x.basePart with
+        match pw.Value.basePart with
         | Assembly (aw) -> AssemblyPart(pw, aw)
         | Gene (gp) -> GenePart(pw, gp)
         | Part (pwInner) -> RecursivePart(pw, pwInner)
@@ -547,7 +549,7 @@ let (|BookkeepingNode|_|) node =
 /// Extract the type of a node if it is a numeric variable.
 let (|IntVariable|FloatVariable|OtherVariable|NotAVariable|) node =
     match node with
-    | TypedVariable ({ x = (_, t); positions = _ }) ->
+    | TypedVariable ({ Value = (_, t); Positions = _ }) ->
         match t with
         | IntType -> IntVariable
         | FloatType -> FloatVariable
@@ -565,9 +567,9 @@ let (|AllowedInMathExpression|_|) node =
 let (|SelfReferentialVariable|_|) node =
     match node with
     | VariableBinding (vb) ->
-        match vb.x.value with
+        match vb.Value.value with
         | TypedVariable (vbInner) -> // variable pointing to another variable
-            if vb.x.name = fst vbInner.x then Some vb else None
+            if vb.Value.name = fst vbInner.Value then Some vb else None
         | _ -> None
     | _ -> None
 
@@ -601,10 +603,10 @@ let posFromList (nodes: AstNode list): SourcePosition option =
 // ------ general-purpose ------
 
 /// Create a parse error with message and position.
-let createParseError msg pos = ParseError({ x = msg; positions = pos })
+let createParseError msg pos = ParseError({ Value = msg; Positions = pos })
 
 /// Wrap a value with position taken from another node.
-let nodeWrapWithNodePosition (node: AstNode) v = { x = v; positions = node.positions }
+let nodeWrapWithNodePosition (node: AstNode) v = { Value = v; Positions = node.positions }
 
 /// Convert a string token to a TypedVariable
 let tokenToVariable (token: PString) (t: GslVarType): AstNode =
@@ -623,13 +625,13 @@ let createFloat (intPart: PInt) (fracPart: PInt): AstNode =
     let v =
         sprintf "%d.%d" intPart.i fracPart.i |> float
 
-    Float({ x = v; positions = [ pos ] })
+    Float({ Value = v; Positions = [ pos ] })
 
 /// Create a binary operation node from two other AST nodes.
 let createBinaryOp op left right =
     BinaryOperation
-        ({ x = { op = op; left = left; right = right }
-           positions = posBracket left right |> Option.toList })
+        ({ Value = { op = op; left = left; right = right }
+           Positions = posBracket left right |> Option.toList })
 
 /// Create an AST node for negation.
 let negate node =
@@ -732,12 +734,12 @@ let createParseSlice (leftRPInt, leftRPQual) (rightRPInt, rightRPQual) lApprox r
     let pos = posBracket left right |> Option.toList
 
     Slice
-        ({ x =
+        ({ Value =
                { left = left
                  right = right
                  lApprox = lApprox
                  rApprox = rApprox }
-           positions = pos })
+           Positions = pos })
 
 
 /// Create a mutation AST node.
@@ -755,17 +757,17 @@ let createMutation (s: PString) mutType =
           loc = pos
           mType = mutType }
 
-    Mutation({ x = mut; positions = [ s.pos ] })
+    Mutation({ Value = mut; Positions = [ s.pos ] })
 
 /// Create a top-level part.
 let createPart mods pragmas basePart =
     Part
-        ({ x =
+        ({ Value =
                { basePart = basePart
                  mods = mods
                  pragmas = pragmas
                  fwd = true }
-           positions = basePart.positions })
+           Positions = basePart.positions })
 
 /// Create a top-level part with empty collections and default values from a base part.
 let createPartWithBase = createPart [] []
@@ -775,14 +777,14 @@ let createGenePart (gene: PString) (linker: Linker option) =
     // The base part for this part will be a Gene AST node.
     createPartWithBase
         (Gene
-            ({ x = { gene = gene.i; linker = linker }
-               positions = [ gene.pos ] }))
+            ({ Value = { gene = gene.i; linker = linker }
+               Positions = [ gene.pos ] }))
 
 /// Capture a list of parsed mods and stuff them into their associated part.
 let stuffModsIntoPart astPart mods =
     match astPart with
     | Part (pw) ->
-        let part = pw.x
+        let part = pw.Value
         let stuffedPart = { part with mods = part.mods @ mods }
         Part(nodeWrapWithNodePosition astPart stuffedPart)
     | x -> failwithf "Mods may only be applied to Parts.  Tried to apply mods to %A." x
@@ -791,7 +793,7 @@ let stuffModsIntoPart astPart mods =
 let stuffPragmasIntoPart astPart prags =
     match astPart with
     | Part (pw) ->
-        let part = pw.x
+        let part = pw.Value
 
         let stuffedPart =
             { part with
@@ -803,7 +805,7 @@ let stuffPragmasIntoPart astPart prags =
 /// Reverse the direction of a part.
 let revPart astPart =
     match astPart with
-    | Part (pw) -> Part(nodeWrapWithNodePosition astPart { pw.x with fwd = false })
+    | Part (pw) -> Part(nodeWrapWithNodePosition astPart { pw.Value with fwd = false })
     | x -> failwithf "Can only apply the ! operator to Parts.  Tried to reverse a %A." x
 
 /// Create a part whose base part is an assembly of the passed list of parts.
@@ -812,8 +814,8 @@ let createAssemblyPart parts =
 
     let assem =
         Assembly
-            ({ x = parts
-               positions = pos |> Option.toList })
+            ({ Value = parts
+               Positions = pos |> Option.toList })
 
     createPart [] [] assem
 
@@ -825,10 +827,10 @@ let createL2IdNode (prefix: Node<string> option) (id: Node<string>) =
         | Some (p) ->
             posBracket (String(p)) (String(id))
             |> Option.toList // be lazy and wrap these as nodes to use existing function
-        | None -> id.positions
+        | None -> id.Positions
 
-    { x = { prefix = prefix; id = id }
-      positions = pos }
+    { Value = { prefix = prefix; id = id }
+      Positions = pos }
 
 /// Create a level 2 id from optional prefix and id
 let createL2Id prefix id = L2Id(createL2IdNode prefix id)
@@ -840,8 +842,8 @@ let createL2Element (promoter: AstNode) (target: AstNode) =
         posBracket promoter target |> Option.toList
 
     L2Element
-        ({ x = { promoter = promoter; target = target }
-           positions = pos })
+        ({ Value = { promoter = promoter; target = target }
+           Positions = pos })
 
 /// Create a level 2 expression from optional locus and list of elements.
 let createL2Expression (locus: AstNode option) (parts: AstNode list) =
@@ -851,8 +853,8 @@ let createL2Expression (locus: AstNode option) (parts: AstNode list) =
         | None -> posFromList parts
 
     L2Expression
-        ({ x = { locus = locus; parts = parts }
-           positions = pos |> Option.toList })
+        ({ Value = { locus = locus; parts = parts }
+           Positions = pos |> Option.toList })
 
 // ------ creating Roughage AST node ------
 
@@ -864,28 +866,28 @@ let createRoughagePart dir (p: Node<L2Id>) (t: Node<L2Id>) =
         | RoughageFwd -> posBracket (L2Id(p)) (L2Id(t))
         | RoughageRev -> posBracket (L2Id(t)) (L2Id(p))
 
-    { x = elem
-      positions = pos |> Option.toList }
+    { Value = elem
+      Positions = pos |> Option.toList }
 
 let createRoughageElement partFwd partRev marker =
-    let pos = partFwd.positions
+    let pos = partFwd.Positions
 
-    { x =
+    { Value =
           { pt1 = partFwd
             pt2 = partRev
             marker = marker }
-      positions = pos }
+      Positions = pos }
 
 let createRoughageLine (locus, marker) parts =
     // be lazy and use the position of whatever the first part is
     let pos =
         match parts with
         | [] -> []
-        | hd :: _ -> hd.positions
+        | hd :: _ -> hd.Positions
 
     Roughage
-        ({ x =
+        ({ Value =
                { locus = locus
                  marker = marker
                  parts = parts }
-           positions = pos })
+           Positions = pos })

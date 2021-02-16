@@ -146,7 +146,7 @@ let private createErrorNode (inBuffer: LexBuffer<_>) =
         if inBuffer.EndPos.Column > 0 then inBuffer.EndPos.ShiftColumnBy(-1) else inBuffer.EndPos
 
     let pos = { s = shiftedPos; e = shiftedPos }
-    ParseError({ x = ""; positions = [ pos ] })
+    ParseError({ Value = ""; Positions = [ pos ] })
 
 /// If exn is a GslParseError, format it.
 /// Otherwise, return None.

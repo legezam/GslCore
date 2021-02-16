@@ -24,9 +24,9 @@ type TestTagging() =
     let rec extractParts (n: AstNode): ParsePart list =
         [ match n with
           | Block b ->
-              let result = b.x |> List.collect extractParts
+              let result = b.Value |> List.collect extractParts
               yield! result
-          | Part p -> yield p.x
+          | Part p -> yield p.Value
           | Splice s ->
               let result =
                   s |> List.ofArray |> List.collect extractParts
@@ -134,8 +134,8 @@ uADH2; dADH2
                 p.pragmas
                 |> List.choose (fun n ->
                     match n with
-                    | Pragma (p) when p.x.Name = TaggingPlugin.tagPragmaDef.Name -> Some p.x
-                    | Pragma (p) when p.x.Name = TaggingPlugin.gTagPragmaDef.Name -> Some p.x
+                    | Pragma (p) when p.Value.Name = TaggingPlugin.tagPragmaDef.Name -> Some p.Value
+                    | Pragma (p) when p.Value.Name = TaggingPlugin.gTagPragmaDef.Name -> Some p.Value
                     | _ -> None)
 
             p, tagPragmas)

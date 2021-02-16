@@ -73,7 +73,7 @@ type TestPragmasAST() =
     let checkPragmaIsBuilt node =
         match node with
         | Pragma (p) -> good
-        | ParsePragma (p) -> errorf Error "Pragma '%s' was not built." p.x.name node
+        | ParsePragma (p) -> errorf Error "Pragma '%s' was not built." p.Value.name node
         | _ -> good
 
     let pragmaBuildTest source =
@@ -248,18 +248,18 @@ gBAZ"""
             |> returnOrFail
         // now replace the outer name pragma and make sure the second pass triggers the collision error
         match tree.wrappedNode with
-        | Block ({ x = [ Pragma (npw); assem ]
-                   positions = p }) ->
+        | Block ({ Value = [ Pragma (npw); assem ]
+                   Positions = p }) ->
             let newNamePrag =
                 Pragma
                     ({ npw with
-                           x =
-                               { npw.x with
+                           Value =
+                               { npw.Value with
                                      Arguments = [ "differentName" ] } })
 
             Block
-                ({ x = [ newNamePrag; assem ]
-                   positions = p })
+                ({ Value = [ newNamePrag; assem ]
+                   Positions = p })
         | _ -> failwith "Didn't unwrap correctly."
         |> AstTreeHead
         |> stuffPragmasPipeline
