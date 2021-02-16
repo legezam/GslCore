@@ -55,7 +55,7 @@ let simplePrimerDump (file: string) (primers: DivergedPrimerPair list list) (ass
                         yield (primer.body.str)
                         //calculate tm for given primer parts
                         let tm (a: char array) =
-                            Amyris.Bio.primercore.temp assembly.designParams.pp a a.Length
+                            Amyris.Bio.primercore.temp assembly.designParams.PrimerParams a a.Length
                             |> fun t -> sprintf "%3.1f" (t * 1.0 / (1.0<Amyris.Bio.primercore.C>))
                         //emit individual primer parts and tm
                         yield

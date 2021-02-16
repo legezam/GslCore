@@ -7,6 +7,7 @@ open NUnit.Framework
 open GslCore.GslcProcess
 open GslCore.CommonTypes
 open GslCore.AssemblyTestSupport
+open GslCore.DesignParams
 
 module SharedSliceTesting =
     let dumpSlices (slices: DNASlice list) =
@@ -53,15 +54,15 @@ type TestProcAssembly() =
             cleanedSlices
 
     let doProcAssembly testName (slices: DNASlice list) =
-        _doProcAssembly testName slices DesignParams.initialDesignParams
+        _doProcAssembly testName slices DesignParams.identity
 
     let doProcAssemblyLongOligos testName (slices: DNASlice list) =
         _doProcAssembly
             testName
             slices
-            { DesignParams.initialDesignParams with
-                  pp =
-                      { DesignParams.initialDesignParams.pp with
+            { DesignParams.identity with
+                  PrimerParams =
+                      { DesignParams.identity.PrimerParams with
                             maxLength = 100 } }
 
     /// Check that high level layout of diverged primer pair types meets expectation

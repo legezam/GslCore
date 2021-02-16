@@ -8,6 +8,7 @@ open GslCore.CommonTypes
 open GslCore.AssemblyTestSupport
 open GslCore.Pragma
 open Amyris.ErrorHandling
+open GslCore.DesignParams
 
 [<TestFixture>]
 type TestMapRyseLinkers() =
@@ -65,7 +66,7 @@ type TestMapRyseLinkers() =
                   + "|"
                   + String.Join(",", [ for l in rightLinkers -> l.sliceName ])
               pragmas = if isMegastitch then PragmaCollection.empty else makePragma "platform" [ "stitch" ]
-              designParams = DesignParams.initialDesignParams
+              designParams = DesignParams.identity
               docStrings = []
               materializedFrom =
                   { Assembly.name = None
@@ -73,7 +74,7 @@ type TestMapRyseLinkers() =
                     uri = None
                     linkerHint = ""
                     pragmas = PragmaCollection.empty
-                    designParams = DesignParams.initialDesignParams
+                    designParams = DesignParams.identity
                     capabilities = Set.empty
                     docStrings = []
                     sourcePosition = [] }

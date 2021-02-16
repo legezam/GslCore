@@ -1,5 +1,6 @@
 ﻿namespace GslCore
 
+open GslCore.DesignParams
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
@@ -37,7 +38,7 @@ type TestPragmas() =
     /// Smoke test parsing PCR parameters.
     member x.TestPcrParamsParsing() =
         let doParse ifGood ifBad args =
-            match revisePP defaultParams args with
+            match DesignParams.revise defaultParams args with
             | Ok (r, _) -> ifGood r
             | Bad (msgs) -> ifBad msgs
 

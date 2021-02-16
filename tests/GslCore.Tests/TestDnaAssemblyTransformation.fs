@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open GslCore
+open GslCore.DesignParams
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.GslcProcess
@@ -17,7 +18,7 @@ module AssemblyTestBase =
           uri = None
           linkerHint = ""
           pragmas = PragmaCollection.empty
-          designParams = DesignParams.initialDesignParams
+          designParams = DesignParams.identity
           capabilities = Set.empty
           docStrings = []
           sourcePosition = [] }
@@ -54,7 +55,7 @@ module AssemblyTestBase =
           uri = None
           linkerHint = ""
           pragmas = assemblyPragmas
-          designParams = DesignParams.initialDesignParams
+          designParams = DesignParams.identity
           docStrings = []
           materializedFrom = emptyAssembly
           tags = Set.empty

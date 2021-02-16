@@ -312,8 +312,8 @@ let convertAssembly (context: AssemblyConversionContext)
         |> Option.map (String.concat "")
         |> Option.defaultValue ""
 
-
-    designParamsFromPragmas initialDesignParams assemblyPragmas
+    
+    DesignParams.fromPragmas DesignParams.identity assemblyPragmas
     |> mapMessages (fun message -> errorMessage PragmaError message (Part(partWrapper)))
     |> tupleResults (aplw.x |> List.map createPPP |> collect)
     >>= fun (parts, designParams) ->

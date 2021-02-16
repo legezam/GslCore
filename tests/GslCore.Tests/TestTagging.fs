@@ -14,6 +14,7 @@ open GslCore.CommonTypes
 open GslCore.Constants
 open GslCore.BasicCodonProvider
 open GslCore.Pragma
+open GslCore.DesignParams
 
 [<TestFixture>]
 type TestTagging() =
@@ -313,7 +314,7 @@ uADH2; dADH2
           uri = None
           linkerHint = "hint"
           pragmas = PragmaCollection.create Seq.empty TestTagging.PragmaCache
-          designParams = DesignParams.initialDesignParams
+          designParams = DesignParams.identity
           docStrings = []
           materializedFrom = AssemblyTestBase.emptyAssembly
           tags = Set.empty

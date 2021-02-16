@@ -172,16 +172,18 @@ module BuiltIn =
           InvertsTo = None
           Validate = Validation.noValidate }
 
+    let [<Literal>] StitchName = "stitch"
     let stitchPragmaDef =
-        { PragmaDefinition.Name = "stitch"
+        { PragmaDefinition.Name = StitchName
           Shape = Zero
           Scope = BlockOnly(Persistent)
           Description = "TODO description"
           InvertsTo = None
           Validate = Validation.noValidate }
 
+    let [<Literal>] MegaStitchName = "megastitch"
     let megastitchPragmaDef =
-        { PragmaDefinition.Name = "megastitch"
+        { PragmaDefinition.Name = MegaStitchName
           Shape = Zero
           Scope = BlockOnly(Persistent)
           Description = "TODO description"
@@ -229,16 +231,18 @@ module BuiltIn =
           InvertsTo = None
           Validate = Parse.parseInt }
 
+    let [<Literal>] PcrParamsName = "pcrparams"
     let pcrParamsPragmaDef =
-        { PragmaDefinition.Name = "pcrparams"
+        { PragmaDefinition.Name = PcrParamsName
           Shape = Range(1, 5)
           Scope = BlockOnly(Persistent)
           Description = "Set various parts of PCR conditions."
           InvertsTo = None
           Validate = Validation.validatePcrParams }
 
+    let [<Literal>] TargetTmName = "targettm"
     let targetTmPragmaDef =
-        { PragmaDefinition.Name = "targettm"
+        { PragmaDefinition.Name = TargetTmName
           Shape = One
           Scope = BlockOnly(Persistent)
           Description = "Set target melting temperature for pcr designs."
@@ -254,8 +258,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Parse.parseDouble }
 
+    let [<Literal>] SeamlesOverlapTmName = "seamlessoverlaptm"
     let seamlessOverlapTmPragmaDef =
-        { PragmaDefinition.Name = "seamlessoverlaptm"
+        { PragmaDefinition.Name = SeamlesOverlapTmName
           Shape = One
           Scope = BlockOnly(Persistent)
           Description =
@@ -263,24 +268,27 @@ module BuiltIn =
           InvertsTo = None
           Validate = Parse.parseDouble }
 
+    let [<Literal>] AtPenaltyName = "atpenalty"
     let atPenaltyPragmaDef =
-        { PragmaDefinition.Name = "atpenalty"
+        { PragmaDefinition.Name = AtPenaltyName
           Shape = One
           Scope = BlockOnly(Persistent)
           Description = "Set degree of tm flexibility to get a terminal G or C and unstable 3' end of an oligo."
           InvertsTo = None
           Validate = Parse.parseDouble }
-
+    
+    let [<Literal>] PcrAssemblyParamsName = "pcrassemblyparams"
     let pcrAssemblyParamsPragmaDef =
-        { PragmaDefinition.Name = "pcrassemblyparams"
+        { PragmaDefinition.Name = PcrAssemblyParamsName
           Shape = Range(1, 5)
           Scope = BlockOnly(Persistent)
           Description = "Set melting conditions for the overlap junction in a seamless design."
           InvertsTo = None
           Validate = Validation.validatePcrParams }
 
+    let [<Literal>] MinOverlapLenName = "minoverlaplen"
     let minOverlapLenPragmaDef =
-        { PragmaDefinition.Name = "minoverlaplen"
+        { PragmaDefinition.Name = MinOverlapLenName
           Shape = One
           Scope = BlockOnly(Persistent)
           Description = "Sets the minimum overlap length for junction in a seamless design."

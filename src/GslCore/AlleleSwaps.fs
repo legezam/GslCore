@@ -501,7 +501,7 @@ let private generateHBCore (cl: CodonLookup)
     let localVerbose = false
     let meltHB = 70.0<C>
     let meltHBNeighbour = 60.0<C>
-    let maxOligoLen = dp.pp.maxLength
+    let maxOligoLen = dp.PrimerParams.maxLength
 
     let upRev = up.RevComp()
     // TODO - if we are near the 5' end of the gene we should use non rare
@@ -586,7 +586,7 @@ let private generateHBCore (cl: CodonLookup)
             let AB = DnaOps.append prefix alt.[..i - 1]
 
             let penHB =
-                { dp.pp with
+                { dp.PrimerParams with
                       maxLength = maxOligoLen - minC }
 
             let task =
@@ -610,7 +610,7 @@ let private generateHBCore (cl: CodonLookup)
                         else AB.[0..((o1.oligo.Length / 3 + 1) * 3) - 1]
 
                     let penC =
-                        { dp.pp with
+                        { dp.PrimerParams with
                               maxLength = maxOligoLen - primer1.Length
                               minLength = max 10 (54 - primer1.Length) }
 
@@ -669,7 +669,7 @@ let private generateHBCore (cl: CodonLookup)
                             assert (score >= 0.0)
                             // WARNING - can't customize the sodium and primer concentration values here
                             let x =
-                                primercore.temp dp.pp o3.oligo o3.oligo.Length
+                                primercore.temp dp.PrimerParams o3.oligo o3.oligo.Length
 
                             if localVerbose then
                                 printf "i=%-3d p1l=%-3d p2l=%-3d p3l=%-3d p1t=%-3A p2t=%-3A p3t=%-3A %f score=%f %s %s\n"

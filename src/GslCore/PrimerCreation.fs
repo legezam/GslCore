@@ -183,9 +183,9 @@ let tuneTails verbose
             x
         | None ->
             if verbose
-            then printfn "procAssembly: tuneTails: setAnnealTarget to seamlessOverlapTm=%A" dp.seamlessOverlapTm
+            then printfn "procAssembly: tuneTails: setAnnealTarget to seamlessOverlapTm=%A" dp.SeamlessOverlapTemp
 
-            dp.seamlessOverlapTm
+            dp.SeamlessOverlapTemp
     //let annealTarget = dp.seamlessOverlapTm // Just use this,  rev/fwdTailLenFixed vars take care of constraining RYSE linkers
 
     // Find two positions f and r that create a better ovelap tm
@@ -220,13 +220,13 @@ let tuneTails verbose
         /// Matches when an oligo has hit its maximum length
         let (|OligoMax|_|) =
             function
-            | x when x = dp.pp.maxLength -> Some(x)
+            | x when x = dp.PrimerParams.maxLength -> Some(x)
             | _ -> None
 
         /// matches if an oligo gets too long
         let (|OligoOver|_|) =
             function
-            | x when x > dp.pp.maxLength -> Some(x)
+            | x when x > dp.PrimerParams.maxLength -> Some(x)
             | _ -> None
         (*
         /// matches if an oligo gets too short
@@ -258,8 +258,8 @@ let tuneTails verbose
                       if s.fb < 5 then
                           999.0<C>
                       else
-                          dp.targetTm
-                          - (Amyris.Bio.primercore.temp dp.pp fwd.body.arr s.fb) }
+                          dp.TargetTemp
+                          - (Amyris.Bio.primercore.temp dp.PrimerParams fwd.body.arr s.fb) }
 
         let updateRev (s: TuneState) =
             { s with
@@ -267,15 +267,15 @@ let tuneTails verbose
                       if s.rb < 5 then
                           999.0<C>
                       else
-                          dp.targetTm
-                          - (Amyris.Bio.primercore.temp dp.pp rev.body.arr s.rb) }
+                          dp.TargetTemp
+                          - (Amyris.Bio.primercore.temp dp.PrimerParams rev.body.arr s.rb) }
 
         let updateAnneal (s: TuneState) =
             { s with
                   bestAnnealDelta =
                       annealTarget
                       - (Amyris.Bio.primercore.temp
-                          dp.pp
+                          dp.PrimerParams
                              (fullTemplate.[X - s.ft + 1..].arr)
                              ((Y + s.rt - 1) - (X - s.ft + 1) + 1)) }
 
@@ -320,7 +320,7 @@ let tuneTails verbose
             seq {
                 match fwdLen with
                 | OligoOver (_) -> // cut something off
-                    if state.fb > dp.pp.minLength then yield CHOP_F_AMP
+                    if state.fb > dp.PrimerParams.minLength then yield CHOP_F_AMP
                     // Put guard on this to stop best anneal data running away to zero kelvin ;(
                     if fwdTailLenFixed.IsNone
                        && state.ft > fwdTailLenMin
@@ -328,7 +328,7 @@ let tuneTails verbose
                         yield CHOP_F_ANNEAL
                 | OligoMax (_) -> // could slide or cut
                     if state.bestFwdDelta < 0.0<C>
-                       && state.fb > dp.pp.minLength then
+                       && state.fb > dp.PrimerParams.minLength then
                         yield CHOP_F_AMP
 
                     if fwdTailLenFixed.IsNone then
@@ -348,7 +348,7 @@ let tuneTails verbose
                     if fwdTailLenFixed.IsNone then
                         if state.bestFwdDelta < 0.0<C>
                            && state.ft < fwdTailLenMin
-                           && state.fb > dp.pp.minLength then
+                           && state.fb > dp.PrimerParams.minLength then
                             yield CHOP_F_AMP
                         elif state.fb < fwd.body.Length then
                             yield EXT_F_AMP
@@ -412,13 +412,13 @@ let tuneTails verbose
 
                 match revLen with
                 | OligoOver (_) -> // cut something off reverse primer
-                    if state.rb > dp.pp.minLength then yield CHOP_R_AMP
+                    if state.rb > dp.PrimerParams.minLength then yield CHOP_R_AMP
 
                     if revTailLenFixed.IsNone && state.rt > revTailLenMin
                     then yield CHOP_R_ANNEAL
                 | OligoMax (_) -> // could slide or cut
                     if state.bestRevDelta < 0.0<C>
-                       && state.rb > dp.pp.minLength then
+                       && state.rb > dp.PrimerParams.minLength then
                         yield CHOP_R_AMP
 
                     if revTailLenFixed.IsNone then
@@ -436,7 +436,7 @@ let tuneTails verbose
 
                 | _ ->
                     if state.bestRevDelta < 0.0<C>
-                       && state.rb > dp.pp.minLength then
+                       && state.rb > dp.PrimerParams.minLength then
                         yield CHOP_R_AMP
                     elif state.rb < rev.body.Length then
                         yield EXT_R_AMP
@@ -527,12 +527,12 @@ let tuneTails verbose
             /// primers are <= maxlength, then total Tm deviation is smaller
             let better (s1: TuneState) (s2: TuneState) =
                 let excess1 =
-                    (s1.ft + s1.fb - dp.pp.maxLength |> max 0)
-                    + (s1.rt + s1.rb - dp.pp.maxLength |> max 0)
+                    (s1.ft + s1.fb - dp.PrimerParams.maxLength |> max 0)
+                    + (s1.rt + s1.rb - dp.PrimerParams.maxLength |> max 0)
 
                 let excess2 =
-                    (s2.ft + s2.fb - dp.pp.maxLength |> max 0)
-                    + (s2.rt + s2.rb - dp.pp.maxLength |> max 0)
+                    (s2.ft + s2.fb - dp.PrimerParams.maxLength |> max 0)
+                    + (s2.rt + s2.rb - dp.PrimerParams.maxLength |> max 0)
 
                 (excess1 < excess2)
                 || (excess1 = excess2
@@ -550,13 +550,13 @@ let tuneTails verbose
             if verbose then printf "bestM=%A" bestMove
 
             let primersOutOfSpec =
-                state.fb + state.ft > dp.pp.maxLength
+                state.fb + state.ft > dp.PrimerParams.maxLength
                 || // total forward oligo too long
-                state.rb + state.rt > dp.pp.maxLength
+                state.rb + state.rt > dp.PrimerParams.maxLength
                 || // total reverse oligo too long
-                state.fb + state.ft < dp.pp.minLength
+                state.fb + state.ft < dp.PrimerParams.minLength
                 || // total forward oligo too short
-                state.rb + state.rt < dp.pp.minLength // total reverse oligo too short
+                state.rb + state.rt < dp.PrimerParams.minLength // total reverse oligo too short
 
             if better lowestS state then
                 if verbose
@@ -595,7 +595,7 @@ let tuneTails verbose
             annealTarget
         else
             Amyris.Bio.primercore.temp
-                dp.pp
+                dp.PrimerParams
                 (fullTemplate.[X - fwd.tail.Length + 1..].arr)
                 ((Y + rev.tail.Length - 1)
                  - (X - fwd.tail.Length + 1)
@@ -629,26 +629,26 @@ let tuneTails verbose
         printfn "tuneTailOpt: starting fullTemplate=%O" fullTemplate
 
     let rec trimIfNeeded (p: Primer) =
-        if p.lenLE (dp.pp.maxLength) then
+        if p.lenLE (dp.PrimerParams.maxLength) then
             p
         else
             let ampTemp =
-                Amyris.Bio.primercore.temp dp.pp p.body.arr p.body.Length
+                Amyris.Bio.primercore.temp dp.PrimerParams p.body.arr p.body.Length
 
-            let ampDelta = abs (ampTemp - dp.targetTm)
+            let ampDelta = abs (ampTemp - dp.TargetTemp)
 
             let annealTemp =
-                Amyris.Bio.primercore.temp dp.pp p.tail.arr p.tail.Length
+                Amyris.Bio.primercore.temp dp.PrimerParams p.tail.arr p.tail.Length
 
-            let annealDelta = abs (annealTemp - dp.seamlessOverlapTm)
+            let annealDelta = abs (annealTemp - dp.SeamlessOverlapTemp)
 
             if ampDelta < annealDelta
-               && p.body.Length > dp.pp.minLength then
+               && p.body.Length > dp.PrimerParams.minLength then
                 trimIfNeeded
                     { p with
                           body = p.body.[..p.body.Length - 2] }
             elif ampDelta > annealDelta
-                 && p.tail.Length > dp.pp.minLength then
+                 && p.tail.Length > dp.PrimerParams.minLength then
                 trimIfNeeded { p with tail = p.tail.[1..] }
             else
                 p
@@ -666,10 +666,10 @@ let tuneTails verbose
     else
         // precalculate the fwd / rev body temps for reference
         let fwdAmpTm =
-            Amyris.Bio.primercore.temp dp.pp fwd.body.arr fwd.body.Length
+            Amyris.Bio.primercore.temp dp.PrimerParams fwd.body.arr fwd.body.Length
 
         let revAmpTm =
-            Amyris.Bio.primercore.temp dp.pp rev.body.arr rev.body.Length
+            Amyris.Bio.primercore.temp dp.PrimerParams rev.body.arr rev.body.Length
 
         // Start optimization of tail/body with full length tail and body for the original designed primers.
         // This may well be too long for the max oligo length but the tuneTailsOpt function will adjust till they are legal
@@ -677,8 +677,8 @@ let tuneTails verbose
             { bestAnnealDelta = annealTarget - startAnnealTm
               ft = fwd.tail.Length
               rt = rev.tail.Length
-              bestFwdDelta = dp.targetTm - fwdAmpTm
-              bestRevDelta = dp.targetTm - revAmpTm
+              bestFwdDelta = dp.TargetTemp - fwdAmpTm
+              bestRevDelta = dp.TargetTemp - revAmpTm
               fb = fwd.body.Length
               rb = rev.body.Length }
 
@@ -821,8 +821,8 @@ let primerCheck (p: char array) (fr: char array) = prefix p fr
 let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
     // We need a forward and reverse primer designed into the adjacent sequences
     // Allocate half max len to each primer
-    let maxFwd = dp.pp.maxLength / 2
-    let maxRev = dp.pp.maxLength - maxFwd
+    let maxFwd = dp.PrimerParams.maxLength / 2
+    let maxRev = dp.PrimerParams.maxLength - maxFwd
 
     /// Wrapper function for oligo design to capture and report errors in primer design
     let pdWrap (debug: bool) (pen: PrimerParams) (task: OligoTask) =
@@ -843,10 +843,10 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
     /// Build a single primer into a DNA slice, allowing up to length bp and handling approximate edges
     let designSingle (s: DNASlice) fwd length =
         let pen =
-            { dp.pp with
+            { dp.PrimerParams with
                   maxLength = length
                   // be less tough on temp if  we asking for high temp 68C
-                  tmPenalty = if dp.targetTm > 60.0<C> then 3.0 else 1.0 }
+                  tmPenalty = if dp.TargetTemp > 60.0<C> then 3.0 else 1.0 }
 
         // Handle approximate ends, and make sure we are looking at the right end being flexible..
         // bugfix 20111111 - wasn't using correct approximate end flag
@@ -864,7 +864,7 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
                   align = ANCHOR.CENTERLEFT
                   strand = STRAND.TOP
                   offset = 0
-                  targetTemp = dp.targetTm // was historically seamlessTm incorrectly till ~ 10/2017
+                  targetTemp = dp.TargetTemp // was historically seamlessTm incorrectly till ~ 10/2017
                   sequencePenalties = None }
 
             pdWrap false pen task
@@ -875,7 +875,7 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
                   align = ANCHOR.LEFT
                   strand = STRAND.TOP
                   offset = 0
-                  targetTemp = dp.targetTm // was historically seamlessTm incorrectly till ~ 10/2017
+                  targetTemp = dp.TargetTemp // was historically seamlessTm incorrectly till ~ 10/2017
                   sequencePenalties = None }
 
             pdWrap false pen task
@@ -895,7 +895,7 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
                         "seamlesstmopt done (no more runway) fLen=%d rLen=%d target=%A bestDelta=%A"
                         bestF
                         bestR
-                        dp.seamlessOverlapTm
+                        dp.SeamlessOverlapTemp
                         bestDelta
 
                 bestF, bestR // Ran out of runway
@@ -905,29 +905,29 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
                                    f.oligo.[..fLen - 1] ]
 
                 let tm =
-                    primercore.temp dp.overlapParams overlapOligo overlapOligo.Length
+                    primercore.temp dp.OverlapParams overlapOligo overlapOligo.Length
 
-                let delta = abs (tm - dp.seamlessOverlapTm)
+                let delta = abs (tm - dp.SeamlessOverlapTemp)
 
                 if seamlessOptVerbose then
                     printfn
                         "seamlesstmopt fLen=%d rLen=%d target=%A delta=%A bestDelta=%A tm=%A"
                         fLen
                         rLen
-                        dp.seamlessOverlapTm
+                        dp.SeamlessOverlapTemp
                         delta
                         bestDelta
                         tm
 
                 if delta > bestDelta + 3.0<C>
-                   && (fLen + rLen >= dp.overlapMinLen) then
+                   && (fLen + rLen >= dp.OverlapMinLength) then
                     // Reached the end and have a worse design
                     if seamlessOptVerbose then
                         printfn
                             "seamlesstmopt done fLen=%d rLen=%d target=%A delta=%A bestDelta=%A tm=%A"
                             bestF
                             bestR
-                            dp.seamlessOverlapTm
+                            dp.SeamlessOverlapTemp
                             delta
                             bestDelta
                             tm
@@ -945,8 +945,8 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
         // Get optimal tail lengths ( ~~~s below) to get the right internal seamlessoverlaptm
         let bestF, bestR =
             optOverlapTm
-                (min (dp.overlapMinLen / 2) f.oligo.Length)
-                (min (dp.overlapMinLen / 2) r.oligo.Length)
+                (min (dp.OverlapMinLength / 2) f.oligo.Length)
+                (min (dp.OverlapMinLength / 2) r.oligo.Length)
                 f.oligo.Length
                 r.oligo.Length
                 9999.0<C>
@@ -992,12 +992,12 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
     | Some (f), Some (r) -> success f r // Both succeeded
     | Some (f), None ->
         // See if we can do better using leftover bases from fwd design
-        match designSingle prev false (dp.pp.maxLength - f.oligo.Length) with
+        match designSingle prev false (dp.PrimerParams.maxLength - f.oligo.Length) with
         | None -> failwithf "failed primer design for seamless %A::%A - prev " prev next
         | Some (r) -> success f r
     | None, Some (r) ->
         // See if we can do better using leftover bases from rev design
-        match designSingle next true (dp.pp.maxLength - r.oligo.Length) with
+        match designSingle next true (dp.PrimerParams.maxLength - r.oligo.Length) with
         | None -> failwithf "failed primer design for seamless %A::%A - next \n" prev next
         | Some (f) -> success f r
 // ^^ End Seamless design ---------------------------------------------------------------------------------------------
@@ -1020,7 +1020,7 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
                       align = ANCHOR.CENTERLEFT
                       strand = STRAND.TOP
                       offset = 0
-                      targetTemp = dp.targetTm
+                      targetTemp = dp.TargetTemp
                       sequencePenalties = None }
 
                 primercore.oligoDesignWithCompromise false pen task
@@ -1031,7 +1031,7 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
                       align = ANCHOR.LEFT
                       strand = STRAND.TOP
                       offset = 0
-                      targetTemp = dp.targetTm
+                      targetTemp = dp.TargetTemp
                       sequencePenalties = None }
 
                 if pen.maxLength < pen.minLength
@@ -1053,7 +1053,7 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
               annotation = [] },
             oligo.offset
 
-    linkerFwd2Iterative dp.pp (2 * Default.ApproxMargin)
+    linkerFwd2Iterative dp.PrimerParams (2 * Default.ApproxMargin)
 
 
 /// Modified version that doesn't take sandwich length into account while designing the amp primer
@@ -1092,7 +1092,7 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
                           align = ANCHOR.CENTERLEFT
                           strand = STRAND.TOP
                           offset = 0
-                          targetTemp = dp.targetTm
+                          targetTemp = dp.TargetTemp
                           sequencePenalties = None }
 
                     if verbose then
@@ -1107,7 +1107,7 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
                           align = ANCHOR.LEFT
                           strand = STRAND.TOP
                           offset = 0
-                          targetTemp = dp.targetTm
+                          targetTemp = dp.TargetTemp
                           sequencePenalties = None }
 
                     if verbose then
@@ -1130,34 +1130,34 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
                 oligo.offset
 
 
-    linkerRev2Iterative dp.pp (2 * Default.ApproxMargin)
+    linkerRev2Iterative dp.PrimerParams (2 * Default.ApproxMargin)
 
 /// Chop bases off a primer whose tail is a linker until it meets the length requirement
 let trimLinkerTailBody (dp: DesignParams) (p: Primer) =
     let tailTargetTM =
-        if p.tail.Length = 0 then 0.0<C> else temp dp.pp p.tail.arr p.tail.Length
+        if p.tail.Length = 0 then 0.0<C> else temp dp.PrimerParams p.tail.arr p.tail.Length
 
-    let bodyTargetTm = dp.targetTm
+    let bodyTargetTm = dp.TargetTemp
 
     let rec find bLen tLen =
-        if bLen + tLen <= dp.pp.maxLength
-           || (bLen = dp.pp.minLength && tLen = dp.pp.minLength) then
+        if bLen + tLen <= dp.PrimerParams.maxLength
+           || (bLen = dp.PrimerParams.minLength && tLen = dp.PrimerParams.minLength) then
             { p with
                   body = p.body.[..bLen - 1]
                   tail = p.tail.[p.tail.Length - tLen..] }
         else
         // Someone needs to lose a basepair
-        if bLen = dp.pp.minLength then
+        if bLen = dp.PrimerParams.minLength then
             find bLen (tLen - 1)
-        elif tLen = dp.pp.minLength then
+        elif tLen = dp.PrimerParams.minLength then
             find (bLen - 1) tLen
         else
             let bLen' = bLen - 1
             let tLen' = tLen - 1
-            let bTm = temp dp.pp p.body.arr bLen'
+            let bTm = temp dp.PrimerParams p.body.arr bLen'
 
             let tTm =
-                temp dp.pp (p.tail.[p.tail.Length - tLen'..].arr) tLen'
+                temp dp.PrimerParams (p.tail.[p.tail.Length - tLen'..].arr) tLen'
 
             if abs (tTm - tailTargetTM) < abs (bTm - bodyTargetTm) then
                 // Pick on tail, it's not doing so bad
@@ -1434,7 +1434,7 @@ can design (say) a primer against might be further back in the stack and it's ju
 
             // Up to how many bases can we use for tail?
             let fwdTailLen =
-                min fwdRunway.Length (dp.pp.maxLength - primerF.body.Length)
+                min fwdRunway.Length (dp.PrimerParams.maxLength - primerF.body.Length)
                 |> min fwdTailLenMax // restrict if needed
 
             // Define the forward primer using the primerF into the body and the fwdRunway cut
@@ -1449,7 +1449,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                 DnaOps.concat([ hd.dna; primerF.body ]).RevComp()
 
             let revTailLen =
-                min revRunway.Length (dp.pp.maxLength - primerR.body.Length)
+                min revRunway.Length (dp.PrimerParams.maxLength - primerR.body.Length)
                 |> min revTailLenMax
             // Amplification part of fwd primer
             let a1F =
@@ -1507,8 +1507,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             // this is taken
             let next' = ((cutLeft verbose next offsetF) :: tl) // Remove bases from the next slice if we moved the primer
 
-            assert (primerF'.lenLE (dp.pp.maxLength))
-            assert (primerR'.lenLE (dp.pp.maxLength))
+            assert (primerF'.lenLE (dp.PrimerParams.maxLength))
+            assert (primerR'.lenLE (dp.PrimerParams.maxLength))
 
 
             procAssembly
@@ -1743,7 +1743,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                      revMiddleLen,
                      Microsoft.FSharp.Core.int.MaxValue)
                 elif isLinker then
-                    let linkerTm = temp dp.pp hd.dna.arr hd.dna.Length
+                    let linkerTm = temp dp.PrimerParams hd.dna.arr hd.dna.Length
                     ///beginning of linker.
                     let fwdTailLenMax = midArg.Length - lenSR
                     ///end of linker.
@@ -1774,19 +1774,19 @@ can design (say) a primer against might be further back in the stack and it's ju
                      ((0.8 * float revMiddleLen) |> int),
                      Microsoft.FSharp.Core.int.MaxValue)
 
-            if fwdTailLenMin > dp.pp.maxLength then
+            if fwdTailLenMin > dp.PrimerParams.maxLength then
                 failwithf
                     "%s: required primer fwd primer tail length %d exceeds primer max length of %d"
                     errorName
                     fwdTailLenMin
-                    dp.pp.maxLength
+                    dp.PrimerParams.maxLength
 
-            if revTailLenMin > dp.pp.maxLength then
+            if revTailLenMin > dp.PrimerParams.maxLength then
                 failwithf
                     "%s: required primer revfwd primer tail length %d exceeds primer max length of %d"
                     errorName
                     revTailLenMin
-                    dp.pp.maxLength
+                    dp.PrimerParams.maxLength
 
             // --------------------------------------------------------------------------------
             // main show - play with all the primer lengths to get optimal forward and reverse primers
@@ -1832,23 +1832,23 @@ can design (say) a primer against might be further back in the stack and it's ju
             //assert ( primerF.tail.Length >= fwdTailLenMin)
             //assert (primerR.tail.Length = 0 || primerR.tail.Length >= revTailLenMin)
 
-            if not (primerF.lenLE (dp.pp.maxLength)) then
+            if not (primerF.lenLE (dp.PrimerParams.maxLength)) then
                 failwithf
                     "for %s primer design violates length constraint in procAssembly primerF %d not <= %d for %O"
                     errorName
                     primerF.Primer.Length
-                    dp.pp.maxLength
+                    dp.PrimerParams.maxLength
                     primerF.Primer
 
-            if not (primerR.lenLE (dp.pp.maxLength)) then
+            if not (primerR.lenLE (dp.PrimerParams.maxLength)) then
                 failwithf
                     "for %s primer design violates length constraint in procAssembly primerR %d not <= %d for %O"
                     errorName
                     primerR.Primer.Length
-                    dp.pp.maxLength
+                    dp.PrimerParams.maxLength
                     primerR.Primer
 
-            assert (primerR.lenLE (dp.pp.maxLength))
+            assert (primerR.lenLE (dp.PrimerParams.maxLength))
 
             // Ensure primers overlap
             // --------------------------------------------------
@@ -2281,7 +2281,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                       //    ---------------|--------------------
                       //          <------------oxxxxxxx
                       let maxTailLen =
-                          dp.pp.maxLength - primerRStep2.body.Length
+                          dp.PrimerParams.maxLength - primerRStep2.body.Length
                           |> min (primerFStep2.body.Length + x - 1)
 
                       let primerRNewTail = hd.dna.[..maxTailLen - 1].RevComp()
@@ -2295,7 +2295,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                       //    ---------------|--------------------
                       //          <------o
                       let maxTailLen =
-                          dp.pp.maxLength - primerFStep2.body.Length
+                          dp.PrimerParams.maxLength - primerFStep2.body.Length
                           |> min (primerRStep2.body.Length + x - 1)
 
                       let primerFNewTail = pHd.dna.[pHd.dna.Length - maxTailLen..]
@@ -2395,8 +2395,8 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
 
             let designParams =
                 { assembly.designParams with
-                      pp =
-                          { assembly.designParams.pp with
+                      PrimerParams =
+                          { assembly.designParams.PrimerParams with
                                 maxLength = primerMaxLen
                                 minLength = primerMinLen } }
 
