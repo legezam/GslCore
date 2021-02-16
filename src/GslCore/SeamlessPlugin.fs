@@ -91,7 +91,7 @@ let procInsertFuse verbose (l: DNASlice list) =
 /// request a seamless design
 let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
     let printVerbose message =
-        if at.opts.verbose then printfn "%s" message
+        if at.Options.Verbose then printfn "%s" message
 
 
     let linkered =
@@ -107,7 +107,7 @@ let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
 
         // flank final result with empty linkers to get end primer generation
         let dnaPartsProcessed =
-            procInsertFuse at.opts.verbose a.dnaParts
+            procInsertFuse at.Options.Verbose a.dnaParts
 
         printVerbose (sprintf "placeFuseForSeamless: final layout: %s" (dumpSliceLayout dnaPartsProcessed))
 
@@ -144,7 +144,7 @@ type SeamlessAssembler =
             |> x.processExtraArgs arg :> IAssemblyTransform
 
         member x.ConfigureFromOptions(opts) =
-            if opts.noPrimers then { x with run = false } :> IAssemblyTransform else x :> IAssemblyTransform
+            if opts.NoPrimers then { x with run = false } :> IAssemblyTransform else x :> IAssemblyTransform
 
         member x.TransformAssembly context assembly =
             if x.run then
@@ -157,17 +157,17 @@ type SeamlessAssembler =
 
 /// Produce an instance of the seamless assembly plugin with the provided extra argument processor.
 let createSeamlessPlugin defaultRun extraArgProcessor =
-    { name = "seamless_assembly"
-      description = Some "Perform seamless assembly by liberally fusing slices."
-      behaviors =
-          [ { name = None
-              description = None
-              behavior =
+    { Name = "seamless_assembly"
+      Description = Some "Perform seamless assembly by liberally fusing slices."
+      Behaviors =
+          [ { Name = None
+              Description = None
+              Behavior =
                   AssemblyTransform
                       ({ run = defaultRun
                          processExtraArgs = extraArgProcessor }) } ]
-      providesPragmas = []
-      providesCapas = [] }
+      ProvidesPragmas = []
+      ProvidesCapas = [] }
 
 /// By default do not take any other command line args into account, and always run in seamless mode.
 let seamlessPlugin = createSeamlessPlugin true (fun _ x -> x)

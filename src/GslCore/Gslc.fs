@@ -93,8 +93,8 @@ let basicExceptionHandler verbose f =
 
 let maybeListRefGenomes (s: ConfigurationState) =
     // generate list of reference genomes and quit
-    if s.opts.refList then
-        for f in enumerateLibs s.opts do
+    if s.Options.RefList then
+        for f in enumerateLibs s.Options do
             printfn "refgenome\t%s" f
 
         Exit(0, None)
@@ -103,17 +103,17 @@ let maybeListRefGenomes (s: ConfigurationState) =
 
 let maybeDumpLoci (s: ConfigurationState) =
     // dump available loci for one reference genome if requested
-    match s.opts.refDump with
+    match s.Options.RefDump with
     | None -> Continue(s)
     | Some ref ->
         // dump available loci for this ref genome
-        let p = utils.opj s.opts.libDir ref
+        let p = utils.opj s.Options.LibDir ref
 
         if not (Directory.Exists(p)) then
             Exit(1, Some(sprintf "ERROR: unable to find genome reference dir %s\n" p))
         else
             let gd =
-                new RefGenome.GenomeDef(s.opts.libDir, ref)
+                new RefGenome.GenomeDef(s.Options.LibDir, ref)
 
             for f in gd.GetAllFeats() do
                 printfn "%s\t%s\t%s" f.sysName f.gene f.description
@@ -122,7 +122,7 @@ let maybeDumpLoci (s: ConfigurationState) =
 
 let checkInputFileList (s: ConfigurationState) =
     // For the moment we only support one file argument.
-    match s.files with
+    match s.Files with
     | [] -> Exit(1, Some "no input files specified")
     | [ inputFile ] ->
         if not (File.Exists inputFile)
@@ -133,9 +133,9 @@ let checkInputFileList (s: ConfigurationState) =
 
 let maybeJustDoLexing (s: ConfigurationState) =
     // If selected, perform lexing and quit.
-    if s.opts.lexOnly then
+    if s.Options.LexOnly then
         let inputText = File.ReadAllText s.InputFile
-        lexTest s.opts.verbose inputText
+        lexTest s.Options.Verbose inputText
         Exit(0, None)
     else
         Continue(s)
@@ -166,14 +166,14 @@ let configureGslc unconfiguredPlugins argv =
             let s =
                 configure true legalCmdLineArgs unconfiguredPlugins args
 
-            if not s.opts.quiet
-               && not s.opts.refList
-               && s.opts.refDump.IsNone then
+            if not s.Options.Quiet
+               && not s.Options.RefList
+               && s.Options.RefDump.IsNone then
                 printf "// GSL core compiler version %s (%s)\n" version informalVersion
 
-            if s.opts.listPlugins then
+            if s.Options.ListPlugins then
                 let pluginDescs =
-                    s.plugins
+                    s.Plugins
                     |> List.map (fun p -> p.Info)
                     |> String.concat "\n\n"
 
@@ -181,7 +181,7 @@ let configureGslc unconfiguredPlugins argv =
 
 
             // fulfill this request only after we've processed all the plugins and determined full list of pragmas
-            if s.opts.doHelpPragmas then PragmaBuilder.printPragmaUsage s.ga.pragmaCache
+            if s.Options.DoHelpPragmas then PragmaBuilder.printPragmaUsage s.GlobalAssets.PragmaBuilder
 
             Continue(s)
         with e -> Exit(1, Some(sprintf "An error occurred during configuration:\n%s" e.Message))
@@ -206,14 +206,14 @@ let handleCompileResult (result, input: GslSourceCode, s) =
         for w in deduplicateMessages warnings do
             printfn "%s\n" w.Summary
         // if we just want one expansion step, reprint expanded source and done
-        if not s.opts.iter || s.opts.onlyPhase1
+        if not s.Options.Iter || s.Options.OnlyPhase1
         then Exit(0, Some(decompile tree.wrappedNode))
         // do output generation
         else Continue(assemblies, input, s)
     | Bad (errors) ->
         // convert messages into strings for printing
         let msgs =
-            [ for msg in deduplicateMessages errors -> msg.Longform(s.opts.verbose, input) ]
+            [ for msg in deduplicateMessages errors -> msg.Longform(s.Options.Verbose, input) ]
 
         Exit(1, Some(msgs |> String.concat "\n\n"))
 
@@ -227,23 +227,23 @@ let handleTransformResult phase (r, input, s) =
     match r with
     | Ok (transformedAssemblies, warnings: AssemblyTransformationMessage<_> list) ->
         for w in warnings do
-            printfn "%s\n" (w.Format(phase, input, s.opts.verbose))
+            printfn "%s\n" (w.Format(phase, input, s.Options.Verbose))
 
         Continue(transformedAssemblies, input, s)
     | Bad (errors) ->
         let msgs =
-            [ for msg in errors -> msg.Format(phase, input, s.opts.verbose) ]
+            [ for msg in errors -> msg.Format(phase, input, s.Options.Verbose) ]
 
         Exit(1, Some(msgs |> String.concat "\n\n"))
 
 /// Design primers for assemblies, if requested, and write all output formats.
 let doOutput (assemblies, input, s): FlowControl<unit> =
     let doOutput () =
-        let primers, modifiedAssemblies = doPrimerDesign s.opts assemblies
+        let primers, modifiedAssemblies = doPrimerDesign s.Options assemblies
         doOutputGeneration s primers modifiedAssemblies
         Exit(0, None)
 
-    basicExceptionHandler s.opts.verbose doOutput
+    basicExceptionHandler s.Options.Verbose doOutput
 
 /// Infix version of bind for flow control.  If controlResult is Continue, execute the
 /// operation.  Otherwise, fall through.

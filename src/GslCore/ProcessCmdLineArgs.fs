@@ -43,7 +43,7 @@ let collectCommandLineArgs plugins =
                 |> List.map getArgAndAliases
                 |> Seq.concat
 
-            (p.name, argsAndAliases))
+            (p.Name, argsAndAliases))
 
     let pluginSpecs =
         specsByPlugin
@@ -121,22 +121,22 @@ let private parseAllCommandLineArgs (argSpecs: CollectedCommandLineArgs) (argLis
     parseCmdRec argList [] []
 
 type ConfigurationState =
-    { opts: ParsedOptions
-      files: string list
-      plugins: Plugin list
-      ga: GlobalAssets }
+    { Options: ParsedOptions
+      Files: string list
+      Plugins: Plugin list
+      GlobalAssets: GlobalAssets }
     /// Convenience property, assumes we've validated that we have exactly one input file.
-    member x.InputFile = x.files.[0]
+    member x.InputFile = x.Files.[0]
 
 /// generate list of available reference genome folders
 let enumerateLibs (opts: ParsedOptions) =
-    Directory.EnumerateDirectories(opts.libDir)
+    Directory.EnumerateDirectories(opts.LibDir)
     |> Seq.map (Amyris.Bio.utils.baseName)
     |> List.ofSeq
 
 /// Load static assets and initialize global caches.
 let loadGlobalAssets (opts: ParsedOptions) =
-    let lib = opj opts.libDir "lib.fa"
+    let lib = opj opts.LibDir "lib.fa"
 
     // Crude sequence library for misc pieces
     let library =
@@ -147,27 +147,27 @@ let loadGlobalAssets (opts: ParsedOptions) =
         else
             Map.empty
 
-    if opts.verbose then printfn "opts.libDir=%s" opts.libDir
+    if opts.Verbose then printfn "opts.libDir=%s" opts.LibDir
 
     let availRefs = enumerateLibs opts
 
-    if opts.verbose then printfn "availrefs=%A" availRefs
+    if opts.Verbose then printfn "availrefs=%A" availRefs
 
     let rgs =
         seq {
             for s in availRefs do
-                let p = opj opts.libDir s
+                let p = opj opts.LibDir s
 
                 if not (Directory.Exists(p))
                 then failwithf "ERROR: unable to find genome reference dir %s\n" p
 
                 if File.Exists(opj p (sprintf "%s.fsa" s))
-                then yield (s, new GenomeDef(opts.libDir, s))
+                then yield (s, new GenomeDef(opts.LibDir, s))
         }
         |> Map.ofSeq
 
     // Debugging - dump list of available genomes
-    if opts.verbose
+    if opts.Verbose
     then printf "loadedgenomes %A\n" (rgs |> Seq.map (fun kv -> kv.Key) |> List.ofSeq)
 
     library, rgs
@@ -200,7 +200,7 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
 
     let pragmaCache =
         updatedPlugins
-        |> List.map (fun p -> p.providesPragmas)
+        |> List.map (fun p -> p.ProvidesPragmas)
         |> List.concat
         |> PragmaBuilder.createWithBuiltinPragmas    
     
@@ -209,17 +209,17 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         if loadGA then
             let library, rgs = loadGlobalAssets parsedOptions
 
-            { seqLibrary = library
-              codonProvider = codonProvider
-              pragmaCache = pragmaCache
-              rgs = rgs }
+            { SequenceLibrary = library
+              CodonProvider = codonProvider
+              PragmaBuilder = pragmaCache
+              ReferenceGenomes = rgs }
         else
-            { seqLibrary = Map.empty
-              codonProvider = codonProvider
-              pragmaCache = pragmaCache
-              rgs = Map.empty }
+            { SequenceLibrary = Map.empty
+              CodonProvider = codonProvider
+              PragmaBuilder = pragmaCache
+              ReferenceGenomes = Map.empty }
 
-    { opts = parsedOptions
-      files = files
-      plugins = updatedPlugins
-      ga = ga }
+    { Options = parsedOptions
+      Files = files
+      Plugins = updatedPlugins
+      GlobalAssets = ga }

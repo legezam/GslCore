@@ -103,7 +103,7 @@ type AutodeskJsonOutputProvider(outPath: (string) option) =
         override x.UseArg(arg) =
             AutodeskJsonOutputProvider(Some(arg.values.[0])) :> IOutputFormat
 
-        override x.DoOutput(path, data) = dumpJsonAssemblies path data.assemblies
+        override x.DoOutput(path, data) = dumpJsonAssemblies path data.Assemblies
 
 let autodeskJsonOutputPlugin =
     outputPlugin

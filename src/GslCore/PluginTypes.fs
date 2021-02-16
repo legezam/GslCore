@@ -30,10 +30,10 @@ type IConfigurable<'T> =
 // =======================
 
 type CodonOptTask =
-    { verbose: bool
-      seedOverride: int option
-      refGenome: GenomeDef
-      aminoAcidSequence: string }
+    { IsVerbose: bool
+      SeedOverride: int option
+      RefGenome: GenomeDef
+      AminoAcidSequence: string }
 
 type ICodonProvider =
     /// Allow codon opt providers to add command line args and be configurable.
@@ -57,10 +57,10 @@ type ICodonProvider =
 
 /// Helpful wrapper type for handing around GSLC's static assets and caches.
 type GlobalAssets =
-    { seqLibrary: SequenceLibrary
-      codonProvider: ICodonProvider
-      pragmaCache: PragmaBuilder
-      rgs: Map<string, GenomeDef> }
+    { SequenceLibrary: SequenceLibrary
+      CodonProvider: ICodonProvider
+      PragmaBuilder: PragmaBuilder
+      ReferenceGenomes: Map<string, GenomeDef> }
 // =========================
 // plugin behavior defintion for allele swaps
 // =========================
@@ -76,24 +76,24 @@ let orfPlusMargin = 100
 type AlleleSwapJobAccept = Capabilities -> float<PluginScore> option
 
 type AlleleSwapDesignParams =
-    { verbose: bool
-      longStyle: bool
-      endPref: EndPref
-      codonLookup: CodonLookup
-      gene: string
-      name: string
-      rg: GenomeDef
-      f: sgd.Feature
-      m: Mutation
-      len: int<ZeroOffset>
-      mutOff: int<ZeroOffset>
-      orf: Dna
-      orfPlus: Dna
-      pragmas: PragmaCollection }
+    { IsVerbose: bool
+      IsLongStyle: bool
+      EndPref: EndPref
+      CodonLookup: CodonLookup
+      Gene: string
+      Name: string
+      ReferenceGenome: GenomeDef
+      Feature: sgd.Feature
+      Mutation: Mutation
+      Length: int<ZeroOffset>
+      MutOff: int<ZeroOffset>
+      OrfDna: Dna
+      OrfPlusDna: Dna
+      Pragmas: PragmaCollection }
 
 type AlleleSwapProvider =
-    { jobScorer: AlleleSwapJobAccept
-      provider: AlleleSwapDesignParams -> GslSourceCode }
+    { JobScorer: AlleleSwapJobAccept
+      Provider: AlleleSwapDesignParams -> GslSourceCode }
 
 
 
@@ -105,9 +105,9 @@ type MarkerProviderJobAccept = Capabilities -> float<PluginScore> option
 
 /// Information provided when a marker materialization happens
 type MarkerMaterializationTask =
-    { markerSet: string
-      dnaSource: string
-      ppp: PPP }
+    { MarkerSet: string
+      DnaSource: string
+      PartPlusPragma: PPP }
 
 type IMarkerProvider =
     /// Allow marker providers to add command line args and be configurable.
@@ -116,7 +116,7 @@ type IMarkerProvider =
     /// Marker providers the pragma environment to configure themselves locally.
     abstract Setup: PragmaCollection -> IMarkerProvider
     /// When is comes time to convert a marker into a concrete DNA sequence (whole marker), this gets called
-    abstract CreateDna: MarkerMaterializationTask -> CommonTypes.DNASlice
+    abstract CreateDna: MarkerMaterializationTask -> DNASlice
     abstract IsLegal: string -> bool
     abstract ListMarkers: unit -> string list
     abstract ScoreJob: MarkerProviderJobAccept
@@ -128,24 +128,24 @@ type IMarkerProvider =
 type L2JobAccept = Capabilities -> float<PluginScore> option
 
 type L2DesignParams =
-    { rgs: GenomeDefs
-      megastitch: bool
-      refGenome: string
-      line: BuiltL2Expression
-      pragmas: PragmaCollection }
+    { ReferenceGenomes: GenomeDefs
+      IsMegastitch: bool
+      ReferenceGenome: string
+      Line: BuiltL2Expression
+      Pragmas: PragmaCollection }
 
 type L2Provider =
-    { jobScorer: L2JobAccept
-      explicitLocusProvider: L2Id -> L2DesignParams -> GslSourceCode
-      implicitLocusProvider: L2DesignParams -> GslSourceCode }
+    { JobScorer: L2JobAccept
+      ExplicitLocusProvider: L2Id -> L2DesignParams -> GslSourceCode
+      ImplicitLocusProvider: L2DesignParams -> GslSourceCode }
 
 // ======================
 // plugin behavior definition for output assembly transformations
 // ======================
 
 type ATContext =
-    { ga: GlobalAssets
-      opts: ParsedOptions }
+    { GlobalAssets: GlobalAssets
+      Options: ParsedOptions }
 
 type AssemblyTransformationMessageKind =
     | ATError
@@ -159,23 +159,23 @@ type AssemblyTransformationMessageKind =
 /// The type of assembly is left generic to permit re-use of this type during both
 /// DNA materialization and transformation of DnaAssemblies.
 type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
-    { msg: string
-      kind: AssemblyTransformationMessageKind
-      assembly: 'A
-      stackTrace: System.Diagnostics.StackTrace option
-      fromException: System.Exception option }
+    { Message: string
+      Kind: AssemblyTransformationMessageKind
+      Assembly: 'A
+      StackTrace: System.Diagnostics.StackTrace option
+      FromException: System.Exception option }
     member x.Format(phase, ?sourceCode, ?verbose) =
         let verbose = defaultArg verbose false
 
         seq {
-            match (x.assembly :> ISourcePosition)
+            match (x.Assembly :> ISourcePosition)
                 .OptionalSourcePosition with
             | [] ->
-                yield sprintf "%O during %s:" x.kind phase
-                yield x.msg
+                yield sprintf "%O during %s:" x.Kind phase
+                yield x.Message
             | hd :: tl ->
-                yield sprintf "%O during %s %s:" x.kind phase (formatSourcePositionList (hd :: tl))
-                yield x.msg
+                yield sprintf "%O during %s %s:" x.Kind phase (formatSourcePositionList (hd :: tl))
+                yield x.Message
                 yield "================================================================="
 
                 match sourceCode with
@@ -183,9 +183,9 @@ type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
                 | None -> ()
 
             if verbose then
-                yield sprintf "\n%+A" x.assembly
+                yield sprintf "\n%+A" x.Assembly
 
-                match x.stackTrace with
+                match x.StackTrace with
                 | Some (s) -> yield s.ToString()
                 | None -> ()
         }
@@ -193,11 +193,11 @@ type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
 
 /// Convert an exception during assembly transformation into a message.
 let exceptionToAssemblyMessage assembly (exc: System.Exception) =
-    { msg = exc.Message
-      kind = ATError
-      assembly = assembly
-      stackTrace = Some(System.Diagnostics.StackTrace(exc))
-      fromException = Some exc }
+    { Message = exc.Message
+      Kind = ATError
+      Assembly = assembly
+      StackTrace = Some(System.Diagnostics.StackTrace(exc))
+      FromException = Some exc }
 
 /// Interface specification for output assembly transformations.
 type IAssemblyTransform =
@@ -211,10 +211,10 @@ type IAssemblyTransform =
 // =======================
 
 type OutputGenerationData =
-    { ga: GlobalAssets
-      opts: ParsedOptions
-      assemblies: DnaAssembly list
-      primers: DivergedPrimerPair list list option }
+    { GlobalAssets: GlobalAssets
+      Options: ParsedOptions
+      Assemblies: DnaAssembly list
+      Primers: DivergedPrimerPair list list option }
 
 /// Interface specification for output file format providers.
 type IOutputFormat =
@@ -242,72 +242,72 @@ type PluginBehavior =
 
 /// Wrapper around behavior to allow giving individual behaviors names and descriptions.
 type PluginBehaviorWrapper =
-    { name: string option
-      description: string option
-      behavior: PluginBehavior }
+    { Name: string option
+      Description: string option
+      Behavior: PluginBehavior }
     /// Provide a sequence of strings describing this behavior.
     member x.Info =
         seq {
-            match x.name with
+            match x.Name with
             | Some (n) -> yield sprintf "Name: %s" n
             | None -> ()
 
-            match x.description with
+            match x.Description with
             | Some (d) -> yield sprintf "Description: %s" d
             | None -> ()
 
-            yield sprintf "Type: %s" (Utils.getUnionCaseName x.behavior)
+            yield sprintf "Type: %s" (Utils.getUnionCaseName x.Behavior)
         }
         |> String.concat "\n"
 
 let configureBehavior arg b =
-    match b.behavior with
+    match b.Behavior with
     | OutputFormat (f) ->
         { b with
-              behavior = OutputFormat(f.Configure(arg)) }
+              Behavior = OutputFormat(f.Configure(arg)) }
     | AssemblyTransform (a) ->
         { b with
-              behavior = AssemblyTransform(a.Configure(arg)) }
+              Behavior = AssemblyTransform(a.Configure(arg)) }
     | CodonProvider (c) ->
         { b with
-              behavior = CodonProvider(c.Configure(arg)) }
+              Behavior = CodonProvider(c.Configure(arg)) }
     | AlleleSwapAA _
     | MarkerProvider _
     | L2KOTitration _ -> b
 
 let configureBehaviorFromOpts opts b =
-    match b.behavior with
+    match b.Behavior with
     | OutputFormat (f) ->
         { b with
-              behavior = OutputFormat(f.ConfigureFromOptions(opts)) }
+              Behavior = OutputFormat(f.ConfigureFromOptions(opts)) }
     | AssemblyTransform (a) ->
         { b with
-              behavior = AssemblyTransform(a.ConfigureFromOptions(opts)) }
+              Behavior = AssemblyTransform(a.ConfigureFromOptions(opts)) }
     | CodonProvider (c) ->
         { b with
-              behavior = CodonProvider(c.ConfigureFromOptions(opts)) }
+              Behavior = CodonProvider(c.ConfigureFromOptions(opts)) }
     | MarkerProvider (c) ->
         { b with
-              behavior = MarkerProvider(c.ConfigureFromOptions(opts)) }
+              Behavior = MarkerProvider(c.ConfigureFromOptions(opts)) }
     | AlleleSwapAA _
     | L2KOTitration _ -> b
 
 /// Data structure specifying one or more behaviors
 type Plugin =
     { /// short name
-      name: string
+      Name: string
       /// longer description
-      description: string option
+      Description: string option
       /// behaviors provided by this plugin
-      behaviors: PluginBehaviorWrapper list
+      Behaviors: PluginBehaviorWrapper list
       /// new pragmas provided by this plugin
-      providesPragmas: PragmaDefinition list
+      ProvidesPragmas: PragmaDefinition list
       /// new capabilities enabled by this plugin
-      providesCapas: string list }
+      ProvidesCapas: string list }
     /// Return specs for any command line args this plugin provides.
     member x.ProvidedArgs() =
-        x.behaviors
-        |> List.map (fun b -> b.behavior.ProvidedArgs())
+        x.Behaviors
+        |> List.map (fun b -> b.Behavior.ProvidedArgs())
         |> List.concat
     /// Given parsed command line args, update any behaviors that need them, returning a configured
     /// plugin.
@@ -315,11 +315,11 @@ type Plugin =
         let configuredBehaviors =
             args
             |> List.fold (fun behaviors arg ->  // each iteration of fold uses one arg and updates all behaviors
-                behaviors |> List.map (configureBehavior arg)) x.behaviors
+                behaviors |> List.map (configureBehavior arg)) x.Behaviors
             |> List.map (configureBehaviorFromOpts opts)
 
         { x with
-              behaviors = configuredBehaviors }
+              Behaviors = configuredBehaviors }
     /// Provide a extended description of this plugin and capabilities it provides.
     member x.Info =
         let indent (s: string) =
@@ -330,27 +330,27 @@ type Plugin =
         let args = x.ProvidedArgs()
 
         seq {
-            yield sprintf "Name: %s" x.name
+            yield sprintf "Name: %s" x.Name
 
-            match x.description with
+            match x.Description with
             | Some (d) -> yield sprintf "Description:\n    %s" d
             | None -> ()
 
-            if not (x.behaviors.IsEmpty) then
+            if not (x.Behaviors.IsEmpty) then
                 yield "Behaviors:"
 
                 yield
-                    x.behaviors
+                    x.Behaviors
                     |> List.map (fun b -> indent b.Info)
                     |> String.concat "\n\n"
 
-            if not (x.providesPragmas.IsEmpty) then
+            if not (x.ProvidesPragmas.IsEmpty) then
                 yield "Provides pragmas:"
-                for p in x.providesPragmas -> indent (PragmaDefinition.format p)
+                for p in x.ProvidesPragmas -> indent (PragmaDefinition.format p)
 
-            if not (x.providesCapas.IsEmpty) then
+            if not (x.ProvidesCapas.IsEmpty) then
                 yield "Provides capas:"
-                for c in x.providesCapas -> indent c
+                for c in x.ProvidesCapas -> indent c
 
             if not (args.IsEmpty) then
                 yield "Provides command line arguments:"
@@ -363,46 +363,46 @@ type Plugin =
 
 /// Get all of the marker providers from a plugin.
 let getMarkerProviders (plugin: Plugin) =
-    plugin.behaviors
+    plugin.Behaviors
     |> List.choose (fun b ->
-        match b.behavior with
+        match b.Behavior with
         | MarkerProvider (m) -> Some(m)
         | _ -> None)
 
 
 /// Get all of the allele swap providers from a plugin.
 let getAlleleSwapAAProviders (plugin: Plugin) =
-    plugin.behaviors
+    plugin.Behaviors
     |> List.choose (fun b ->
-        match b.behavior with
+        match b.Behavior with
         | AlleleSwapAA (a) -> Some(a)
         | _ -> None)
 
 let getL2KOTitrationProviders (plugin: Plugin) =
-    plugin.behaviors
+    plugin.Behaviors
     |> List.choose (fun b ->
-        match b.behavior with
+        match b.Behavior with
         | L2KOTitration (a) -> Some(a)
         | _ -> None)
 
 let getAssemblyTransformers (plugin: Plugin) =
-    plugin.behaviors
+    plugin.Behaviors
     |> List.choose (fun b ->
-        match b.behavior with
+        match b.Behavior with
         | AssemblyTransform (a) -> Some(a.TransformAssembly)
         | _ -> None)
 
 let getOutputProviders (plugin: Plugin) =
-    plugin.behaviors
+    plugin.Behaviors
     |> List.choose (fun b ->
-        match b.behavior with
+        match b.Behavior with
         | OutputFormat (a) -> Some(a)
         | _ -> None)
 
 let getCodonProviders (plugin: Plugin) =
-    plugin.behaviors
+    plugin.Behaviors
     |> List.choose (fun b ->
-        match b.behavior with
+        match b.Behavior with
         | CodonProvider (a) -> Some(a)
         | _ -> None)
 

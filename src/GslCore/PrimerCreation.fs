@@ -2386,10 +2386,10 @@ can design (say) a primer against might be further back in the stack and it's ju
 
 /// Time to design some primers given a list of assemblyout structures
 let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
-    let verbose = opts.verbose
+    let verbose = opts.Verbose
 
     let map =
-        if opts.doParallel then Array.Parallel.map else Array.map
+        if opts.DoParallel then Array.Parallel.map else Array.map
 
     let primers', newSlices' =
         linkedTree

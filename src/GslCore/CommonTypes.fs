@@ -14,20 +14,20 @@ type SequenceLibrary = Map<string, Dna>
 
 /// Instructions gleaned from command line
 type ParsedOptions =
-    { quiet: bool
-      refStrain: string
-      libDir: string
-      iter: bool
-      onlyPhase1: bool
-      doParallel: bool
-      verbose: bool
-      noPrimers: bool
-      lexOnly: bool
-      refList: bool
-      refDump: string option
-      listPlugins: bool
-      doHelpPragmas: bool
-      isDeterministic: bool }
+    { Quiet: bool
+      RefStrain: string
+      LibDir: string
+      Iter: bool
+      OnlyPhase1: bool
+      DoParallel: bool
+      Verbose: bool
+      NoPrimers: bool
+      LexOnly: bool
+      RefList: bool
+      RefDump: string option
+      ListPlugins: bool
+      DoHelpPragmas: bool
+      IsDeterministic: bool }
 
 type DNAIntervalType =
     | ANNEAL
@@ -116,22 +116,22 @@ let orfOffsetFromAlleleOffset (offset: int<ZeroOffset>) =
 /// Slice annotation for indicating the presence of an ORF in a slice.
 type OrfAnnotation =
     /// The leftmost base pair of this ORF.
-    { left: int<ZeroOffset>
+    { Left: int<ZeroOffset>
       /// The rightmost base pair of this ORF, inclusive.
-      right: int<ZeroOffset>
+      Right: int<ZeroOffset>
       /// Is the first base of this ORF offset into a codon?
       /// This field should be interpreted in the context of direction,
       /// as it applies to the leftmost base in a fwd Orf vs. the rightmost base in a rev Orf.
-      frameOffset: OrfOffset
+      FrameOffset: OrfOffset
       /// Is this ORF on the fwd or reverse direction relative to this slice?
-      fwd: bool }
+      IsForward: bool }
     /// Return a sequence of the starting indices of every complete codon described by this annotation.
     /// If the Orf is fwd, these will be in increasing order; if rev, decreasing order.
     member x.CompleteCodonIndices() =
-        let left, right = ZeroOffset.toInt x.left, ZeroOffset.toInt x.right
+        let left, right = ZeroOffset.toInt x.Left, ZeroOffset.toInt x.Right
         // the number of bases we need to move inwards from the edge to find the start of the first codon
         let alleleOffset =
-            match x.frameOffset with
+            match x.FrameOffset with
             | Zero -> 0
             | One -> 2
             | Two -> 1
@@ -142,7 +142,7 @@ type OrfAnnotation =
 
         let codonOffsets = seq { 0 .. 3 .. (nCodons - 1) * 3 }
 
-        if x.fwd then
+        if x.IsForward then
             let firstCodon = left + alleleOffset
 
             codonOffsets
@@ -191,10 +191,10 @@ let orfAnnotationFromSlice (slice: Slice) (orfLen: int) fwd context =
         |> max 0<ZeroOffset>
         |> min (sliceLen * 1<ZeroOffset> - 1<ZeroOffset>)
 
-    { left = constrain left
-      right = constrain right
-      frameOffset = frameOffset
-      fwd = fwd }
+    { Left = constrain left
+      Right = constrain right
+      FrameOffset = frameOffset
+      IsForward = fwd }
 
 /// Extensible type to add useful annotations to slices.
 type SliceAnnotation = Orf of OrfAnnotation

@@ -16,25 +16,25 @@ type TestOrfAnnotation() =
     member x.TestCodonIndexGeneration() =
         // test really basic functionality
         let simpleOrf =
-            { left = 0<ZeroOffset>
-              right = 7<ZeroOffset>
-              frameOffset = Zero
-              fwd = true }
+            { Left = 0<ZeroOffset>
+              Right = 7<ZeroOffset>
+              FrameOffset = Zero
+              IsForward = true }
 
         checkIndices simpleOrf [ 0; 3 ]
 
-        let backwardsOrf = { simpleOrf with fwd = false }
+        let backwardsOrf = { simpleOrf with IsForward = false }
         checkIndices backwardsOrf [ 7; 4 ]
 
-        let offsetOrf = { simpleOrf with frameOffset = Two }
+        let offsetOrf = { simpleOrf with FrameOffset = Two }
         checkIndices offsetOrf [ 1; 4 ]
 
-        let backwardsOffsetOrf = { backwardsOrf with frameOffset = Two }
+        let backwardsOffsetOrf = { backwardsOrf with FrameOffset = Two }
         checkIndices backwardsOffsetOrf [ 6; 3 ]
 
         let tinyOrf =
             { backwardsOrf with
-                  right = 1<ZeroOffset> }
+                  Right = 1<ZeroOffset> }
 
         checkIndices tinyOrf []
 
@@ -54,15 +54,15 @@ type TestOrfAnnotation() =
         let orfAnnotationFwd =
             orfAnnotationFromSlice basicOrfSlice featLen true Genomic
 
-        Assert.AreEqual(0<ZeroOffset>, orfAnnotationFwd.left)
-        Assert.AreEqual(99<ZeroOffset>, orfAnnotationFwd.right)
+        Assert.AreEqual(0<ZeroOffset>, orfAnnotationFwd.Left)
+        Assert.AreEqual(99<ZeroOffset>, orfAnnotationFwd.Right)
         checkIndices orfAnnotationFwd [ 0 .. 3 .. 97 ]
-        Assert.That(orfAnnotationFwd.fwd)
+        Assert.That(orfAnnotationFwd.IsForward)
 
         let orfAnnotationRev =
             orfAnnotationFromSlice basicOrfSlice featLen false Genomic
 
-        Assert.AreEqual(0<ZeroOffset>, orfAnnotationRev.left)
-        Assert.AreEqual(99<ZeroOffset>, orfAnnotationRev.right)
+        Assert.AreEqual(0<ZeroOffset>, orfAnnotationRev.Left)
+        Assert.AreEqual(99<ZeroOffset>, orfAnnotationRev.Right)
         checkIndices orfAnnotationRev [ 99 .. -3 .. 2 ]
-        Assert.That(not orfAnnotationRev.fwd)
+        Assert.That(not orfAnnotationRev.IsForward)

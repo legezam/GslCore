@@ -36,39 +36,37 @@ module DesignParams =
     
     let updateFromPragma (pragma: Pragma) (designParams: DesignParams): Result<DesignParams, string> =
         match pragma.Name, pragma.Arguments with
-        
         | BuiltIn.PcrParamsName, args ->
             revise designParams.PrimerParams args
-            >>= (fun pp -> ok { designParams with PrimerParams = pp })
+            >>= (fun primerParams -> ok { designParams with PrimerParams = primerParams })
         | BuiltIn.PcrAssemblyParamsName, args ->
             revise designParams.OverlapParams args
             >>= (fun overlapParams ->
                 ok
                     { designParams with
                           OverlapParams = overlapParams })
-        | BuiltIn.TargetTmName, v :: _ ->
+        | BuiltIn.TargetTmName, head :: _ ->
             ok
                 { designParams with
-                      TargetTemp = Utils.strToTempC v }
-        | BuiltIn.MinOverlapLenName, v :: _ ->
+                      TargetTemp = Utils.strToTempC head }
+        | BuiltIn.MinOverlapLenName, head :: _ ->
             ok
                 { designParams with
-                      OverlapMinLength = int v }
-        | BuiltIn.SeamlesOverlapTmName, v :: _ ->
+                      OverlapMinLength = int head }
+        | BuiltIn.SeamlesOverlapTmName, head :: _ ->
             ok
                 { designParams with
-                      SeamlessOverlapTemp = Utils.strToTempC v }
-        | BuiltIn.AtPenaltyName, v :: _ ->
+                      SeamlessOverlapTemp = Utils.strToTempC head }
+        | BuiltIn.AtPenaltyName, head :: _ ->
             ok
                 { designParams with
                       PrimerParams =
                           { designParams.PrimerParams with
-                                ATPenalty = float v * 1.0<C> } }
+                                ATPenalty = float head * 1.0<C> } }
         | _ -> ok designParams
 
     /// Given a pragma environment, compute assembly physical design parameters from an existing set.
     let fromPragmas (designParams: DesignParams) (pragmaCollection: PragmaCollection): Result<DesignParams, string> =
-
         pragmaCollection
         |> PragmaCollection.values
         |> Seq.fold (fun designParams pragma -> designParams >>= (updateFromPragma pragma)) (ok designParams)

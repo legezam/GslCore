@@ -464,7 +464,7 @@ type BasicCodonProvider =
 
         member x.ConfigureFromOptions(opts) =
             { x with
-                  cache = Some(CodonTableCache(opts.libDir)) } :> ICodonProvider
+                  cache = Some(CodonTableCache(opts.LibDir)) } :> ICodonProvider
 
         member x.Setup(pc) =
             let configuredParams = parseCodonOptParams pc
@@ -477,10 +477,10 @@ type BasicCodonProvider =
             let cache = x.CodonTableCache
 
             let seed =
-                defaultArg task.seedOverride parameters.seed
+                defaultArg task.SeedOverride parameters.seed
 
-            let data = cache.Get(task.refGenome)
-            doCodonOpt task.verbose parameters data seed task.aminoAcidSequence
+            let data = cache.Get(task.RefGenome)
+            doCodonOpt task.IsVerbose parameters data seed task.AminoAcidSequence
 
         member x.GetCodonLookupTable(rg) =
             x.CodonTableCache.Get(rg)
@@ -488,11 +488,11 @@ type BasicCodonProvider =
 
 /// Plugin providing basic codon optimization and lookup.
 let basicCodonProviderPlugin =
-    { name = "basic_codon_provider"
-      description = Some("Simple codon optimization plugin providing basic behaviors.")
-      behaviors =
-          [ { name = None
-              description = None
-              behavior = CodonProvider({ parameters = None; cache = None }) } ]
-      providesPragmas = []
-      providesCapas = [] }
+    { Name = "basic_codon_provider"
+      Description = Some("Simple codon optimization plugin providing basic behaviors.")
+      Behaviors =
+          [ { Name = None
+              Description = None
+              Behavior = CodonProvider({ parameters = None; cache = None }) } ]
+      ProvidesPragmas = []
+      ProvidesCapas = [] }

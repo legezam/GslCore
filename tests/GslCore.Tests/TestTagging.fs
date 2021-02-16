@@ -298,14 +298,14 @@ uADH2; dADH2
         | x -> failwithf "bad assembly pattern %A in OneGlobalTwoScopedTag" x
 
     static member dummyContext =
-        { ATContext.ga =
-              { GlobalAssets.rgs = Map.empty
-                seqLibrary = Map.empty
-                pragmaCache = TestTagging.PragmaCache
-                codonProvider =
+        { ATContext.GlobalAssets =
+              { GlobalAssets.ReferenceGenomes = Map.empty
+                SequenceLibrary = Map.empty
+                PragmaBuilder = TestTagging.PragmaCache
+                CodonProvider =
                     { BasicCodonProvider.parameters = None
                       cache = None } }
-          opts = CommandConfig.defaultOpts }
+          Options = CommandConfig.defaultOpts }
 
     static member dummyDnaAssembly =
         { DnaAssembly.id = None

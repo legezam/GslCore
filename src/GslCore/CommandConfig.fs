@@ -61,12 +61,12 @@ let libCmdArg =
             param = [ "directory" ]
             alias = []
             desc = "directory in which genome definitions reside\nDefault: GSL_LIB var, or 'lib' in current directory" }
-      proc = fun p opts -> { opts with libDir = smashSlash p.[0] } }
+      proc = fun p opts -> { opts with LibDir = smashSlash p.[0] } }
 
 let deterministicCmdArg =
     let processParameters (_parameters: string list) (parsedOptions: ParsedOptions): ParsedOptions =
         { parsedOptions with
-              isDeterministic = true }
+              IsDeterministic = true }
 
     { CmdLineArg.spec =
           { CmdLineArgSpec.name = "deterministic"
@@ -85,28 +85,28 @@ let builtinCmdLineArgs =
               param = []
               alias = []
               desc = "list available reference genomes" }
-        proc = fun _ opts -> { opts with refList = true } }
+        proc = fun _ opts -> { opts with RefList = true } }
 
       { spec =
             { name = "refdump"
               param = [ "refname" ]
               alias = []
               desc = "dump available loci in reference genome" }
-        proc = fun p opts -> { opts with refDump = Some(p.[0]) } }
+        proc = fun p opts -> { opts with RefDump = Some(p.[0]) } }
 
       { spec =
             { name = "step"
               param = []
               alias = []
               desc = "expand GSL just one round, and emit intermediate GSL" }
-        proc = fun _ opts -> { opts with iter = false } }
+        proc = fun _ opts -> { opts with Iter = false } }
 
       { spec =
             { name = "verbose"
               param = []
               alias = []
               desc = "print debugging info" }
-        proc = fun _ opts -> { opts with verbose = true } }
+        proc = fun _ opts -> { opts with Verbose = true } }
 
       { spec =
             { name = "version"
@@ -123,21 +123,21 @@ let builtinCmdLineArgs =
               param = []
               alias = []
               desc = "print available pragmas" }
-        proc = fun _ opts -> { opts with doHelpPragmas = true } }
+        proc = fun _ opts -> { opts with DoHelpPragmas = true } }
 
       { spec =
             { name = "quiet"
               param = []
               alias = []
               desc = "suppress any non-essential output" }
-        proc = fun _ opts -> { opts with quiet = true } }
+        proc = fun _ opts -> { opts with Quiet = true } }
 
       { spec =
             { name = "noprimers"
               param = []
               alias = []
               desc = "do not attempt to generate primers" }
-        proc = fun _ opts -> { opts with noPrimers = true } }
+        proc = fun _ opts -> { opts with NoPrimers = true } }
 
       libCmdArg
 
@@ -146,28 +146,28 @@ let builtinCmdLineArgs =
               param = []
               alias = []
               desc = "don't run parallel operations, useful for debugging" }
-        proc = fun _ opts -> { opts with doParallel = false } }
+        proc = fun _ opts -> { opts with DoParallel = false } }
 
       { spec =
             { name = "lextest"
               param = []
               alias = [ "tokentest"; "tokenize" ]
               desc = "for debugging only, show stream of parsed tokens from input file" }
-        proc = fun _ opts -> { opts with lexOnly = true } }
+        proc = fun _ opts -> { opts with LexOnly = true } }
 
       { spec =
             { name = "only_phase1"
               param = []
               alias = []
               desc = "expand GSL just through the phase 1 pipeline, and emit intermediate GSL" }
-        proc = fun _ opts -> { opts with onlyPhase1 = true } }
+        proc = fun _ opts -> { opts with OnlyPhase1 = true } }
 
       { spec =
             { name = "plugins"
               param = []
               alias = []
               desc = "List all plugins installed in this build of the compiler." }
-        proc = fun _ opts -> { opts with listPlugins = true } }
+        proc = fun _ opts -> { opts with ListPlugins = true } }
 
       deterministicCmdArg ]
     |> Seq.map (fun a ->
@@ -230,17 +230,17 @@ let usageText (args: CollectedCommandLineArgs) =
     |> String.concat "\n"
 
 let defaultOpts: ParsedOptions =
-    { quiet = false
-      libDir = libRoot
-      refStrain = "cenpk"
-      iter = true
-      onlyPhase1 = false
-      doParallel = true
-      verbose = false
-      noPrimers = false
-      lexOnly = false
-      refList = false
-      refDump = None
-      listPlugins = false
-      doHelpPragmas = false
-      isDeterministic = false }
+    { Quiet = false
+      LibDir = libRoot
+      RefStrain = "cenpk"
+      Iter = true
+      OnlyPhase1 = false
+      DoParallel = true
+      Verbose = false
+      NoPrimers = false
+      LexOnly = false
+      RefList = false
+      RefDump = None
+      ListPlugins = false
+      DoHelpPragmas = false
+      IsDeterministic = false }

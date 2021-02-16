@@ -657,9 +657,9 @@ let expandAssembly (verbose: bool)
                         | None -> "default"
 
                     let task =
-                        { dnaSource = dnaSource
-                          ppp = ppp
-                          markerSet = markerSet }
+                        { DnaSource = dnaSource
+                          PartPlusPragma = ppp
+                          MarkerSet = markerSet }
 
                     yield markerProvider.CreateDna(task) // expandMarkerPart library dnaSource ppp
                 | PARTID partId -> yield ResolveExtPart.fetchSequence verbose library ppp partId

@@ -72,11 +72,11 @@ let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly)
             ok { a with tags = newTags }
         | Bad msg ->
             fail
-                { msg = String.Join(";", msg)
-                  kind = ATError
-                  assembly = a
-                  stackTrace = None
-                  fromException = None }
+                { Message = String.Join(";", msg)
+                  Kind = ATError
+                  Assembly = a
+                  StackTrace = None
+                  FromException = None }
 
 type TaggingProvider =
     { cmdlineTags: AssemblyTag list
@@ -106,16 +106,16 @@ type TaggingProvider =
 
 /// Produce an instance of the seamless assembly plugin with the provided extra argument processor.
 let createTaggingPlugin extraArgProcessor =
-    { name = "assembly tagging support"
-      description = Some "Allow tagging of assemblies with #tag namespace:tag"
-      behaviors =
-          [ { name = None
-              description = None
-              behavior =
+    { Name = "assembly tagging support"
+      Description = Some "Allow tagging of assemblies with #tag namespace:tag"
+      Behaviors =
+          [ { Name = None
+              Description = None
+              Behavior =
                   AssemblyTransform
                       ({ cmdlineTags = []
                          processExtraArgs = extraArgProcessor }) } ]
-      providesPragmas = [ tagPragmaDef; gTagPragmaDef ]
-      providesCapas = [] }
+      ProvidesPragmas = [ tagPragmaDef; gTagPragmaDef ]
+      ProvidesCapas = [] }
 
 let taggingPlugin = createTaggingPlugin (fun _ -> id)

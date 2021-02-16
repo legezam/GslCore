@@ -44,23 +44,23 @@ module fixtures =
                 | None -> failwith "Test output provider tried to produce output without data."
 
     let testOutputPlugin argName argAlias desc =
-        { name = "test plugin"
-          description = None
-          behaviors =
-              [ { name = None
-                  description = None
-                  behavior =
+        { Name = "test plugin"
+          Description = None
+          Behaviors =
+              [ { Name = None
+                  Description = None
+                  Behavior =
                       OutputFormat
                           ({ data = None
                              argName = argName
                              argAlias = argAlias
                              desc = desc }) } ]
-          providesPragmas = []
-          providesCapas = [] }
+          ProvidesPragmas = []
+          ProvidesCapas = [] }
 
     let getOutputProvider plugin =
-        match plugin.behaviors with
-        | [ { behavior = OutputFormat (op) } ] -> op :?> TestOutputFormat
+        match plugin.Behaviors with
+        | [ { Behavior = OutputFormat (op) } ] -> op :?> TestOutputFormat
 
 [<TestFixture>]
 type TestPluginSystem() =
@@ -96,9 +96,9 @@ type TestPluginSystem() =
         let s =
             configure false argSpecs plugins fakeArgs
 
-        Assert.That(s.files.IsEmpty)
-        Assert.AreEqual(2, s.plugins.Length)
-        let updatedBehavior = getOutputProvider s.plugins.[0]
+        Assert.That(s.Files.IsEmpty)
+        Assert.AreEqual(2, s.Plugins.Length)
+        let updatedBehavior = getOutputProvider s.Plugins.[0]
         let originalBehavior = getOutputProvider top
 
         Assert.AreEqual

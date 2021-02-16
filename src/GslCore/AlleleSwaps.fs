@@ -254,16 +254,16 @@ let jobScorerClassicAAMut _ = Some 0.0<PluginScore>
 /// Gene is the actual gene name,  name is the #name entry or full gYNG2$C227Y entry
 let classicAAMut (dp: AlleleSwapDesignParams) =
     let minFreq = 0.05
-    let x1 = ZeroOffset.toInt dp.mutOff
-    let x2 = (ZeroOffset.toInt dp.mutOff) + 2
+    let x1 = ZeroOffset.toInt dp.MutOff
+    let x2 = (ZeroOffset.toInt dp.MutOff) + 2
 
-    if x2 >= dp.orf.Length + 3 (* include stop codon *)  then
+    if x2 >= dp.OrfDna.Length + 3 (* include stop codon *)  then
         failwithf
             "ERROR: attempting to mutate amino acid position %d which is outside ORF length %d bases"
-            dp.m.loc
-            dp.orf.Length
+            dp.Mutation.loc
+            dp.OrfDna.Length
 
-    let currentCodon = dp.orf.[x1..x2]
+    let currentCodon = dp.OrfDna.[x1..x2]
     // Removing: this seems to be checked by the parent function
 //    // Ensure we are in the right place in the gene
 //    if not (codon2aa currentCodon = m.f) && asAACheck then
@@ -276,14 +276,14 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
     // but we prefer 3' designs since they are less disruptive
     // Can't get too close to 5' end and still insert hB on left, so will need a 5' design
     // 20120204:  Chris suggested changing 50 -> 30bp as the proximity limit for 5' design
-    if (dp.endPref = NTERM
-        || (dp.mutOff < 30<ZeroOffset>
-            || (dp.mutOff < 1000<ZeroOffset>
-                && dp.len - dp.mutOff > 2500<ZeroOffset>))) then
+    if (dp.EndPref = NTERM
+        || (dp.MutOff < 30<ZeroOffset>
+            || (dp.MutOff < 1000<ZeroOffset>
+                && dp.Length - dp.MutOff > 2500<ZeroOffset>))) then
         let mutSeq =
-            selectMutCodonRight dp.codonLookup minFreq currentCodon dp.m.t
+            selectMutCodonRight dp.CodonLookup minFreq currentCodon dp.Mutation.t
 
-        assert ((DnaOps.translate mutSeq).[0] = dp.m.t)
+        assert ((DnaOps.translate mutSeq).[0] = dp.Mutation.t)
         // 5' end design, need to rewrite promoter and put in marker
         //                                   b
         // a......-1; marker ; a...ATG.......Mutation ; HB ...  HB + 700
@@ -293,26 +293,26 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
         // 3' end design, classic
         sprintf
             "%s[~%A:~-100] {#name %s.5us} ;### ;%s[~%A:%A] {#name %s.hb} ;/%O/ {#inline };~ ;%s[%A:~%A]"
-            dp.gene
+            dp.Gene
             (ZeroOffset.toOne a)
-            dp.name
-            dp.gene
+            dp.Name
+            dp.Gene
             (ZeroOffset.toOne a2)
-            (ZeroOffset.toOne (dp.mutOff - 1<ZeroOffset>))
-            dp.name
+            (ZeroOffset.toOne (dp.MutOff - 1<ZeroOffset>))
+            dp.Name
             mutSeq
-            dp.gene
-            (dp.mutOff + 3<ZeroOffset> |> ZeroOffset.toOne)
-            (dp.mutOff + 703<ZeroOffset> |> ZeroOffset.toOne)
+            dp.Gene
+            (dp.MutOff + 3<ZeroOffset> |> ZeroOffset.toOne)
+            (dp.MutOff + 703<ZeroOffset> |> ZeroOffset.toOne)
     else
         let mutSeq =
-            selectMutCodonLeft dp.codonLookup minFreq currentCodon dp.m.t
+            selectMutCodonLeft dp.CodonLookup minFreq currentCodon dp.Mutation.t
 
-        assert ((DnaOps.translate mutSeq).[0] = dp.m.t)
+        assert ((DnaOps.translate mutSeq).[0] = dp.Mutation.t)
 
         //  a            b                       c
         //  US700.......Mutation; HB ; dnaToDS200 ; marker ; 800bp downstream including 200bp repeat
-        let a' = dp.mutOff - 700<ZeroOffset> // Pick 700 so we can still sequence through
+        let a' = dp.MutOff - 700<ZeroOffset> // Pick 700 so we can still sequence through
 
         let a =
             if (ZeroOffset.toOne a') = 0<OneOffset> then 1<OneOffset> else ZeroOffset.toOne a'
@@ -321,17 +321,17 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
 
         sprintf
             "%s[~%A:%A] {#name %s.hb} ;~ ;/%O/ {#inline };%s[%A:~%AE] ;### ;%s[1E:~%AE] {#name %s.3ds} "
-            dp.gene
+            dp.Gene
             a
-            ((ZeroOffset.toOne (dp.mutOff - 1<ZeroOffset>)))
-            dp.name
+            ((ZeroOffset.toOne (dp.MutOff - 1<ZeroOffset>)))
+            dp.Name
             mutSeq
-            dp.gene
-            (dp.mutOff + 3<ZeroOffset> |> ZeroOffset.toOne)
+            dp.Gene
+            (dp.MutOff + 3<ZeroOffset> |> ZeroOffset.toOne)
             c
-            dp.gene
+            dp.Gene
             (c + 600<OneOffset>)
-            dp.name
+            dp.Name
     |> GslSourceCode
 
 
@@ -419,27 +419,27 @@ let expandAS (providers: AlleleSwapProvider list)
                 m.f
 
         let designParams =
-            { verbose = verbose
-              longStyle = longStyle
-              codonLookup = codonLookup
-              endPref = endPref
-              gene = g
-              name = name
-              rg = rg
-              f = f
-              m = m
-              len = len
-              mutOff = b
-              orf = orf
-              orfPlus = orfPlus
-              pragmas = pragmas }
+            { IsVerbose = verbose
+              IsLongStyle = longStyle
+              CodonLookup = codonLookup
+              EndPref = endPref
+              Gene = g
+              Name = name
+              ReferenceGenome = rg
+              Feature = f
+              Mutation = m
+              Length = len
+              MutOff = b
+              OrfDna = orf
+              OrfPlusDna = orfPlus
+              Pragmas = pragmas }
         // Choose provider
         let fn =
             providers
             |> List.choose (fun provider ->
-                match provider.jobScorer capa with
+                match provider.JobScorer capa with
                 | None -> None
-                | Some (score) -> Some(score, provider.provider))
+                | Some (score) -> Some(score, provider.Provider))
             |> List.sortWith (fun (a, _) (b, _) -> compare b a)
             |> // Note sort largest first
             List.head

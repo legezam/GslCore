@@ -29,20 +29,20 @@ type TestMapRyseLinkers() =
     let runOne (name: string) isMegastitch (linkersIn: (DNASlice list * DNASlice list)) slicesIn expected =
         /// Boring default options
         let opts: ParsedOptions =
-            { quiet = false
-              refStrain = "cenpk"
-              libDir = "whatever"
-              iter = true
-              onlyPhase1 = false
-              doParallel = false
-              verbose = verbose
-              noPrimers = false
-              lexOnly = false
-              refList = false
-              refDump = None
-              listPlugins = false
-              doHelpPragmas = false
-              isDeterministic = false }
+            { Quiet = false
+              RefStrain = "cenpk"
+              LibDir = "whatever"
+              Iter = true
+              OnlyPhase1 = false
+              DoParallel = false
+              Verbose = verbose
+              NoPrimers = false
+              LexOnly = false
+              RefList = false
+              RefDump = None
+              ListPlugins = false
+              DoHelpPragmas = false
+              IsDeterministic = false }
 
         let leftLinkers, rightLinkers = linkersIn
 

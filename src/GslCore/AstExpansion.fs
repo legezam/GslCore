@@ -284,11 +284,11 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
 
     /// Parameters to pass to specific L2 algorithm implementation
     let designParams =
-        { megastitch = megastitch
-          rgs = rgs
-          refGenome = refGenome'
-          line = line
-          pragmas = pragmas }
+        { IsMegastitch = megastitch
+          ReferenceGenomes = rgs
+          ReferenceGenome = refGenome'
+          Line = line
+          Pragmas = pragmas }
 
     /// List including lower-level GSL strings
     match line.l2Locus with
@@ -298,9 +298,9 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
         let fn =
             providers
             |> List.choose (fun provider ->
-                match provider.jobScorer capabilities with
+                match provider.JobScorer capabilities with
                 | None -> None
-                | Some (score) -> Some(score, provider.explicitLocusProvider))
+                | Some (score) -> Some(score, provider.ExplicitLocusProvider))
             |> List.sortWith (fun (a, _) (b, _) -> compare b a)
             |> // sort largest first
             List.head
@@ -313,9 +313,9 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
         let fn =
             providers
             |> List.choose (fun provider ->
-                match provider.jobScorer capabilities with
+                match provider.JobScorer capabilities with
                 | None -> None
-                | Some (score) -> Some(score, provider.implicitLocusProvider))
+                | Some (score) -> Some(score, provider.ImplicitLocusProvider))
             |> List.sortWith (fun (a, _) (b, _) -> compare b a)
             |> // largest first
             List.head
@@ -621,10 +621,10 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
                         | _ -> failwithf "#seed argument '%s' is not a valid integer" seed
 
                 let codonOptTask =
-                    { verbose = verbose
-                      seedOverride = seedOverride
-                      refGenome = genomeDef
-                      aminoAcidSequence = s }
+                    { IsVerbose = verbose
+                      SeedOverride = seedOverride
+                      RefGenome = genomeDef
+                      AminoAcidSequence = s }
 
                 let result = codonProvider.DoCodonOpt codonOptTask
                 { p with part = INLINEDNA(result) }

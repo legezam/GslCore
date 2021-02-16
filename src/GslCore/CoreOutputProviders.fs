@@ -36,14 +36,14 @@ type ConfigurableOutputProvider<'T>(param: 'T option) =
 
 /// Create a basic plug and play output plugin.
 let outputPlugin name desc provider =
-    { name = name
-      description = desc
-      behaviors =
-          [ { name = None
-              description = None
-              behavior = OutputFormat(provider) } ]
-      providesPragmas = []
-      providesCapas = [] }
+    { Name = name
+      Description = desc
+      Behaviors =
+          [ { Name = None
+              Description = None
+              Behavior = OutputFormat(provider) } ]
+      ProvidesPragmas = []
+      ProvidesCapas = [] }
 
 type GslFlatFileOutputProvider(outPath) =
     inherit ConfigurableOutputProvider<string>(outPath)
@@ -57,7 +57,7 @@ type GslFlatFileOutputProvider(outPath) =
         override x.UseArg(arg) =
             GslFlatFileOutputProvider(Some(arg.values.[0])) :> IOutputFormat
 
-        override x.DoOutput(path, data) = dumpFlat path data.assemblies
+        override x.DoOutput(path, data) = dumpFlat path data.Assemblies
 
 let flatFileOutputPlugin =
     outputPlugin "flat_file" (Some "GSL flat file output provider.") (GslFlatFileOutputProvider(None))
@@ -76,7 +76,7 @@ type CloneManagerOutputProvider(outParams) =
             CloneManagerOutputProvider(Some(arg.values.[0], arg.values.[1])) :> IOutputFormat
 
         override x.DoOutput((path, tag), data) =
-            dumpCM path tag data.assemblies data.primers
+            dumpCM path tag data.Assemblies data.Primers
 
 let cloneManagerOutputPlugin =
     outputPlugin "clone_manager" (Some "Clone Manager output format provider.") (CloneManagerOutputProvider(None))
@@ -93,7 +93,7 @@ type ApeOutputProvider(outParams) =
         override x.UseArg(arg) =
             ApeOutputProvider(Some(arg.values.[0], arg.values.[1])) :> IOutputFormat
 
-        override x.DoOutput((path, tag), data) = dumpAPE path tag data.assemblies
+        override x.DoOutput((path, tag), data) = dumpAPE path tag data.Assemblies
 
 let apeOutputPlugin =
     outputPlugin "APE" (Some "APE (A Plasmid Editor) output format provider.") (ApeOutputProvider(None))
@@ -112,7 +112,7 @@ type SnapGeneOutputProvider(outParams) =
             SnapGeneOutputProvider(Some(arg.values.[0], arg.values.[1])) :> IOutputFormat
 
         override x.DoOutput((path, tag), data) =
-            dumpSnapgene path tag data.assemblies data.primers
+            dumpSnapgene path tag data.Assemblies data.Primers
 
 let snapGeneOutputPlugin =
     outputPlugin "Snapgene" (Some "Snapgene output format provider.") (SnapGeneOutputProvider(None))
@@ -141,7 +141,7 @@ type DocstringOutputProvider(outPath) =
         override x.UseArg(arg) =
             DocstringOutputProvider(Some(arg.values.[0])) :> IOutputFormat
 
-        override x.DoOutput(path, data) = dumpDocStrings path data.assemblies
+        override x.DoOutput(path, data) = dumpDocStrings path data.Assemblies
 
 let docstringOutputPlugin =
     outputPlugin
@@ -163,8 +163,8 @@ type PrimerOutputProvider(outPath) =
             PrimerOutputProvider(Some(arg.values.[0])) :> IOutputFormat
 
         override x.DoOutput(path, data) =
-            match data.primers with
-            | Some (primers) -> PrimerDump.simplePrimerDump path primers data.assemblies
+            match data.Primers with
+            | Some (primers) -> PrimerDump.simplePrimerDump path primers data.Assemblies
             | None -> failwithf "--primers was selected but no primers were produced.  Did you also pass --noprimers?"
 
 let primerOutputPlugin =

@@ -4,14 +4,14 @@ open GslCore.AlleleSwaps
 open GslCore.PluginTypes
 
 let basicAlleleSwapPlugin =
-    { name = "classic_allele_swap"
-      description = Some "Allele swap implementation using markers."
-      behaviors =
-          [ { name = None
-              description = None
-              behavior =
+    { Name = "classic_allele_swap"
+      Description = Some "Allele swap implementation using markers."
+      Behaviors =
+          [ { Name = None
+              Description = None
+              Behavior =
                   AlleleSwapAA
-                      ({ jobScorer = jobScorerClassicAAMut
-                         provider = classicAAMut }) } ]
-      providesPragmas = []
-      providesCapas = [] }
+                      ({ JobScorer = jobScorerClassicAAMut
+                         Provider = classicAAMut }) } ]
+      ProvidesPragmas = []
+      ProvidesCapas = [] }

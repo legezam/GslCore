@@ -17,16 +17,16 @@ open Amyris.ErrorHandling
 /// Run GSLC on string input.
 let rec processGSL (s: ConfigurationState) gslText =
 
-    let opts, plugins, ga = s.opts, s.plugins, s.ga
+    let opts, plugins, ga = s.Options, s.Plugins, s.GlobalAssets
 
-    let verbose = opts.verbose
-    let pragmaCache = ga.pragmaCache
+    let verbose = opts.Verbose
+    let pragmaCache = ga.PragmaBuilder
     /// Build up all legal capabilities by going through plugins
     // FIXME: need to inject this and validate legal capabilities
     // Should also eliminate global pragma state while we're at it, if possible.
     let legalCapas =
         plugins
-        |> List.map (fun pi -> pi.providesCapas)
+        |> List.map (fun pi -> pi.ProvidesCapas)
         |> List.concat
         |> set
 
@@ -40,51 +40,51 @@ let rec processGSL (s: ConfigurationState) gslText =
 
     let phase2WithData =
         phase2
-            (not opts.iter)
+            (not opts.Iter)
             (Some(10))
-            opts.doParallel
+            opts.DoParallel
             verbose
             legalCapas
             pragmaCache
             alleleSwapAlgs
-            ga.rgs
-            ga.codonProvider
+            ga.ReferenceGenomes
+            ga.CodonProvider
 
     /// Main compiler pipeline.
     let phase1Result =
         lexAndParse verbose gslText
         >>= phase1 legalCapas pragmaCache
 
-    if opts.onlyPhase1 then
+    if opts.OnlyPhase1 then
         phase1Result >>= convertAndGatherAssemblies
     else
         phase1Result
         //>>= failOnAssemblyInL2Promoter
-        >>= expandLevel2 legalCapas pragmaCache l2Providers ga.rgs
-        >>= prepPhase2 ga.rgs ga.seqLibrary
+        >>= expandLevel2 legalCapas pragmaCache l2Providers ga.ReferenceGenomes
+        >>= prepPhase2 ga.ReferenceGenomes ga.SequenceLibrary
         >>= phase2WithData
         >>= convertAndGatherAssemblies // collect the assemblies in the tree and return them
 
 /// Convert all assemblies to DnaAssemblies.
 let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
-    let opts, library, rgs = s.opts, s.ga.seqLibrary, s.ga.rgs
+    let opts, library, rgs = s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
 
     let markerProviders =
-        s.plugins |> getAllProviders getMarkerProviders
+        s.Plugins |> getAllProviders getMarkerProviders
 
-    if opts.verbose
+    if opts.Verbose
     then printf "Processing %d assemblies\n" (Seq.length assem)
 
     assem
     |> Seq.mapi (fun i a ->
         try
-            expandAssembly opts.verbose markerProviders rgs library i a
+            expandAssembly opts.Verbose markerProviders rgs library i a
             |> ok
         with e -> fail (exceptionToAssemblyMessage a e))
     |> collect
     >>= (fun assemblies ->
 
-        if opts.verbose then
+        if opts.Verbose then
             printf "log: dnaParts dump\n"
 
             for a in assemblies do
@@ -175,13 +175,13 @@ let preProcessFuse _ (a: DnaAssembly) =
 /// go into more target-specific activities like assigning parts, reusing parts, etc.
 let transformAssemblies (s: ConfigurationState) (assemblies: DnaAssembly list) =
 
-    let atContext: ATContext = { opts = s.opts; ga = s.ga }
+    let atContext: ATContext = { Options = s.Options; GlobalAssets = s.GlobalAssets }
 
     let builtinAssemblyTransforms = [ cleanLongSlices; preProcessFuse ]
 
     let assemblyTransformers =
         builtinAssemblyTransforms
-        @ (getAllProviders getAssemblyTransformers s.plugins)
+        @ (getAllProviders getAssemblyTransformers s.Plugins)
 
     // do all the assembly transformation steps
     // the transformations are done in the order in which plugins were passed in, and in order
@@ -200,7 +200,7 @@ let transformAssemblies (s: ConfigurationState) (assemblies: DnaAssembly list) =
     |> collect
 
 let doPrimerDesign opts assemblyOuts =
-    if opts.noPrimers then
+    if opts.NoPrimers then
         None, assemblyOuts
     else
         let p, t = designPrimers opts assemblyOuts
@@ -210,14 +210,14 @@ let doPrimerDesign opts assemblyOuts =
 
 let doOutputGeneration (s: ConfigurationState) primers assemblies =
     let outputData =
-        { ga = s.ga
-          opts = s.opts
-          assemblies = assemblies
-          primers = primers }
+        { GlobalAssets = s.GlobalAssets
+          Options = s.Options
+          Assemblies = assemblies
+          Primers = primers }
 
-    if outputData.opts.verbose then printfn "ok"
+    if outputData.Options.Verbose then printfn "ok"
 
     // Use any output providers provided by plugins
     // They have already been configured to run or not during command line arg parsing.
-    for op in getAllProviders getOutputProviders s.plugins do
+    for op in getAllProviders getOutputProviders s.Plugins do
         op.ProduceOutput(outputData)

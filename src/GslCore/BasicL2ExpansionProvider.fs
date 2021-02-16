@@ -46,11 +46,11 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
 
     let out =
         seq {
-            let partsA, partsB = balance args.line.parts
+            let partsA, partsB = balance args.Line.parts
 
             // Emit replacement DNA name for knockout
             let replacementName =
-                match args.pragmas |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
+                match args.Pragmas |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
                 // if the user provided a pragma name, create the donor DNA name with .donor
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
@@ -70,7 +70,7 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
                 yield decompile expItem.promoter
                 yield sprintf "%s" (expItem.target.String)
 
-            if args.megastitch then yield "###" // Marker
+            if args.IsMegastitch then yield "###" // Marker
             // Second half of the parts after the marker
             for expItem in partsB do
                 yield (sprintf "!%s;!(%s)" expItem.target.String (decompile expItem.promoter))
@@ -97,7 +97,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
     // separates the expression pGene>gGene from the rest of the line
     let locusExp, otherExp =
-        match args.line.parts with
+        match args.Line.parts with
         | [] -> failwithf "ERROR: unexpected empty L2 expression construct with no locus or parts\n"
         | hd :: tl -> hd, tl
     /// the titrated gene
@@ -110,14 +110,14 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
     let partsA, partsB = balance otherExp
     /// the flank length
-    let flank = args.rgs.[args.refGenome].getFlank()
+    let flank = args.ReferenceGenomes.[args.ReferenceGenome].getFlank()
 
     let out =
         seq {
 
             // Emit replacement DNA name for promoter swap
             let replacementName =
-                match args.pragmas |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
+                match args.Pragmas |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
                 // if the user provided a pragma name, create the donor DNA name with .donor
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
@@ -130,7 +130,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
             // yield a new linker line because the default pattern will cause an A linker
             // to land on a marker (error: no A-9 markers)
-            match args.pragmas |> PragmaCollection.tryFind BuiltIn.linkersPragmaDef with
+            match args.Pragmas |> PragmaCollection.tryFind BuiltIn.linkersPragmaDef with
             | Some _ -> yield ""
             | None -> yield "#linkers 0,2,A,3,9|0,A,2,9"
 
@@ -142,7 +142,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
                 yield decompile expItem.promoter
                 yield expItem.target.String
 
-            if args.megastitch then yield "###"
+            if args.IsMegastitch then yield "###"
             // Second half of the parts after the marker
             for expItem in partsB do
                 yield (sprintf "!%s;!(%s)" expItem.target.String (decompile expItem.promoter))
@@ -164,15 +164,15 @@ let generateOutputsTitrations (args: L2DesignParams) =
     |> GslSourceCode
 
 let basicL2ExpansionPlugin =
-    { name = "basic_L2_provider"
-      description = Some "Basic implemention of L2 promoter titration."
-      behaviors =
-          [ { name = None
-              description = None
-              behavior =
+    { Name = "basic_L2_provider"
+      Description = Some "Basic implemention of L2 promoter titration."
+      Behaviors =
+          [ { Name = None
+              Description = None
+              Behavior =
                   L2KOTitration
-                      ({ jobScorer = l2JobScorer
-                         explicitLocusProvider = generateOutputsExplicitLocus
-                         implicitLocusProvider = generateOutputsTitrations }) } ]
-      providesPragmas = []
-      providesCapas = [] }
+                      ({ JobScorer = l2JobScorer
+                         ExplicitLocusProvider = generateOutputsExplicitLocus
+                         ImplicitLocusProvider = generateOutputsTitrations }) } ]
+      ProvidesPragmas = []
+      ProvidesCapas = [] }

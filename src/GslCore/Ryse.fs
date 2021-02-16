@@ -256,7 +256,7 @@ let mapRyseLinkers (opts: ParsedOptions)
                    (aIn: DnaAssembly)
                    =
 
-    let printVerbose msg = if opts.verbose then printfn "%s" msg
+    let printVerbose msg = if opts.Verbose then printfn "%s" msg
 
     printVerbose "ENTERING: mapRyseLinkers"
     /// If they are building just a stitch, we need to know not to look for the marker
