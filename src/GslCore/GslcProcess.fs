@@ -7,6 +7,8 @@ open GslCore.AstExpansion
 open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.DnaCreation
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.PrimerCreation
 open GslCore.ProcessCmdLineArgs
 open GslCore.PluginTypes
@@ -38,11 +40,21 @@ let rec processGSL (s: ConfigurationState) gslText =
         |> getAllProviders getL2KOTitrationProviders
 
     let phase2WithData =
-        phase2 (not opts.iter) (Some(10)) opts.doParallel verbose legalCapas pragmaCache alleleSwapAlgs ga.rgs ga.codonProvider
+        phase2
+            (not opts.iter)
+            (Some(10))
+            opts.doParallel
+            verbose
+            legalCapas
+            pragmaCache
+            alleleSwapAlgs
+            ga.rgs
+            ga.codonProvider
 
     /// Main compiler pipeline.
     let phase1Result =
-        lexAndParse verbose gslText >>= phase1 legalCapas pragmaCache
+        lexAndParse verbose gslText
+        >>= phase1 legalCapas pragmaCache
 
     if opts.onlyPhase1 then
         phase1Result >>= convertAndGatherAssemblies
@@ -104,28 +116,34 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
 
 /// Promote long slices to regular rabits to avoid trying to build
 /// impossibly long things with oligos.
-let cleanLongSlicesInPartsList (p: PragmaTypes.PragmaCollection) (l: DNASlice list) =
+let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
     l
     |> List.map (fun s ->
         if (s.sliceType = INLINEST
             && s.dna.Length > 30
-            && not (s.pragmas.ContainsKey("inline"))) then
+            && not
+                (s.pragmas
+                 |> PragmaCollection.containsName BuiltIn.inlinePragmaDef.Name)) then
             { s with
                   sliceType = REGULAR
                   dnaSource =
-                      match s.pragmas.TryGetOne("dnasrc") with
+                      match s.pragmas
+                            |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
                       | Some (x) -> x
                       | None ->
-                          match p.TryGetOne("refgenome") with
+                          match p
+                                |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
                           | None -> "synthetic"
                           | Some (x) -> x
                   // add in an amp tag on this guy too, since we are now comitting to
                   // not placing it inline using primers
                   pragmas =
-                      match s.pragmas.TryFind("amp") with
+                      match s.pragmas
+                            |> PragmaCollection.tryFindName BuiltIn.ampPragmaDef.Name with
                       | Some _ -> s.pragmas // already there
                       | None ->
-                          match s.pragmas.Add("amp") with
+                          match s.pragmas
+                                |> PragmaCollection.addName BuiltIn.ampPragmaDef.Name with
                           | Result.Ok (result, _) -> result
                           | Bad messages ->
                               // has to be a cleaner way of converting result to

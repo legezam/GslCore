@@ -5,7 +5,8 @@ open NUnit.Framework
 open GslCore.LegacyParseTypes
 open GslCore.Constants
 open GslCore.CommonTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open Amyris.ErrorHandling
 
 /// location of test gslc_lib fixtures
@@ -65,11 +66,11 @@ type TestPromTermLen() =
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
-        match buildPragma name [ value ] PragmaCache.builtin with
+        match Pragma.fromNameValue name [ value ] PragmaCache.builtin with
         | Ok (p, []) ->
             let map =
                 { PragmaCollection.Pragmas =
-                    [ p.name, p ] |> Map.ofList
+                    [ p.Name, p ] |> Map.ofList
                   Cache = PragmaCache.builtin }
 
             checkOneGenome map refGenome expProm expTerm expTermMRNA
@@ -87,7 +88,7 @@ type TestPromTermLen() =
     member __.TestPragmasExist() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
-                returnOrFail (buildPragma name [ "250" ] PragmaCache.builtin)
+                returnOrFail (Pragma.fromNameValue name [ "250" ] PragmaCache.builtin)
                 |> ignore)
 
         checkPragmaExists "promlen"

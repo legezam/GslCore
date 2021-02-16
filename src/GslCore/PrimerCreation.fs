@@ -9,7 +9,8 @@ open Amyris.Bio.utils
 open Amyris.Bio.biolib
 open Amyris.Dna
 open GslCore.DesignParams
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 
 /// Check if tail of A overlaps head of B
 let checkTailAOverlapsHeadB (a: Dna) (b: Dna) =
@@ -354,11 +355,15 @@ let tuneTails verbose
                             yield EXT_F_AMP
 
 
+
+
                         if state.bestAnnealDelta < 0.0<C>
                            && state.ft > fwdTailLenMin then
                             yield CHOP_F_ANNEAL
                         elif state.ft < fwdTailLenMax then
                             yield EXT_F_ANNEAL
+
+
 
 
                         match sign state.bestAnnealDelta, sign state.bestFwdDelta with
@@ -370,6 +375,8 @@ let tuneTails verbose
                                 elif (state.rt > revTailLenMin
                                       && state.ft < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
+
+
 
                         | 1, -1 -> // anneal too cold, fwd too hot
                             if (state.rt > revTailLenMin
@@ -387,6 +394,8 @@ let tuneTails verbose
                                 else if (state.rt > revTailLenMin
                                          && state.ft < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
+
+
 
                         | 0, 1
                         | -1, 0 -> // anneal hot, amp perfect
@@ -424,12 +433,16 @@ let tuneTails verbose
                         elif state.rt < revTailLenMax then
                             yield SLIDE_R_RIGHT
 
+
+
                 | _ ->
                     if state.bestRevDelta < 0.0<C>
                        && state.rb > dp.pp.minLength then
                         yield CHOP_R_AMP
                     elif state.rb < rev.body.Length then
                         yield EXT_R_AMP
+
+
 
 
                     if revTailLenFixed.IsNone then
@@ -440,6 +453,8 @@ let tuneTails verbose
                             yield EXT_R_ANNEAL
 
 
+
+
                         match sign state.bestAnnealDelta, sign state.bestRevDelta with
                         | 1, 1 -> // both anneal and rev amp are too cold, could cut either back and extend the other
                             if state.bestAnnealDelta < state.bestRevDelta then
@@ -448,6 +463,8 @@ let tuneTails verbose
                                     yield SLIDE_R_LEFT
                                 elif state.rt < revTailLenMax then
                                     yield SLIDE_R_RIGHT
+
+
 
                         | 1, -1 -> // anneal too cold, rev too hot
                             if state.rt < revTailLenMax then yield SLIDE_R_RIGHT
@@ -462,6 +479,8 @@ let tuneTails verbose
                                     yield SLIDE_R_LEFT
                                 elif state.rt < revTailLenMax then
                                     yield SLIDE_R_RIGHT
+
+
 
                         | 0, 1
                         | -1, 0 -> // anneal hot, amp perfect
@@ -752,9 +771,10 @@ type PrimerPosOrient =
     | REV of int
     | NONE
 
-let parsePrimerPos (pragmas: PragmaCollection) =
-    match pragmas.TryGetValues("primerpos") with
-    | Some (v) ->
+let parsePrimerPos (pragmas: PragmaCollection): PrimerPosOrient =
+    match pragmas
+          |> PragmaCollection.tryGetValues BuiltIn.primerPosPragmaDef.Name with
+    | Some v ->
         match v |> List.map (fun (s: string) -> s.ToUpper()) with
         // TODO: these should be parsed and converted into union cases much earlier
         // in compiler execution
@@ -992,7 +1012,9 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
                         next.description next.dna.Length next.dna
 
                 None
-            else if next.sourceFrApprox then
+            else
+
+            if next.sourceFrApprox then
                 let task =
                     { tag = "PF"
                       temp = next.dna.[0..min (next.dna.Length - 1) margin].arr
@@ -1338,10 +1360,13 @@ can design (say) a primer against might be further back in the stack and it's ju
                             || (hd.sliceType = INLINEST
                                 && // Actual mid rabit inline slice not one at the end of a rabit
                                 not
-                                    (hd.pragmas.ContainsKey("rabitend")
-                                     || hd.pragmas.ContainsKey("rabitstart")
-                                     || hd.pragmas.ContainsKey("amp"))) // if directed to amplify, don't do as an inline
-                               && prev <> [] ->  // must be a previous slice to do an inline
+                                    (hd.pragmas
+                                     |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name
+                                     || hd.pragmas
+                                        |> PragmaCollection.containsName BuiltIn.rabitStartPragmaDef.Name
+                                     || hd.pragmas
+                                        |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name)) // if directed to amplify, don't do as an inline
+                               && prev <> [] -> // must be a previous slice to do an inline
 
         if verbose
         then printfn "procAssembly: PACASE 3 - LINKER or inline not rabitstart/end"
@@ -2127,8 +2152,10 @@ can design (say) a primer against might be further back in the stack and it's ju
     // slice
     | hd :: tl when hd.sliceType = INLINEST
                     && (not
-                            (hd.pragmas.ContainsKey("rabitend")
-                             || hd.pragmas.ContainsKey("amp"))) ->
+                            (hd.pragmas
+                             |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name
+                             || hd.pragmas
+                                |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name)) ->
         if verbose
         then printfn "procAssembly: PACASE 5 -... (GAP) INLINEST"
         // For now we don't know what is going to happen with this slice.  It will get created
@@ -2147,7 +2174,8 @@ can design (say) a primer against might be further back in the stack and it's ju
     // This cases catches inline sequences just before a linker marked rabitend
     // This slice will be implemented when linker goes out
     | hd :: tl when hd.sliceType = INLINEST
-                    && hd.pragmas.ContainsKey("rabitend") ->
+                    && hd.pragmas
+                       |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name ->
         if verbose then
             printfn "procAssembly: PACASE 6 -"
             printfn "procAssembly: ... (GAP) INLINEST rabitend case hd=%s" hd.description
@@ -2167,14 +2195,22 @@ can design (say) a primer against might be further back in the stack and it's ju
             printfn
                 "procAssembly: PACASE 7 -... (GAP) catchall case - should this be fused with previous slice? hd.dna.Length=%d hd.containsAmp=%s"
                 hd.dna.Length
-                (if hd.pragmas.ContainsKey("amp") then "Y" else "N")
+                (if hd.pragmas
+                    |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name then
+                    "Y"
+                 else
+                     "N")
             // emit some diagnostics on prev slice
             match prev with
             | pHd :: _ ->
                 printfn
                     "procAssembly: ...                      phd.dna.Length=%d phd.containsAmp=%s"
                     pHd.dna.Length
-                    (if pHd.pragmas.ContainsKey("amp") then "Y" else "N")
+                    (if pHd.pragmas
+                        |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name then
+                        "Y"
+                     else
+                         "N")
             | [] -> printfn "procAssembly: ...                      prev empty"
 
         // Check if this slice should have been fused with previous slice?
@@ -2182,11 +2218,13 @@ can design (say) a primer against might be further back in the stack and it's ju
         | pHd :: _ when
           // IF prev head long enough or using amp / pcr
           (pHd.dna.Length > 100
-           || pHd.pragmas.ContainsKey("amp"))
+           || pHd.pragmas
+              |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name)
           &&
           // AND this big enough or using amp/pcr THEN
           (hd.dna.Length > 100
-           || hd.pragmas.ContainsKey("amp")) ->
+           || hd.pragmas
+              |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name) ->
 
               // If previous head and this slice are big enough or being forced into an amplification
               // strategy then we are going seamless between them
@@ -2300,7 +2338,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                     uri = None
                     description = "fusion"
                     sliceType = FUSIONST
-                    pragmas = EmptyPragmas
+                    pragmas = PragmaCollection.empty
                     dnaSource = ""
                     breed = B_VIRTUAL
                     /// Keep track of the part this slice was materialized from.
@@ -2335,47 +2373,48 @@ can design (say) a primer against might be further back in the stack and it's ju
 let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
     let verbose = opts.verbose
 
+    let map =
+        if opts.doParallel then Array.Parallel.map else Array.map
+
     let primers', newSlices' =
         linkedTree
         |> Array.ofList
-        |> (if opts.doParallel then Array.Parallel.map else Array.map) (fun a ->
-            let errorName = a.name
+        |> map (fun assembly ->
+            let errorName = assembly.name
 
             let primerMaxLen =
-                match a.pragmas.TryGetOne("primermax") with
-                | None -> Default.PrimerMaxLength
-                | Some (v) -> int v
+                assembly.pragmas
+                |> PragmaCollection.tryGetValue BuiltIn.primerMaxPragmaDef.Name
+                |> Option.map int
+                |> Option.defaultValue Default.PrimerMaxLength
 
             let primerMinLen =
-                match a.pragmas.TryGetOne("primermin") with
-                | None -> Default.PrimerMinLength
-                | Some (v) -> int v
+                assembly.pragmas
+                |> PragmaCollection.tryGetValue BuiltIn.primerMinPragmaDef.Name
+                |> Option.map int
+                |> Option.defaultValue Default.PrimerMinLength
 
-            procAssembly
-                verbose
-                { a.designParams with
+            let designParams =
+                { assembly.designParams with
                       pp =
-                          { a.designParams.pp with
+                          { assembly.designParams.pp with
                                 maxLength = primerMaxLen
                                 minLength = primerMinLen } }
-                errorName
-                []
-                []
-                []
-                a.dnaParts)
+
+            procAssembly verbose designParams errorName [] [] [] assembly.dnaParts)
         |> Array.unzip
 
     /// Slightly ugly hack.  If we are doing linkerless designs, there is no anneal region between
     /// the divergent primers, so the primer annotation for the anneal region is an empty interval.
     /// To avoid download validation and display mess, we filter those primer annotation intervals out
-    let cleanAnnealIntervals (p: DivergedPrimerPair list) =
-        let filterAnneal (p: Primer) =
-            { p with
+    let cleanAnnealIntervals (primerParis: DivergedPrimerPair list) =
+        let filterAnneal (primer: Primer) =
+            { primer with
                   annotation =
-                      p.annotation
+                      primer.annotation
                       |> List.filter (fun x -> x.iType <> ANNEAL && x.iType <> SANDWICH) }
 
-        p
+        primerParis
         |> List.map (fun x ->
             match x with
             | GAP -> x
@@ -2391,7 +2430,7 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
 
     let primers =
         List.ofArray primers'
-        |> List.map (cleanAnnealIntervals)
+        |> List.map cleanAnnealIntervals
 
     let newSlices = List.ofArray newSlices'
 

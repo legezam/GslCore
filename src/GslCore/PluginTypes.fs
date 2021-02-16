@@ -7,7 +7,8 @@ open GslCore.CommandConfig
 open Amyris.Bio
 open GslCore.Constants
 open GslCore.LegacyParseTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.AstTypes
 open GslCore.RefGenome
 open Amyris.Bio.IO.CodonUsage
@@ -346,7 +347,7 @@ type Plugin =
 
             if not (x.providesPragmas.IsEmpty) then
                 yield "Provides pragmas:"
-                for p in x.providesPragmas -> indent (formatPragma p)
+                for p in x.providesPragmas -> indent (PragmaDefinition.format p)
 
             if not (x.providesCapas.IsEmpty) then
                 yield "Provides capas:"

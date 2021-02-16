@@ -5,7 +5,8 @@ open Amyris.Dna
 open GslCore.Constants
 open System
 open GslCore.Uri
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.AstTypes
 open GslCore.AstProcess
 open GslCore.AstErrorHandling
@@ -28,12 +29,16 @@ let getBoundsFromSlice (slice: Slice) featureLength context =
     let left =
         match slice.left.RelativeTo with
         | FivePrime -> slice.left.Position
-        | ThreePrime -> (featureLength + 1) * 1<OneOffset> + slice.left.Position
+        | ThreePrime ->
+            (featureLength + 1) * 1<OneOffset>
+            + slice.left.Position
 
     let right =
         match slice.right.RelativeTo with
         | FivePrime -> slice.right.Position
-        | ThreePrime -> (featureLength + 1) * 1<OneOffset> + slice.right.Position
+        | ThreePrime ->
+            (featureLength + 1) * 1<OneOffset>
+            + slice.right.Position
 
     match context with
     | Genomic ->
@@ -289,30 +294,40 @@ let updateConversionContext mode s node =
           docs = newDocsEnv }
 
 /// Convert an AST assembly into a legacy assembly.
-let convertAssembly (context: AssemblyConversionContext) (pw, aplw) =
-    let assemblyPragmas = getPragmas pw
-    let name = assemblyPragmas.TryGetOne("name")
-    let uri = assemblyPragmas.TryGetOne("uri")
+let convertAssembly (context: AssemblyConversionContext)
+                    (partWrapper: Node<ParsePart>, aplw: Node<AstNode list>)
+                    : Result<Assembly, AstMessage> =
+    let assemblyPragmas = getPragmas partWrapper
+
+    let name =
+        assemblyPragmas
+        |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name
+
+    let uri =
+        assemblyPragmas
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
 
     let linkerHint =
-        match assemblyPragmas.TryGetValues("linkers") with
-        | Some (vals) -> (String.concat "" vals)
-        | None -> ""
+        assemblyPragmas
+        |> PragmaCollection.tryGetValues BuiltIn.linkersPragmaDef.Name
+        |> Option.map (String.concat "")
+        |> Option.defaultValue ""
+
 
     designParamsFromPragmas initialDesignParams assemblyPragmas
-    |> mapMessages (fun s -> errorMessage PragmaError s (Part(pw)))
+    |> mapMessages (fun message -> errorMessage PragmaError message (Part(partWrapper)))
     |> tupleResults (aplw.x |> List.map createPPP |> collect)
-    >>= (fun (parts, designParams) ->
-        ok
-            { parts = parts
-              name = name
-              uri = uri
-              linkerHint = linkerHint
-              pragmas = assemblyPragmas
-              designParams = designParams
-              capabilities = context.pragmaEnv.capabilities
-              docStrings = context.docs.assigned
-              sourcePosition = pw.positions })
+    >>= fun (parts, designParams) ->
+            ok
+                { Assembly.parts = parts
+                  name = name
+                  uri = uri
+                  linkerHint = linkerHint
+                  pragmas = assemblyPragmas
+                  designParams = designParams
+                  capabilities = context.pragmaEnv.capabilities
+                  docStrings = context.docs.assigned
+                  sourcePosition = partWrapper.positions }
 
 // ======================
 // conversion from L2 AST node to legacy L2 line type
@@ -351,18 +366,24 @@ let private buildL2Expression (ew: Node<L2Expression>) =
     >>= (fun (locus, parts) -> ok { l2Locus = locus; parts = parts })
 
 /// Build a L2Line from an AST node and pragma environment.
-let convertL2Line (pragmaEnv: PragmaEnvironment) (l2e: Node<L2Expression>) =
+let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expression>): Result<L2Line, AstMessage> =
     let pragmas =
-        pragmaEnv.persistent.MergeIn(pragmaEnv.assignedTransients)
+        pragmaEnv.persistent
+        |> PragmaCollection.mergeInCollection pragmaEnv.assignedTransients
 
-    let name = pragmas.TryGetOne("name")
-    let uri = pragmas.TryGetOne("uri")
+    let name =
+        pragmas
+        |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name
 
-    buildL2Expression l2e
-    >>= (fun l2Design ->
-        ok
-            { l2Design = l2Design
-              name = name
-              uri = uri
-              pragmas = pragmas
-              capabilities = pragmaEnv.capabilities })
+    let uri =
+        pragmas
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
+
+    buildL2Expression l2Expression
+    >>= fun l2Design ->
+            ok
+                { L2Line.l2Design = l2Design
+                  name = name
+                  uri = uri
+                  pragmas = pragmas
+                  capabilities = pragmaEnv.capabilities }

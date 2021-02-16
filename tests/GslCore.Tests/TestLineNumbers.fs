@@ -1,8 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open System
-open GslCore
-open GslCore.PragmaTypes
+open GslCore.Pragma.Domain
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes
@@ -26,9 +25,9 @@ type TestLineNumbers() =
               yield! result
           | Part p ->
               match p.x.basePart with
-              | Assembly a as x -> yield x
+              | Assembly _ as x -> yield x
               | _ -> ()
-          | Assembly a as x -> yield x
+          | Assembly _ as x -> yield x
           | _ -> () ]
 
     /// NB: note lines are numbered from zero internally, and columns.

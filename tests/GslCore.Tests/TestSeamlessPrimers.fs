@@ -6,7 +6,8 @@ open NUnit.Framework
 open GslCore.Constants
 open GslCore.CommonTypes
 open Amyris.Dna
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 
 let map = Map.ofSeq
 

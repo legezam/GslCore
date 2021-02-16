@@ -8,7 +8,7 @@ open FSharp.Text.Parsing.ParseHelpers
 // F# code goes here
 open System
 open GslCore.AstTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
 open Amyris.Bio
 open GslCore.Constants
 open GslCore

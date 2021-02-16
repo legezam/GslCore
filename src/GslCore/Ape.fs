@@ -6,13 +6,8 @@ open GslCore.CommonTypes
 open GslCore.Constants
 open Amyris.Bio.utils
 open GslCore
-open GslCore.PragmaTypes
+open GslCore.Pragma
 open GslCore.Genbank
-
-let topologyToString: Topology -> string =
-    function
-    | Linear -> "linear"
-    | Circular -> "circular"
 
 /// Emit APE (genbank) format
 ///  outDir : string   tag: string  prefix for files  assemblies : List of AssemblyOut
@@ -39,7 +34,7 @@ let dumpAPE (outDir: string) (tag: string) (assemblies: DnaAssembly list) =
             |> Seq.sum
 
         let now = DateTime.Now
-        let topology = a.topology |> topologyToString
+        let topology = a.topology |> Topology.toString
 
         sprintf "LOCUS                 %15s%5d bp ds-DNA   %s       %2d-%s-%d
 DEFINITION  .

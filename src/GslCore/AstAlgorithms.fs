@@ -7,7 +7,7 @@ open System.Text
 open Amyris.ErrorHandling
 open GslCore.Constants
 open GslCore
-open GslCore.PragmaTypes
+open GslCore.Pragma
 open FSharp.Collections.ParallelSeq
 
 
@@ -644,13 +644,11 @@ type ValidationResult = Result<unit, AstMessage>
 let good: ValidationResult = ok ()
 
 
-///<summary>
 /// Map a validation function over the tree.
 /// If successful, passes the tree through.
 /// Enforces that the tree remains the same by only accepting a function that returns nothing.
 /// Can perform multiple validations in parallel on each node by combining the node validation
 /// functions with the &&& infix operator.
-///</summay>
 let validate (f: AstNode -> ValidationResult) tree =
     // we can express this operation using map and by doctoring the inputs and outputs.
     // map requires a function that produces a transformation result.

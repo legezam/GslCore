@@ -7,12 +7,8 @@ open GslCore.Constants
 open Amyris.Bio.utils
 open GslCore
 open GslCore.Genbank
-open GslCore.PragmaTypes
+open GslCore.Pragma
 
-let topologyToString: Topology -> string =
-    function
-    | Linear -> "linear"
-    | Circular -> "circular"
 
 /// Emit Snapgene (genbank) format
 ///  outDir : string   tag: string  prefix for files  assemblies : List of AssemblyOut
@@ -55,7 +51,7 @@ let dumpSnapgene (outDir: string)
             |> Seq.sum
 
         let now = DateTime.Now
-        let topology = a.topology |> topologyToString
+        let topology = a.topology |> Topology.toString
         (* // constraints on header format per SnapGene direct correspandance
 
         1) LOCUS must contain "Exported".

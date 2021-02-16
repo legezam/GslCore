@@ -6,7 +6,8 @@ open Amyris.Bio.sgd
 open Amyris.Bio.utils
 open Amyris.Bio.SuffixTree
 open GslCore.Constants
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open Amyris.ErrorHandling
 open Amyris.Dna
 (*
@@ -198,12 +199,14 @@ ERROR: location:
         member x.getFlank() =
             x.EnvLenLookup "flanklen" Default.FlankLength
         /// default or custom length for stand alone terminator pieces
-        member x.getTermLen() = x.EnvLenLookup "termlen" Default.TerminatorLength
+        member x.getTermLen() =
+            x.EnvLenLookup "termlen" Default.TerminatorLength
         /// default or custom length for terminator part of an mRNA type part
         member x.getTermLenMRNA() =
             x.EnvLenLookup "termlenmrna" Default.MRNATerminatorLength
         /// default or custom length for promoter
-        member x.getPromLen() = x.EnvLenLookup "promlen" Default.PromoterLength
+        member x.getPromLen() =
+            x.EnvLenLookup "promlen" Default.PromoterLength
     end
 
 
@@ -211,27 +214,28 @@ ERROR: location:
 type GenomeDefs = Map<string, GenomeDef>
 
 /// Get a reference genome from an ordered set of pragma collections.
-let getRGNew (rgs: GenomeDefs) (prags: PragmaCollection list) =
-    let rgName =
-        match prags
-              |> List.tryPick (fun pr -> pr.TryGetOne("refgenome")) with
-        | Some (name) -> name
-        | None -> Default.RefGenome
+let getRGNew (genomeDefinitions: GenomeDefs) (pragmaCollections: PragmaCollection list): Result<GenomeDef, string> =
+    let refGenomeName =
 
-    match rgs.TryFind(rgName) with
-    | Some (g) -> ok g
-    | None when rgName = Default.RefGenome ->
+        pragmaCollections
+        |> List.tryPick (fun pragma -> pragma |> PragmaCollection.tryGetValue "refgenome")
+        |> Option.defaultValue Default.RefGenome
+
+
+    match genomeDefinitions |> Map.tryFind refGenomeName with
+    | Some genomeDef -> ok genomeDef
+    | None when refGenomeName = Default.RefGenome ->
         fail
             (sprintf
                 "ERROR: unable to load default genome '%s' <currently loaded: %s>"
                  Default.RefGenome
-                 (if rgs.Count = 0
+                 (if genomeDefinitions.Count = 0
                   then "none"
-                  else String.Join(",", [ for k in rgs -> k.Key ])))
+                  else String.Join(",", [ for k in genomeDefinitions -> k.Key ])))
     | _ ->
         fail
-            (sprintf "ERROR: no such refgenome '%s', options are\n%s" rgName
-                 (String.Join("\n", seq { for k in rgs -> sprintf "    '%s'" k.Key })))
+            (sprintf "ERROR: no such refgenome '%s', options are\n%s" refGenomeName
+                 (String.Join("\n", seq { for k in genomeDefinitions -> sprintf "    '%s'" k.Key })))
 
 
 let refGenomeWarning () = "" // DISABLED FOR NOW  ..  // sprintf "Warning, defaulting to %s codon usage, no #refgenome specified\n" defaultRefGenome
@@ -239,9 +243,10 @@ let refGenomeWarning () = "" // DISABLED FOR NOW  ..  // sprintf "Warning, defau
 /// If a ref genome is specified in pragmas, return it.
 /// Otherwise return the default ref genome.
 // FIXME: warning should be swallowed up by ROP rather than printed.
-let chooseRefGenome (p: PragmaCollection) =
-    match p.TryGetOne("refgenome") with
-    | Some (rg) -> rg
+let chooseRefGenome (pragmaCollection: PragmaCollection): string =
+    match pragmaCollection
+          |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+    | Some refGenome -> refGenome
     | None ->
         printf "%s" (refGenomeWarning ())
         Default.RefGenome // Warning - defualts to yeast codon usage

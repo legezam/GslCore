@@ -1,8 +1,9 @@
 ﻿namespace GslCore
 
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open NUnit.Framework
 open Amyris.ErrorHandling
-open GslCore.PragmaTypes
 open Amyris.Bio.primercore
 open GslCore.DesignParams
 open GslCore.AstTypes
@@ -26,11 +27,11 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            returnOrFail (buildPragma badName [ badOption ] pragmaCache)
+            returnOrFail (Pragma.fromNameValue badName [ badOption ] pragmaCache)
             |> ignore)
         |> ignore
 
-        Assert.DoesNotThrow(fun () -> buildPragma goodName [ goodOption ] |> ignore)
+        Assert.DoesNotThrow(fun () -> Pragma.fromNameValue goodName [ goodOption ] |> ignore)
 
 
     [<Test>]
@@ -184,13 +185,13 @@ gBAZ"""
         let namePrag =
             Pragma
                 (nodeWrap
-                    { Definition = PragmaTypes.namePragmaDef
+                    { Definition = BuiltIn.namePragmaDef
                       Arguments = [ "foobar" ] })
 
         let namePrag2 =
             Pragma
                 (nodeWrap
-                    { Definition = PragmaTypes.namePragmaDef
+                    { Definition = BuiltIn.namePragmaDef
                       Arguments = [ "shouldOnlyBeOnInner" ] })
 
         let seedPrag =

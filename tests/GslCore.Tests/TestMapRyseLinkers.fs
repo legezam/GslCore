@@ -3,10 +3,11 @@
 open System
 open GslCore
 open GslCore.LegacyParseTypes
+open GslCore.Pragma.Domain
 open NUnit.Framework
 open GslCore.CommonTypes
 open GslCore.AssemblyTestSupport
-open GslCore.PragmaTypes
+open GslCore.Pragma
 open Amyris.ErrorHandling
 
 [<TestFixture>]
@@ -17,11 +18,11 @@ type TestMapRyseLinkers() =
 
 
     let makePragma name values =
-        match buildPragma name values PragmaCache.builtin with
+        match Pragma.fromNameValue name values PragmaCache.builtin with
         | Ok (p, []) ->
             let map =
                 { PragmaCollection.Cache = PragmaCache.builtin
-                  Pragmas = [ p.name, p ] |> Map.ofList }
+                  Pragmas = [ p.Name, p ] |> Map.ofList }
 
             map
         | _ -> failwith "building pragma"
@@ -64,7 +65,7 @@ type TestMapRyseLinkers() =
                   String.Join(",", [ for l in leftLinkers -> l.sliceName ])
                   + "|"
                   + String.Join(",", [ for l in rightLinkers -> l.sliceName ])
-              pragmas = if isMegastitch then EmptyPragmas else makePragma "platform" [ "stitch" ]
+              pragmas = if isMegastitch then PragmaCollection.empty else makePragma "platform" [ "stitch" ]
               designParams = DesignParams.initialDesignParams
               docStrings = []
               materializedFrom =
@@ -72,7 +73,7 @@ type TestMapRyseLinkers() =
                     parts = []
                     uri = None
                     linkerHint = ""
-                    pragmas = EmptyPragmas
+                    pragmas = PragmaCollection.empty
                     designParams = DesignParams.initialDesignParams
                     capabilities = Set.empty
                     docStrings = []

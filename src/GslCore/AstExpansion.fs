@@ -13,7 +13,8 @@ open GslCore.RefGenome
 open GslCore.LegacyParseTypes
 open Amyris.Dna
 open GslCore.DnaCreation
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.AlleleSwaps
 open Amyris.Bio.utils
 open GslCore.ApplySlices
@@ -148,7 +149,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
 
 /// Parse string source code, run compiler phase 1, and return the resulting contents of the
 /// top-level block.
-let bootstrapPhase1 legalCapas pragmaCache originalPosition  =
+let bootstrapPhase1 legalCapas pragmaCache originalPosition =
     bootstrap originalPosition (phase1 legalCapas pragmaCache)
 
 // =================
@@ -160,7 +161,7 @@ let private containsSplice nodes =
     nodes
     |> List.tryPick (fun node ->
         match node with
-        | Splice (_) -> Some(node)
+        | Splice _ -> Some(node)
         | _ -> None)
     |> Option.isSome
 
@@ -269,13 +270,14 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
 
     /// Stitch or megastitch; if neither, default to megastitch, and megastitch stomps stitch
     let megastitch =
-        match assemblyMode pragmas with
+        match PragmaCollection.assemblyMode pragmas with
         | Megastitch -> true
         | Stitch -> false
 
     /// Which reference genome are we using
     let refGenome' =
-        match pragmas.TryGetOne("refgenome") with
+        match pragmas
+              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
         // specifying a different reference genome implies a non standard
         // DNA source, so we can use that too (they can override with dnasrc)
         | Some (rg) -> rg.Trim([| ' '; '\t' |])
@@ -459,8 +461,9 @@ let private expandMut verbose
                 let rg' = getRG a rgs p.pr
 
                 let asAACheck =
-                    match a.pragmas.TryFind("warnoff") with
-                    | Some (p) -> not (p.HasVal "asaacheck")
+                    match a.pragmas
+                          |> PragmaCollection.tryFindName BuiltIn.warnoffPragmaDef.Name with
+                    | Some pragma -> pragma |> Pragma.hasVal "asaacheck" |> not
                     | None -> true
 
                 if verbose then printfn "***** %A" a.pragmas
@@ -494,10 +497,11 @@ let private expandMut verbose
                 let codonUsage = codonProvider.GetCodonLookupTable(rg')
 
                 let endPref =
-                    match p.pr.TryGetOne("swapend") with
+                    match p.pr
+                          |> PragmaCollection.tryGetValue BuiltIn.swapEndPragmaDef.Name with
                     | Some ("5") -> NTERM
                     | Some ("3") -> CTERM
-                    | Some (_) -> failwithf "#swapend argument should be 5 or 3"
+                    | Some _ -> failwithf "#swapend argument should be 5 or 3"
                     | None -> NONETERM
 
                 if verbose then
@@ -511,14 +515,16 @@ let private expandMut verbose
                 then failwithf "Undefined gene '%s' %O\n" (gp.part.gene.[1..]) (gp.part.where)
 
                 let asAACheck =
-                    match a.pragmas.TryFind("warnoff") with
-                    | Some (p) -> not (p.HasVal "asaacheck")
+                    match a.pragmas
+                          |> PragmaCollection.tryFindName BuiltIn.warnoffPragmaDef.Name with
+                    | Some (p) -> not (p |> Pragma.hasVal "asaacheck")
                     | None -> true
 
                 // Check if there is a style pragma on the part itself.  User can designate
                 // short or long allele swap styles at the part level
                 let longStyle =
-                    match p.pr.TryGetOne("style") with
+                    match p.pr
+                          |> PragmaCollection.tryGetValue BuiltIn.stylePragmaDef.Name with
                     | None -> true // default is long style
                     | Some ("long") -> true // long style
                     | Some ("short") -> false // short style
@@ -536,7 +542,8 @@ let private expandMut verbose
                         mutMod
                         endPref
                         a.capabilities
-                        (p.pr.MergeIn(a.pragmas))  // combine the part and assembly pragmas to pass to the swap
+                        (p.pr
+                         |> PragmaCollection.mergeInCollection a.pragmas)  // combine the part and assembly pragmas to pass to the swap
                         longStyle
 
                 { p with part = SOURCE_CODE(swapImpl) } // Leave pragmas intact
@@ -595,7 +602,8 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
                 then failwithf "Protein sequence contains illegal amino acid '%c'" c
 
             let refGenome' =
-                match p.pr.TryGetOne("refgenome") with
+                match p.pr
+                      |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
                 | Some (rg) -> rg
                 | None -> refGenome
 
@@ -605,7 +613,8 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
                 // Check to see if there is a local #seed parameter and extract it else
                 // fall back on the version in the codon opt parameters globally
                 let seedOverride =
-                    match p.pr.TryGetOne("seed") with
+                    match p.pr
+                          |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef.Name with
                     | None -> None
                     | Some (seed) ->
                         match System.Int32.TryParse seed with
@@ -664,7 +673,8 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
         | _ -> true
 
     let getLenPragma (pr: PragmaCollection) =
-        match pr.TryGetOne("len") with
+        match pr
+              |> PragmaCollection.tryGetValue BuiltIn.lenPragmaDef.Name with
         | None -> None
         | Some (v) ->
             match Int32.TryParse(v) with
@@ -706,7 +716,14 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
 
             // Generate an alternative prefix for the GENEPART on RHS
             let alt =
-                generateRightHB codonUsage Default.MinHBCodonUsage targetAALen a.designParams sliceSeqUp (Dna("")) sliceSeq
+                generateRightHB
+                    codonUsage
+                    Default.MinHBCodonUsage
+                    targetAALen
+                    a.designParams
+                    sliceSeqUp
+                    (Dna(""))
+                    sliceSeq
             // tricky part - need to slightly adjust the slice range of gp,
             // but that's embedded down in the mod list
 
@@ -721,7 +738,9 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 { startSlice with
                       left =
                           { startSlice.left with
-                                Position = startSlice.left.Position + (alt.Length * 1<OneOffset>) } }
+                                Position =
+                                    startSlice.left.Position
+                                    + (alt.Length * 1<OneOffset>) } }
 
             assert (alt <> sliceSeq.[0..alt.Length - 1])
             // Assemble new mod list by getting rid of existing slice mods and
@@ -738,7 +757,11 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                            part = { gp.part with mods = newMods } }),
                   pr3,
                   fwd3)
-                 :: (INLINEDNA(alt), returnOrFail (pr2.Add("inline")), fwd2)
+                 :: (INLINEDNA(alt),
+                     returnOrFail
+                         (pr2
+                          |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                     fwd2)
                     :: (GENEPART(gpUp), pr1, fwd1) :: res)
                 tl
 
@@ -782,7 +805,9 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 { startSlice with
                       left =
                           { startSlice.left with
-                                Position = startSlice.left.Position + (alt.Length * 1<OneOffset>) } }
+                                Position =
+                                    startSlice.left.Position
+                                    + (alt.Length * 1<OneOffset>) } }
 
             let newInline = DnaOps.append i alt
 
@@ -799,7 +824,11 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                            part = { gp.part with mods = newMods } }),
                   pr4,
                   fwd4)
-                 :: (INLINEDNA(newInline), returnOrFail (pr2.Add("inline")), fwd2)
+                 :: (INLINEDNA(newInline),
+                     returnOrFail
+                         (pr2
+                          |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                     fwd2)
                     :: (GENEPART(gpUp), pr1, fwd1) :: res)
                 tl
 
@@ -839,7 +868,9 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 { startSlice with
                       right =
                           { startSlice.right with
-                                Position = startSlice.right.Position - (alt.Length * 1<OneOffset>) } }
+                                Position =
+                                    startSlice.right.Position
+                                    - (alt.Length * 1<OneOffset>) } }
 
             let newInline = DnaOps.append alt ic
             assert (alt <> sliceSeq.[sliceSeq.Length - alt.Length..])
@@ -869,7 +900,11 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
             scan
                 a
                 ((GENEPART(gpDown), pr4, fwd4)
-                 :: (INLINEDNA(newInline), returnOrFail (pr3.Add("inline")), fwd3)
+                 :: (INLINEDNA(newInline),
+                     returnOrFail
+                         (pr3
+                          |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                     fwd3)
                     :: (GENEPART
                             ({ gp with
                                    part = { gp.part with mods = newMods } }),
@@ -952,7 +987,11 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                     scan
                         a
                         ((PARTID(pid4), pr4, fwd4)
-                         :: (INLINEDNA(newInline), returnOrFail (pr3.Add("inline")), fwd3)
+                         :: (INLINEDNA(newInline),
+                             returnOrFail
+                                 (pr3
+                                  |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                             fwd3)
                             :: (PARTID({ pid1 with mods = newMods }), pr1, fwd1)
                                :: res)
                         tl
@@ -1011,7 +1050,17 @@ let expandHetBlocks verbose legalCapas (pragmaCache: PragmaCache) (rgs: GenomeDe
 /// so we should probably have a hard limit at N^2, where N is the number of nontrivial expansion
 /// passes.
 // FIXME: way too many arguments
-let phase2 oneShot maxPasses doParallel verbose legalCapas (pragmaCache: PragmaCache) asProviders rgs codonTableCache treeIn =
+let phase2 oneShot
+           maxPasses
+           doParallel
+           verbose
+           legalCapas
+           (pragmaCache: PragmaCache)
+           asProviders
+           rgs
+           codonTableCache
+           treeIn
+           =
 
     let runPhase2 mode tree =
         match mode with

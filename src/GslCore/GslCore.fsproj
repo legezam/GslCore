@@ -24,7 +24,9 @@
     <Compile Include="Markers.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="PcrParamParse.fs" />
-    <Compile Include="PragmaTypes.fs" />
+    <Compile Include="Pragma\Types.fs" />
+    <Compile Include="Pragma\BuiltInPragmas.fs" />
+    <Compile Include="Pragma\Domain.fs" />
     <Compile Include="DesignParams.fs" />
     <Compile Include="Uri.fs" />
     <Compile Include="RefGenome.fs" />

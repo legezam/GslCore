@@ -250,7 +250,7 @@ and AstNode =
     | Roughage of Node<Roughage>
     // pragmas
     | ParsePragma of Node<ParsePragma>
-    | Pragma of Node<PragmaTypes.Pragma>
+    | Pragma of Node<Pragma.Pragma>
     // Block of code
     | Block of Node<AstNode list>
     // Function definition and call

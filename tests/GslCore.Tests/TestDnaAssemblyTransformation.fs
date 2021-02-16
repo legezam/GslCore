@@ -6,7 +6,8 @@ open Amyris.ErrorHandling
 open GslCore.GslcProcess
 open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open Amyris.Dna
 open GslCore.Constants
 
@@ -16,7 +17,7 @@ module AssemblyTestBase =
           name = None
           uri = None
           linkerHint = ""
-          pragmas = EmptyPragmas
+          pragmas = PragmaCollection.empty
           designParams = DesignParams.initialDesignParams
           capabilities = Set.empty
           docStrings = []
@@ -75,15 +76,16 @@ type Test() =
 
     [<Test>]
     member x.TestLongSliceUsesDnaSrc() =
-        let sliceNoSource = AssemblyTestBase.testSlice EmptyPragmas
+        let sliceNoSource = AssemblyTestBase.testSlice PragmaCollection.empty
 
         let assemblyNoSource =
-            AssemblyTestBase.testAssembly sliceNoSource EmptyPragmas
+            AssemblyTestBase.testAssembly sliceNoSource PragmaCollection.empty
 
         runTest assemblyNoSource "synthetic"
 
         let refGenomePragmas =
-            EmptyPragmas.Add("refgenome", "foogenome")
+            PragmaCollection.empty
+            |> PragmaCollection.addNameValue ("refgenome", "foogenome")
             |> returnOrFail
 
         let assemblyHasRefGenome =
@@ -92,12 +94,13 @@ type Test() =
         runTest assemblyHasRefGenome "foogenome"
 
         let sliceWithSource =
-            EmptyPragmas.Add("dnasrc", "foosource")
+            PragmaCollection.empty
+            |> PragmaCollection.addNameValue ("dnasrc", "foosource")
             |> returnOrFail
             |> AssemblyTestBase.testSlice
 
         let assemblyHasSource =
-            AssemblyTestBase.testAssembly sliceWithSource EmptyPragmas
+            AssemblyTestBase.testAssembly sliceWithSource PragmaCollection.empty
 
         runTest assemblyHasSource "foosource"
 

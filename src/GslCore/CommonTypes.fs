@@ -1,7 +1,8 @@
 ﻿module GslCore.CommonTypes
 
 open System
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.Uri
@@ -288,7 +289,7 @@ let fusionSliceConstant =
       description = "::"
       dnaSource = ""
       sliceType = FUSIONST
-      pragmas = EmptyPragmas
+      pragmas = PragmaCollection.empty
       breed = B_VIRTUAL
       materializedFrom = None // TODO: should we mark this as associated with this ppp?
       annotations = [] }

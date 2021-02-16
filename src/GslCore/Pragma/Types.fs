@@ -71,7 +71,7 @@ type PragmaDefinition =
         | _ -> false
     /// Hash pragma defs just by their name.
     override this.GetHashCode() = hash this.Name
-    
+
 /// Instance of a pragma directive.
 [<CustomEquality; CustomComparison>]
 type Pragma =
@@ -98,10 +98,10 @@ type Pragma =
 
     override this.ToString() =
         sprintf "#%s %s" this.Name (String.concat " " this.Arguments)
-     
+
 type PragmaCache(pragmas: Map<string, PragmaDefinition>) =
-    member this.Pragmas = pragmas     
-        
+    member this.Pragmas = pragmas
+
 // ===========================
 // PragmaCollection domain type
 // ===========================
@@ -128,7 +128,7 @@ type PragmaCollection =
             String.concat " " (ordered |> Seq.map (fun p -> p.ToString()))
 
         sprintf "PragmaCollection: %s" entries
-        
+
 // ======================
 // pragma deprecations and deprecation machinery
 // ======================
@@ -144,4 +144,4 @@ type PragmaDeprecation =
 
         match this.ExtraMessage with
         | Some extraMessage -> sprintf "%s\n%s" msg extraMessage
-        | None -> msg        
+        | None -> msg

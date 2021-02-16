@@ -8,6 +8,7 @@ open GslCore.PluginTypes
 open GslCore.Constants
 open Amyris.ErrorHandling
 open GslCore.GslcProcess
+open GslCore.Pragma.Domain
 
 let mt =
     { id = None
@@ -29,7 +30,7 @@ let mt =
       sliceType = LINKER
       destFwd = true
       dnaSource = ""
-      pragmas = PragmaTypes.EmptyPragmas
+      pragmas = PragmaCollection.empty
       breed = B_LINKER
       materializedFrom = None
       annotations = [] }

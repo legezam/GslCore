@@ -13,7 +13,8 @@ open GslCore.PluginTypes
 open GslCore.CommonTypes
 open GslCore.Constants
 open GslCore.BasicCodonProvider
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 
 [<TestFixture>]
 type TestTagging() =
@@ -133,8 +134,8 @@ uADH2; dADH2
                 p.pragmas
                 |> List.choose (fun n ->
                     match n with
-                    | Pragma (p) when p.x.name = "tag" -> Some p.x
-                    | Pragma (p) when p.x.name = "gtag" -> Some p.x
+                    | Pragma (p) when p.x.Name = TaggingPlugin.tagPragmaDef.Name -> Some p.x
+                    | Pragma (p) when p.x.Name = TaggingPlugin.gTagPragmaDef.Name -> Some p.x
                     | _ -> None)
 
             p, tagPragmas)
@@ -166,7 +167,7 @@ uADH2; dADH2
 
         Assert.AreEqual(1, pragmas.Length)
 
-        Assert.IsTrue(pragmas.Head.HasVal "flavor:vanilla")
+        Assert.IsTrue(pragmas.Head |> Pragma.hasVal "flavor:vanilla")
 
     [<Test>]
     member __.TwoSerialTags() =
@@ -181,8 +182,8 @@ uADH2; dADH2
             Assert.AreEqual(1, pragmas1.Length)
             Assert.AreEqual(1, pragmas2.Length)
 
-            Assert.IsTrue(pragmas1.Head.HasVal "flavor:vanilla")
-            Assert.IsTrue(pragmas2.Head.HasVal "temp:hot")
+            Assert.IsTrue(pragmas1.Head |> Pragma.hasVal "flavor:vanilla")
+            Assert.IsTrue(pragmas2.Head |> Pragma.hasVal "temp:hot")
         | x -> failwithf "bad config %A in TwoSerialTags" x
 
     [<Test>]
@@ -253,7 +254,7 @@ uADH2; dADH2
 
         Assert.AreEqual(1, pragmas.Length)
 
-        Assert.IsTrue(pragmas.Head.HasVal "flavor:vanilla")
+        Assert.IsTrue(pragmas.Head |> Pragma.hasVal "flavor:vanilla")
 
     [<Test>]
     member __.OneGlobalOneScopedTag() =
@@ -312,7 +313,7 @@ uADH2; dADH2
           name = "fooslice"
           uri = None
           linkerHint = "hint"
-          pragmas = createPragmaCollection Seq.empty TestTagging.PragmaCache
+          pragmas = PragmaCollection.create Seq.empty TestTagging.PragmaCache
           designParams = DesignParams.initialDesignParams
           docStrings = []
           materializedFrom = AssemblyTestBase.emptyAssembly
@@ -375,7 +376,7 @@ uADH2; dADH2
         let cliTags = input.CliTags
 
         let pragmaCollection =
-            createPragmaCollection
+            PragmaCollection.create
                 [ for pragma in input.PragmaTags do
                     { Pragma.Arguments = [ pragma ]
                       Definition = TaggingPlugin.tagPragmaDef }

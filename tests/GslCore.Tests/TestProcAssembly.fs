@@ -2,6 +2,7 @@ namespace GslCore.Tests
 
 open System
 open GslCore
+open GslCore.Pragma.Domain
 open NUnit.Framework
 open GslCore.GslcProcess
 open GslCore.CommonTypes
@@ -40,7 +41,7 @@ type TestProcAssembly() =
         // simulate what compiler will do cleaning up inline seqs
         // that are too short to be treated as inlines
         let cleanedSlices =
-            cleanLongSlicesInPartsList PragmaTypes.EmptyPragmas slices
+            cleanLongSlicesInPartsList PragmaCollection.empty slices
 
         PrimerCreation.procAssembly
             verbose  // debug

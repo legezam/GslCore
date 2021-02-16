@@ -1,7 +1,8 @@
 ﻿module GslCore.ResolveExtPart
 
 open GslCore.CommonTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.LegacyParseTypes
 open GslCore.Ryse
 open GslCore.ApplySlices
@@ -38,11 +39,14 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
     let pid = partId.id
 
     let sliceName =
-        match ppp.pr.TryGetOne("name") with
+        match ppp.pr
+              |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name with
         | Some (name) -> name
         | None -> ""
 
-    let uri = ppp.pr.TryGetOne("uri")
+    let uri =
+        ppp.pr
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
 
     match legalPartPrefix pid with
     | None -> failwithf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid
@@ -96,7 +100,8 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
                       amplified = false
                       template = Some dna // not amplifying from this
                       dnaSource =
-                          match ppp.pr.TryGetOne("dnasrc") with
+                          match ppp.pr
+                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
                           | Some (d) -> d
                           | None -> pid
                       pragmas = ppp.pr
@@ -110,7 +115,9 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
 
                     // Start off assuming it's the full DNA slice
                     let startSlice =
-                        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
+                        { left =
+                              { Position = 1<OneOffset>
+                                RelativeTo = FivePrime }
                           lApprox = false
                           rApprox = false
                           right =
@@ -159,7 +166,8 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
                       description = name2
                       sliceType = REGULAR
                       dnaSource =
-                          match ppp.pr.TryGetOne("dnasrc") with
+                          match ppp.pr
+                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
                           | Some (d) -> d
                           | None -> pid
                       pragmas = ppp.pr
@@ -239,7 +247,9 @@ let fetchFullPartSequence (_ (* verbose*) : bool) (library: SequenceLibrary) (pa
 let getExtPartSlice (verbose: bool) (partId: PartIdLegacy) =
     // Start off assuming it's the full DNA slice
     let startSlice =
-        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
@@ -260,11 +270,14 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
                             (finalSlice: Slice)
                             =
     let sliceName =
-        match pr.TryGetOne("name") with
+        match pr
+              |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name with
         | Some (n) -> n
         | None -> ""
 
-    let uri = pr.TryGetOne("uri")
+    let uri =
+        pr
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
 
     if partId.mods.Length = 0 then
         let dna =
@@ -290,9 +303,10 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
           description = extPart.name
           sliceType = REGULAR
           dnaSource =
-              match pr.TryGetOne("dnasrc") with
-              | Some (d) -> d
-              | None -> extPart.id
+              pr
+              |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name
+              |> Option.defaultValue extPart.id
+
           pragmas = pr
           breed = B_X
           materializedFrom = None
@@ -338,9 +352,9 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
           description = name2
           sliceType = REGULAR
           dnaSource =
-              match pr.TryGetOne("dnasrc") with
-              | Some (d) -> d
-              | None -> extPart.id
+              pr
+              |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name
+              |> Option.defaultValue extPart.id
           pragmas = pr
           breed = B_X
           materializedFrom = None

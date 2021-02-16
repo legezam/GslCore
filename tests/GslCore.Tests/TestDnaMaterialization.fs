@@ -2,11 +2,12 @@
 
 open System.IO
 open GslCore
+open GslCore.Pragma.Domain
 open NUnit.Framework
 open Amyris.Bio.biolib
 open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
 open Amyris.ErrorHandling
 open GslCore.Constants
 open GslCore.DesignParams
@@ -31,7 +32,7 @@ type DnaMaterialization() =
         if Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
 
     let refGenomePragma =
-        match buildPragma "refgenome" [ "TestGenome2" ] PragmaCache.builtin with
+        match Pragma.fromNameValue "refgenome" [ "TestGenome2" ] PragmaCache.builtin with
         | Result.Ok (p, _) -> p
         | _ -> failwithf "Failure to build refgenome TestGenome2"
 

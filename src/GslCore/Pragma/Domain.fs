@@ -1,4 +1,4 @@
-namespace GslCore.Pragma
+namespace GslCore.Pragma.Domain
 
 open System
 open Amyris.ErrorHandling

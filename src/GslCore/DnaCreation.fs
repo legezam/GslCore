@@ -5,7 +5,8 @@ open System
 open GslCore.Constants
 open GslCore.LegacyParseTypes
 open GslCore.RefGenome
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.CommonTypes
 open GslCore.ApplySlices
 open Amyris.Bio
@@ -63,65 +64,84 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
     | PROMOTER ->
         { left =
               { Position =
-                    match pragmas.TryFind "promlen" with
+                    match pragmas
+                          |> PragmaCollection.tryFindName BuiltIn.promLenPragmaDef.Name with
                     | None -> -gd.getPromLen ()
                     | Some p -> p.Arguments.[0] |> int |> (*) -1<OneOffset>
                 RelativeTo = FivePrime }
           lApprox = true
           rApprox = false
-          right = { Position = -1<OneOffset>; RelativeTo = FivePrime } }
+          right =
+              { Position = -1<OneOffset>
+                RelativeTo = FivePrime } }
     | UPSTREAM ->
         { left =
               { Position = -gd.getFlank ()
                 RelativeTo = FivePrime }
           lApprox = true
           rApprox = false
-          right = { Position = -1<OneOffset>; RelativeTo = FivePrime } }
+          right =
+              { Position = -1<OneOffset>
+                RelativeTo = FivePrime } }
     | TERMINATOR ->
-        { left = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = ThreePrime }
           lApprox = false
           rApprox = true
           right =
               { Position =
-                    match pragmas.TryFind "termlen" with
+                    match pragmas
+                          |> PragmaCollection.tryFindName BuiltIn.termLenPragmaDef.Name with
                     | None -> gd.getTermLen ()
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
     | DOWNSTREAM ->
-        { left = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = ThreePrime }
           lApprox = false
           rApprox = true
           right =
               { Position = gd.getFlank ()
                 RelativeTo = ThreePrime } }
     | FUSABLEORF ->
-        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
               { Position = -4<OneOffset>
                 RelativeTo = ThreePrime } }
     | ORF ->
-        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
               { Position = -1<OneOffset>
                 RelativeTo = ThreePrime } }
     | GENE ->
-        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = FivePrime }
           lApprox = false
           rApprox = false
           right =
               { Position = -1<OneOffset>
                 RelativeTo = ThreePrime } }
     | MRNA ->
-        { left = { Position = 1<OneOffset>; RelativeTo = FivePrime }
+        { left =
+              { Position = 1<OneOffset>
+                RelativeTo = FivePrime }
           lApprox = false
           rApprox = true
           right =
               { Position =
-                    match pragmas.TryFind "termlenmrna" with
+                    match pragmas
+                          |> PragmaCollection.tryFindName BuiltIn.termLenMrnaPragmaDef.Name with
                     | None -> gd.getTermLenMRNA ()
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
@@ -215,12 +235,15 @@ let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDef) (gp:
 
 /// Extract slice name from a PPP, if it has one.
 let getSliceName (ppp: PPP) =
-    match ppp.pr.TryGetOne("name") with
-    | Some (name) -> name
-    | None -> ""
+    ppp.pr
+    |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name
+    |> Option.defaultValue ""
+
 
 /// Extract URI from a PPP, if it has one.
-let getUri (ppp: PPP) = ppp.pr.TryGetOne("uri")
+let getUri (ppp: PPP) =
+    ppp.pr
+    |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
 
 let expandInlineDna dnaSource (ppp: PPP) (dnaFwd: Dna) =
 
@@ -400,11 +423,15 @@ let expandGenePart verbose
             // Calculate some adjusted boundaries in case the left/right edges are approximate
             let leftAdj =
                 { finalSlice.left with
-                      Position = finalSlice.left.Position - (Default.ApproxMargin * 1<OneOffset>) }
+                      Position =
+                          finalSlice.left.Position
+                          - (Default.ApproxMargin * 1<OneOffset>) }
 
             let rightAdj =
                 { finalSlice.right with
-                      Position = finalSlice.right.Position + (Default.ApproxMargin * 1<OneOffset>) }
+                      Position =
+                          finalSlice.right.Position
+                          + (Default.ApproxMargin * 1<OneOffset>) }
 
             { lApprox = finalSlice.lApprox
               left = (if finalSlice.lApprox then leftAdj else finalSlice.left)
@@ -486,8 +513,13 @@ let expandGenePart verbose
             { Position = -300<OneOffset>
               RelativeTo = FivePrime }
 
-        let promEnd = { Position = -1<OneOffset>; RelativeTo = FivePrime }
-        let termStart = { Position = 1<OneOffset>; RelativeTo = ThreePrime }
+        let promEnd =
+            { Position = -1<OneOffset>
+              RelativeTo = FivePrime }
+
+        let termStart =
+            { Position = 1<OneOffset>
+              RelativeTo = ThreePrime }
 
         let termEnd =
             { Position = 150<OneOffset>
@@ -561,8 +593,9 @@ let expandGenePart verbose
           annotations = [ Orf(orfAnnotation) ] }
 
 let private determineTopology (pragmas: PragmaCollection): Topology =
-    match pragmas.TryFind(Topology.PragmaName) with
-    | Some (pragma) -> pragma.Arguments |> Topology.parse |> returnOrFail
+    match pragmas
+          |> PragmaCollection.tryFindName Topology.PragmaName with
+    | Some pragma -> pragma.Arguments |> Topology.parse |> returnOrFail
     | None -> Linear
 
 /// Take a parsed assembly definition and translate it
@@ -581,15 +614,18 @@ let expandAssembly (verbose: bool)
             // NOTE: have access to part.pragmas to the extent they influence generation
             for ppp in pppList do
                 let dnaSource =
-                    match ppp.pr.TryGetOne("dnasrc") with
+                    match ppp.pr
+                          |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
                     | Some (d) -> d
                     | None ->
                         // specifying a different reference genome implies a non standard
                         // DNA source, so we can use that too (they can override with dnasrc)
-                        match ppp.pr.TryGetOne("refgenome") with
+                        match ppp.pr
+                              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
                         | Some (rg) -> rg
                         | None ->
-                            match a.pragmas.TryGetOne("refgenome") with
+                            match a.pragmas
+                                  |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
                             | Some (rg) -> rg
                             | None -> "" // Revert to the current default part origin
 
@@ -609,7 +645,8 @@ let expandAssembly (verbose: bool)
                     let _, markerProvider = providers |> List.maxBy (fst)
 
                     let markerSet =
-                        match a.pragmas.TryGetOne("markerset") with
+                        match a.pragmas
+                              |> PragmaCollection.tryGetValue BuiltIn.markersetPragmaDef.Name with
                         | Some (x) ->
                             let x' = x.ToLower()
 
@@ -626,16 +663,18 @@ let expandAssembly (verbose: bool)
                           markerSet = markerSet }
 
                     yield markerProvider.CreateDna(task) // expandMarkerPart library dnaSource ppp
-                | PARTID (partId) -> yield ResolveExtPart.fetchSequence verbose library ppp partId
-                | INLINEDNA (dna) -> yield expandInlineDna dnaSource ppp dna
-                | INLINEPROT (_) -> failwith "unexpanded protein inline encountered during DNA generation"
+                | PARTID partId -> yield ResolveExtPart.fetchSequence verbose library ppp partId
+                | INLINEDNA dna -> yield expandInlineDna dnaSource ppp dna
+                | INLINEPROT _ -> failwith "unexpanded protein inline encountered during DNA generation"
                 | HETBLOCK -> failwith "unexpanded heterology block encountered during DNA generation"
-                | SOURCE_CODE (_) -> ()
-                | GENEPART (gp) -> yield expandGenePart verbose rgs library a dnaSource ppp gp
+                | SOURCE_CODE _ -> ()
+                | GENEPART gp -> yield expandGenePart verbose rgs library a dnaSource ppp gp
                 //
                 // Might also want to yield a fusion slice
                 //
-                if ppp.pr.ContainsKey("fuse") then yield fusionSliceConstant
+                if ppp.pr
+                   |> PragmaCollection.containsName BuiltIn.fusePragmaDef.Name then
+                    yield fusionSliceConstant
         }
         |> List.ofSeq
         |> recalcOffset
@@ -649,7 +688,7 @@ let expandAssembly (verbose: bool)
 
     let topology = a.pragmas |> determineTopology
 
-    { id = Some(index)
+    { id = Some index
       dnaParts = materializedParts
       name = assemblyName
       uri = a.uri

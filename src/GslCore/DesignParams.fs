@@ -2,7 +2,8 @@
 
 open Amyris.Bio.primercore
 open Amyris.ErrorHandling
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.Constants
 open GslCore.PcrParamParse
 
@@ -29,8 +30,8 @@ let initialDesignParams =
       overlapParams = defaultParams
       overlapMinLen = Default.MinOverlapLength }
 
-let updateDPFromPragma (p: Pragma) designParams =
-    match p.name, p.Arguments with
+let updateDPFromPragma (pragma: Pragma) (designParams: DesignParams) =
+    match pragma.Name, pragma.Arguments with
     | "pcrparams", args ->
         revisePP designParams.pp args
         >>= (fun pp -> ok { designParams with pp = pp })
@@ -61,7 +62,10 @@ let updateDPFromPragma (p: Pragma) designParams =
     | _ -> ok designParams
 
 /// Given a pragma environment, compute assembly physical design parameters from an existing set.
-let designParamsFromPragmas dp (pc: PragmaCollection) =
+let designParamsFromPragmas (designParams: DesignParams)
+                            (pragmaCollection: PragmaCollection)
+                            : Result<DesignParams, string> =
 
-    pc.Values
-    |> Seq.fold (fun dp p -> dp >>= (updateDPFromPragma p)) (ok dp)
+    pragmaCollection
+    |> PragmaCollection.values
+    |> Seq.fold (fun designParams pragma -> designParams >>= (updateDPFromPragma pragma)) (ok designParams)

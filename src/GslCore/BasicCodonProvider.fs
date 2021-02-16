@@ -5,7 +5,8 @@ open Amyris.Bio.utils
 open MathNet.Numerics.Random
 open System.Collections.Generic
 open System.IO
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open Amyris.Bio.biolib
 open Amyris.Bio.IO.CodonUsage
 open Amyris.Bio.SuffixTree
@@ -195,21 +196,21 @@ type CodonOptData =
 //    }
 
 
-let parseCodonOptParams (pr: PragmaCollection) =
+let parseCodonOptParams (pragmaCollection: PragmaCollection): CodonOptParams =
     let seed =
-        match pr.TryGetOne("seed") with
+        match pragmaCollection |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef.Name with
         | None -> defaultCodonOptSeed
-        | Some (s) ->
-            match Int32.TryParse s with
+        | Some seedValue ->
+            match Int32.TryParse seedValue with
             | true, s' -> s'
-            | _ -> failwithf "ERROR: invalid integer '%s' for #seed" s
+            | _ -> failwithf "ERROR: invalid integer '%s' for #seed" seedValue
 
     let globalRepeatAvoidUser =
-        match pr.TryGetOne("codonopt") with
+        match pragmaCollection |> PragmaCollection.tryGetValue BuiltIn.codonOptPragmaDef.Name with
         | None -> defaultCodonOptParams.globalRepeatCheck
-        | Some (s) ->
+        | Some codonOptValues ->
             let parts =
-                s.Split([| ';' |], StringSplitOptions.RemoveEmptyEntries)
+                codonOptValues.Split([| ';' |], StringSplitOptions.RemoveEmptyEntries)
                 |> Array.map (fun s ->
                     match (s.Split([| '=' |], StringSplitOptions.RemoveEmptyEntries)) with
                     | [| name; value |] -> (name, value)

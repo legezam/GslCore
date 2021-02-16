@@ -9,7 +9,7 @@ open System
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.AstTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
 open GslCore.LegacyParseTypes
 open GslCore.RefGenome
 open IO.CodonUsage

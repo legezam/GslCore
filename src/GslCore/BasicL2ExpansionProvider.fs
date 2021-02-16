@@ -4,7 +4,8 @@
 /// Implementation of GSL Level 2 Expression Lines
 /// Modelled roughly on roughage syntax  e.g. gHO^ ; a> b ; c>d etc
 ///
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.LegacyParseTypes
 open GslCore.AstTypes
 open GslCore.AstAlgorithms
@@ -50,7 +51,7 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
 
             // Emit replacement DNA name for knockout
             let replacementName =
-                match args.pragmas.TryFind(namePragmaDef) with
+                match args.pragmas |> PragmaCollection.tryFindName BuiltIn.namePragmaDef.Name with
                 // if the user provided a pragma name, create the donor DNA name with .donor
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
@@ -117,7 +118,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
             // Emit replacement DNA name for promoter swap
             let replacementName =
-                match args.pragmas.TryFind(namePragmaDef) with
+                match args.pragmas |> PragmaCollection.tryFindName BuiltIn.namePragmaDef.Name with
                 // if the user provided a pragma name, create the donor DNA name with .donor
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
@@ -130,7 +131,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
             // yield a new linker line because the default pattern will cause an A linker
             // to land on a marker (error: no A-9 markers)
-            match args.pragmas.TryFind("linkers") with
+            match args.pragmas |> PragmaCollection.tryFindName BuiltIn.linkersPragmaDef.Name with
             | Some _ -> yield ""
             | None -> yield "#linkers 0,2,A,3,9|0,A,2,9"
 

@@ -9,7 +9,8 @@ open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
 open GslCore.RefGenome
 open GslCore.Constants
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 
 // ==========================
 // Helper functions to ease working with pragmas and parts.
@@ -17,21 +18,24 @@ open GslCore.PragmaTypes
 
 /// Get a part's list of built pragmas, represented as a PragmaCollection.
 /// This function will fail if it finds unbuilt pragmas.
-let getPragmasStrict (part: Node<ParsePart>) =
-    let getBuiltPrag p =
-        match p with
-        | Pragma (pw) -> ok (pw.x)
-        | ParsePragma (ppw) -> unbuiltPragmaError None ppw.x.name p
+let getPragmasStrict (part: Node<ParsePart>): Result<PragmaCollection, AstMessage> =
+    let getBuiltPragma (node: AstNode) =
+        match node with
+        | Pragma pragmaWrapper -> ok (pragmaWrapper.x)
+        | ParsePragma parsePragmaWrapper -> unbuiltPragmaError None parsePragmaWrapper.x.name node
         | x -> internalTypeMismatch None "Pragma" x
 
     part.x.pragmas
-    |> List.map getBuiltPrag
+    |> List.map getBuiltPragma
     |> collect
-    >>= (fun prags -> ok (EmptyPragmas.MergeIn(prags)))
+    >>= (fun pragmas ->
+        PragmaCollection.empty
+        |> PragmaCollection.mergeInPragmas pragmas
+        |> ok)
 
 /// Get a part's list of built pragmas, represented as a PragmaCollection.
 /// Raises an exception if pragmas are not built.
-let getPragmas (part: Node<ParsePart>) =
+let getPragmas (part: Node<ParsePart>): PragmaCollection =
     match getPragmasStrict part with
     | Ok (pc, _) -> pc
     | Bad (errs) ->
@@ -47,30 +51,43 @@ let getPragmas (part: Node<ParsePart>) =
 /// or force pragma collections to use NodeWrappers instead.  We may never need this information,
 /// though, so wait and see.
 ///</summary>
-let replacePragmas (part: Node<ParsePart>) (pc: PragmaCollection) =
-    let astPrags =
-        pc.Values
-        |> Seq.map (fun p -> Pragma(nodeWrap p))
+let replacePragmas (part: Node<ParsePart>) (pragmaCollection: PragmaCollection): Node<ParsePart> =
+    let astPragmas =
+        pragmaCollection
+        |> PragmaCollection.values
+        |> Seq.map (fun pragma -> Pragma(nodeWrap pragma))
         |> List.ofSeq
 
     { part with
-          x = { part.x with pragmas = astPrags } }
+          x = { part.x with pragmas = astPragmas } }
 
 /// Merge a pragma collection into a part, clobbering existing pragmas.
 /// Add a warning if there are any collisions.
-let mergePragmas (part: Node<ParsePart>) (pc: PragmaCollection) =
-    getPragmasStrict part
+let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollection): Result<Node<ParsePart>, AstMessage> =
+    getPragmasStrict parsePart
     >>= (fun partPragmas ->
-        let collidingPragmas = Set.intersect pc.Names partPragmas.Names
+        let namesFromPragmaCollection =
+            pragmaCollection |> PragmaCollection.names
+
+        let namesFromParseParts = partPragmas |> PragmaCollection.names
+
+        let collidingPragmas =
+            Set.intersect namesFromPragmaCollection namesFromParseParts
 
         let newPart =
-            replacePragmas part (partPragmas.MergeIn(pc))
+            let mergedPragmas =
+                partPragmas
+                |> PragmaCollection.mergeInCollection pragmaCollection
 
-        if collidingPragmas.IsEmpty then
+            replacePragmas parsePart mergedPragmas
+
+        if collidingPragmas |> Set.isEmpty then
             ok newPart
         else
             let warning =
-                warningMessage (sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", ")) (Part(part))
+                warningMessage
+                    (sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", "))
+                    (Part(parsePart))
 
             warn warning newPart)
 
@@ -526,23 +543,28 @@ let private updatePragmaConstructionContext mode (s: PragmaConstructionContext l
     | None -> s
 
 /// Attempt to build a real pragma from a parsed pragma.
-let private compilePragma (legalCapas: Capabilities) (pragmaCache: PragmaCache) context node =
+let private compilePragma (legalCapas: Capabilities)
+                          (pragmaCache: PragmaCache)
+                          (contexts: PragmaConstructionContext list)
+                          (node: AstNode)
+                          : Result<AstNode, AstMessage> =
 
-    let checkDeprecated (p: Pragma) =
-        match DeprecatedPragmas.TryFind(p.name) with
-        | Some (d) -> // deprecated pragma, issue a warning and replace it
+    let checkDeprecated (pragma: Pragma): Result<Pragma, AstMessage> =
+        match PragmaDeprecation.deprecatedPragmas
+              |> Map.tryFind pragma.Name with
+        | Some depreciation -> // deprecated pragma, issue a warning and replace it
             let warningMsg =
-                createMessage None DeprecationWarning d.WarningMessage node
+                createMessage None DeprecationWarning depreciation.WarningMessage node
 
-            let replacedPragma = d.replace p
+            let replacedPragma = depreciation.Replace pragma
             warn warningMsg replacedPragma
-        | None -> ok p
+        | None -> ok pragma
 
-    let checkScope (p: Pragma) =
-        match context with
-        | c :: _ ->
+    let checkScope (pragma: Pragma): Result<Pragma, AstMessage> =
+        match contexts with
+        | headContext :: _ ->
             let errCond =
-                match p.Definition.Scope, c with
+                match pragma.Definition.Scope, headContext with
                 | BlockOnly _, BlockLevel
                 | PartOnly, PartLevel
                 | BlockOrPart _, _ -> None
@@ -552,51 +574,58 @@ let private compilePragma (legalCapas: Capabilities) (pragmaCache: PragmaCache) 
             match errCond with
             | Some (allowedScope, usedIn) ->
                 let msg =
-                    sprintf "#%s is used at %s, but is restricted to %s." p.name usedIn allowedScope
+                    sprintf "#%s is used at %s, but is restricted to %s." pragma.Name usedIn allowedScope
 
                 error PragmaError msg node
-            | None -> ok p
+            | None -> ok pragma
         | [] -> error (InternalError(PragmaError)) "Pragma scope context is empty." node
 
     // check if this pragma is a capability declaration.
     // if so, validate it.
-    let checkCapa (p: Pragma) =
-        if p.IsCapa && not (legalCapas.Contains(p.Arguments.[0])) then
-            let goodCapas =
-                legalCapas
-                |> Set.toList
-                |> List.sort
-                |> String.concat ", "
+    let checkCapa (pragma: Pragma): Result<Pragma, AstMessage> =
+        if pragma |> Pragma.isCapa then
+            let isNotLegalCapa =
+                not (legalCapas.Contains(pragma.Arguments.[0]))
 
-            let msg =
-                sprintf "Undeclared capability: %s.  Declared capabilities are %s" p.name goodCapas
+            if isNotLegalCapa then
+                let goodCapas =
+                    legalCapas
+                    |> Set.toList
+                    |> List.sort
+                    |> String.concat ", "
 
-            error PragmaError msg node
+                let msg =
+                    sprintf "Undeclared capability: %s.  Declared capabilities are %s" pragma.Name goodCapas
+
+                error PragmaError msg node
+            else
+                ok pragma
         else
-            ok p
+            ok pragma
 
-    let checkPragmaArg a =
-        match a with
-        | String (sw) -> ok sw.x
-        | Int (iw) -> ok (iw.x.ToString())
-        | Float (fw) -> ok (fw.x.ToString())
-        | TypedVariable ({ x = (name, _); positions = _ }) ->
-            errorf (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name a
+    let checkPragmaArg: AstNode -> Result<string, AstMessage> =
+        function
+        | String stringWrapper -> ok stringWrapper.x
+        | Int intWrapper -> ok (intWrapper.x.ToString())
+        | Float floatWrapper -> ok (floatWrapper.x.ToString())
+        | TypedVariable ({ x = (name, _); positions = _ }) as astNode ->
+            errorf (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name astNode
         | x -> internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
 
     match node with
-    | ParsePragma (pw) ->
-        let p = pw.x
+    | ParsePragma pragmaWrapper ->
+        let pragma = pragmaWrapper.x
         /// Building pragmas returns strings at the moment.
         /// Wrap them in an AST message.
         // TODO: fix this sad state of affairs once the big changes have landed in default.
         let wrapPragmaErrorString s = errorMessage PragmaError s node
 
-        p.values
+        pragma.values
         |> List.map checkPragmaArg
         |> collect
-        >>= (fun vals ->
-            pragmaCache |> buildPragma p.name vals
+        >>= (fun values ->
+            pragmaCache
+            |> Pragma.fromNameValue pragma.name values
             |> (mapMessages wrapPragmaErrorString))
         >>= checkDeprecated
         >>= checkScope
@@ -605,7 +634,7 @@ let private compilePragma (legalCapas: Capabilities) (pragmaCache: PragmaCache) 
             ok
                 (Pragma
                     ({ x = builtPragma
-                       positions = pw.positions })))
+                       positions = pragmaWrapper.positions })))
     | _ -> ok node
 
 /// Build genuine pragmas from reduced parsed pragmas.
@@ -634,48 +663,59 @@ let private unpackParts nodes =
 /// Because the internal fold naturally reverses the list, don't un-reverse it because we need
 /// to do this anyway.
 ///</summary>
-let private shiftFusePragmaAndReverseList parts =
-    let fp =
-        { Definition = fusePragmaDef
+let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): Result<Node<ParsePart> list, AstMessage> =
+    let fusablePragma =
+        { Definition = BuiltIn.fusePragmaDef
           Arguments = [] }
 
-    let shiftOne (shiftedParts, addFuse) (part: Node<ParsePart>) =
+    let shiftOne (shiftedParts: Node<ParsePart> list, addFuse: bool) (part: Node<ParsePart>): Node<ParsePart> list * bool =
         let pragmas = getPragmas part
         // if this part has a #fuse, we need to add one to the next part
-        let nextNeedsFuse = pragmas.ContainsKey(fp)
+        let nextNeedsFuse =
+            pragmas
+            |> PragmaCollection.containsPragma fusablePragma
 
-        let newPragmas =
-            if addFuse then pragmas.Add(fp) else pragmas.Remove(fp)
+        let newPart =
+            let newPragmas =
+                if addFuse then
+                    pragmas
+                    |> PragmaCollection.addPragma fusablePragma
+                else
+                    pragmas
+                    |> PragmaCollection.removePragma fusablePragma
 
-        let newPart = replacePragmas part newPragmas
+            replacePragmas part newPragmas
+
         (newPart :: shiftedParts, nextNeedsFuse)
 
-    let shiftedParts, trailingFuse =
-        parts
-        |> List.fold (fun accum part -> shiftOne accum part) ([], false)
+    let shiftedParts, trailingFuse = parts |> List.fold shiftOne ([], false)
 
     if trailingFuse
     then error PragmaError "Found a trailing #fuse in an assembly that needs to flip." (Part(List.head shiftedParts))
     else ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
-let private invertPragmas (pragmaCache: PragmaCache) parts =
-    parts
-    |> List.map (fun part ->
-        (getPragmas part).Values
-        |> Seq.map (fun p ->
-            match pragmaCache |> PragmaCache.inverts p.Definition with
-            | None -> p
-            | Some (invertsTo) -> { p with Definition = invertsTo })
-        |> fun collection -> createPragmaCollection collection pragmaCache
-        |> replacePragmas part)
+let private invertPragma (pragmaCache: PragmaCache) (part: Node<ParsePart>): Node<ParsePart> =
+    part
+    |> getPragmas
+    |> PragmaCollection.values
+    |> Seq.map (fun pragma ->
+        pragmaCache
+        |> PragmaCache.inverts pragma.Definition
+        |> Option.map (fun invertsTo -> { pragma with Definition = invertsTo })
+        |> Option.defaultValue pragma)
+    |> fun collection -> PragmaCollection.create collection pragmaCache
+    |> replacePragmas part
 
 ///<summary>
 /// Explode an assembly into a flat list of parts.
 /// This function encodes the logic that used to reside in MULTIPART expansion.
 /// This function ignores various unexpected conditions, like nodes besides parts inside the assembly.
 ///</summary>
-let private explodeAssembly (pragmaCache: PragmaCache) (assemblyPart: Node<ParsePart>) (assemblyBasePart: Node<AstNode list>) =
+let private explodeAssembly (pragmaCache: PragmaCache)
+                            (assemblyPart: Node<ParsePart>)
+                            (assemblyBasePart: Node<AstNode list>)
+                            =
     // This operation is trivial if the assembly is in the forward orientation.
     // If it needs to reverse, it is rather tedious.
     let subparts = unpackParts assemblyBasePart.x
@@ -688,7 +728,7 @@ let private explodeAssembly (pragmaCache: PragmaCache) (assemblyPart: Node<Parse
             |> List.map (fun p ->
                 { p with
                       x = { p.x with fwd = not p.x.fwd } }) // flip the part
-            |> (invertPragmas pragmaCache) // flip the pragmas
+            |> List.map (invertPragma pragmaCache) // flip the pragmas
             |> shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
     // now that the parts are correctly oriented, stuff the assembly pragmas into them
     correctlyOrientedParts
@@ -748,7 +788,8 @@ let private flattenAssembly (pragmaCache: PragmaCache) node =
     | _ -> ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
-let flattenAssemblies (pragmaCache: PragmaCache) = map Serial BottomUp (flattenAssembly pragmaCache)
+let flattenAssemblies (pragmaCache: PragmaCache) =
+    map Serial BottomUp (flattenAssembly pragmaCache)
 
 // =====================
 // determining the pragma environment at any given node; stuffing assemblies
@@ -770,53 +811,63 @@ type PragmaEnvironment =
       warnOffs: Set<string> }
 
 let emptyPragmaEnvironment =
-    { persistent = EmptyPragmas
-      unassignedTransients = EmptyPragmas
-      assignedTransients = EmptyPragmas
+    { persistent = PragmaCollection.empty
+      unassignedTransients = PragmaCollection.empty
+      assignedTransients = PragmaCollection.empty
       capabilities = Set.empty
       warnOffs = Set.empty }
 
 /// Update the pragma environment on both pragmas and part nodes.
 /// Ignores unbuilt pragmas.
 /// Also operates on blocks, to ensure that block capture transient pragmas.
-let updatePragmaEnvironment mode s node =
+let updatePragmaEnvironment (mode: StateUpdateMode) (environment: PragmaEnvironment) (node: AstNode): PragmaEnvironment =
     match mode with
     | PreTransform ->
         match node with
-        | Pragma (pw) ->
-            let prag = pw.x
+        | Pragma pragmaWrapper ->
+            let pragma = pragmaWrapper.x
             // handle some special cases
-            match prag.IsWarning, prag.IgnoresWarning, prag.SetsCapability with
-            | true, _, _ -> s // we print warnings in a lint pass, ignore this
-            | _, Some (warnOff), _ ->
-                { s with
-                      warnOffs = s.warnOffs.Add(warnOff) }
-            | _, _, Some (capa) ->
-                { s with
-                      capabilities = s.capabilities.Add(capa) }
+            let isWarning = pragma |> Pragma.isWarning
+            let ignoresWarning = pragma |> Pragma.ignoresWarning
+            let setsCapability = pragma |> Pragma.setsCapability
+
+            match isWarning, ignoresWarning, setsCapability with
+            | true, _, _ -> environment // we print warnings in a lint pass, ignore this
+            | _, Some warnOff, _ ->
+                { environment with
+                      warnOffs = environment.warnOffs |> Set.add warnOff }
+            | _, _, Some capa ->
+                { environment with
+                      capabilities = environment.capabilities.Add(capa) }
             | _ -> // general pragma case
-                if prag.IsTransient then
-                    { s with
-                          unassignedTransients = s.unassignedTransients.Add(prag) }
+                let isTransient = pragma |> Pragma.isTransient
+
+                if isTransient then
+                    { environment with
+                          unassignedTransients =
+                              environment.unassignedTransients
+                              |> PragmaCollection.addPragma pragma }
                 else
-                    { s with
-                          persistent = s.persistent.Add(prag) }
+                    { environment with
+                          persistent =
+                              environment.persistent
+                              |> PragmaCollection.addPragma pragma }
         | Part _
         | L2Expression _ ->
             // replace assignedTransients with unassignedTransients, and empty unassignedTransients
-            { s with
-                  unassignedTransients = EmptyPragmas
-                  assignedTransients = s.unassignedTransients }
-        | _ -> s
+            { environment with
+                  unassignedTransients = PragmaCollection.empty
+                  assignedTransients = environment.unassignedTransients }
+        | _ -> environment
     | PostTransform ->
         match node with
         | Block _ ->
             // blocks "capture" transient pragmas, so we blow away the transients collections
             // after we operate on one.
-            { s with
-                  unassignedTransients = EmptyPragmas
-                  assignedTransients = EmptyPragmas }
-        | _ -> s
+            { environment with
+                  unassignedTransients = PragmaCollection.empty
+                  assignedTransients = PragmaCollection.empty }
+        | _ -> environment
 
 /// Helper error for pragma collision.
 let private collidingPragmaError (existing: Pragma) incoming node =
@@ -825,21 +876,26 @@ let private collidingPragmaError (existing: Pragma) incoming node =
     let msg =
         sprintf
             "The pragma #%s is set in this assembly as well as in the enclosing environment with conflicting values.  Incoming: '%s'.  Existing: '%s'."
-            existing.name
+            existing.Name
             (formatPragma incoming)
             (formatPragma existing)
 
     error PragmaError msg node
 
 /// Check incoming pragmas for collisions with another pragma collection.
-let private checkPragmaCollisions (incoming: PragmaCollection) (existing: PragmaCollection) node =
-    if not existing.IsEmpty then
-        existing.Values
-        |> Seq.map (fun p ->
-            match incoming.TryFind(p.Definition) with
-            | Some (colliding) ->
-                if p.Arguments <> colliding.Arguments then // pragma collision with unequal arguments
-                    collidingPragmaError p colliding node
+let private checkPragmaCollisions (incoming: PragmaCollection)
+                                  (existing: PragmaCollection)
+                                  (node: AstNode)
+                                  : Result<unit, AstMessage> =
+    if existing |> PragmaCollection.isEmpty |> not then
+        existing
+        |> PragmaCollection.values
+        |> Seq.map (fun existingPragma ->
+            match incoming
+                  |> PragmaCollection.tryFindDefinition existingPragma.Definition with
+            | Some colliding ->
+                if existingPragma.Arguments <> colliding.Arguments then // pragma collision with unequal arguments
+                    collidingPragmaError existingPragma colliding node
                 else
                     ok () // identical arguments, ignore collision
             | None -> ok ())
@@ -848,30 +904,36 @@ let private checkPragmaCollisions (incoming: PragmaCollection) (existing: Pragma
         ok ()
 
 /// Deposit collected pragmas into an assembly.
-let private stuffPragmasIntoAssembly s node =
+let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment) (node: AstNode): Result<AstNode, AstMessage> =
     match node with
-    | AssemblyPart (pw, _) ->
+    | AssemblyPart (partWrapper, _) ->
         let incoming =
-            s.persistent.MergeIn(s.assignedTransients)
+            pragmaEnvironment.persistent
+            |> PragmaCollection.mergeInCollection pragmaEnvironment.assignedTransients
 
         // get a pragma collection from this assembly
-        let aps = getPragmas pw
+        let assemblyPragmas = getPragmas partWrapper
 
-        checkPragmaCollisions incoming aps node
+        checkPragmaCollisions incoming assemblyPragmas node
         >>= (fun _ ->
             // no collisions, free to merge everything in.
             // start with globals, merge in transients, then merge in part pragmas
-            let newPrags = incoming.MergeIn(aps)
+            let newPragmas =
+                incoming
+                |> PragmaCollection.mergeInCollection assemblyPragmas
             // if we have warn offs, make a pragma for them and add them
-            let pragsWithWarnoff =
-                if not s.warnOffs.IsEmpty then
-                    newPrags.Add
-                        ({ Definition = warnoffPragmaDef
-                           Arguments = Set.toList s.warnOffs })
-                else
-                    newPrags
+            let pragmasWithWarnOff =
+                if not pragmaEnvironment.warnOffs.IsEmpty then
+                    let warnOffPragma =
+                        { Pragma.Definition = BuiltIn.warnoffPragmaDef
+                          Arguments = Set.toList pragmaEnvironment.warnOffs }
 
-            ok (Part(replacePragmas pw pragsWithWarnoff)))
+                    newPragmas
+                    |> PragmaCollection.addPragma warnOffPragma
+                else
+                    newPragmas
+
+            ok (Part(replacePragmas partWrapper pragmasWithWarnOff)))
     | _ -> ok node
 
 ///<summary>
@@ -992,10 +1054,10 @@ let stripVariables =
 // collecting warning messages from pragmas
 // =======================
 
-let private collectWarning node =
+let private collectWarning (node: AstNode): Result<AstNode, AstMessage> =
     match node with
-    | Pragma (p) when p.x.IsWarning ->
-        let msg = p.x.Arguments |> String.concat " "
+    | Pragma pragma when pragma.x |> Pragma.isWarning ->
+        let msg = pragma.x.Arguments |> String.concat " "
         let warnMsg = warningMessage msg node
         warn warnMsg node // add a warning into the message stream
     | _ -> ok node
@@ -1030,12 +1092,13 @@ let cleanHashName (s: string) =
 /// Name an assembly if it is not already named.
 /// We accomplish this by replacing the assembly with a subblock, into which we're placed a name pragma.
 /// Since naming happens after pragma stuffing, we also put the name pragma into the assebly itself.
-let private nameAssembly node =
+let private nameAssembly (node: AstNode): AstNode =
     match node with
-    | AssemblyPart (aw, _) ->
-        let pragmas = getPragmas aw
+    | AssemblyPart (assemblyWrapper, _) ->
+        let pragmas = getPragmas assemblyWrapper
 
-        if pragmas.ContainsKey(namePragmaDef) then node // already named
+        if pragmas
+           |> PragmaCollection.containsPragmaDef BuiltIn.namePragmaDef then node // already named
         else let literal = decompile node |> cleanHashName
 
              let name =
@@ -1044,11 +1107,15 @@ let private nameAssembly node =
                      .Replace("@", "(@)")
 
              let namePragma =
-                 { Definition = namePragmaDef
+                 { Pragma.Definition = BuiltIn.namePragmaDef
                    Arguments = [ name ] }
 
-             let mergedPrags = pragmas.Add(namePragma)
-             let namedAssembly = Part(replacePragmas aw mergedPrags)
+             let mergedPragmas =
+                 pragmas |> PragmaCollection.addPragma namePragma
+
+             let namedAssembly =
+                 Part(replacePragmas assemblyWrapper mergedPragmas)
+
              let pragmaNode = Pragma(nodeWrap namePragma)
              Block(nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ])
     | _ -> node
@@ -1087,8 +1154,8 @@ let private validateRoughageLine (rw: Node<Roughage>) =
     else ok rw
 
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
-let private expandRoughage (rw: Node<Roughage>) =
-    let r = rw.x
+let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
+    let roughage = roughageWrapper.x
     // FIXME Hard coded mapping of markers for now
     let markerMapping (s: string) =
         match s with
@@ -1108,19 +1175,19 @@ let private expandRoughage (rw: Node<Roughage>) =
 
     // For roughage, if no marker is specified, it defaults to ura3
     let marker =
-        match r.HasMarker with
+        match roughage.HasMarker with
         | None -> "ura3"
         | Some (x) -> markerMapping x
 
     let markerPragma =
         Pragma
             ({ x =
-                   { Definition = markersetPragmaDef
+                   { Pragma.Definition = BuiltIn.markersetPragmaDef
                      Arguments = [ marker ] }
-               positions = rw.positions })
+               positions = roughageWrapper.positions })
 
     let l2Elements =
-        [ for p in r.parts do
+        [ for p in roughage.parts do
             yield l2ElementFromRoughagePair p.x.pt1
 
             match p.x.pt2 with
@@ -1128,7 +1195,7 @@ let private expandRoughage (rw: Node<Roughage>) =
             | None -> () ]
 
     let l2Locus =
-        match r.locus with
+        match roughage.locus with
         | Some (l) -> Some(L2Id(l))
         | None -> None
 

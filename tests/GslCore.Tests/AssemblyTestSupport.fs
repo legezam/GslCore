@@ -7,7 +7,8 @@ open GslCore.AstExpansion
 open GslCore.Constants
 open Amyris.ErrorHandling
 open GslCore.CommonTypes
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open Amyris.Dna
 
 let rec extractAssemblies (n: AstNode): AstNode list =
@@ -75,7 +76,7 @@ let uFoo =
             "TACTGACTGAGTCTGACTGACGTTAGCTGACTGACTGCATGACGTACGTACTGAGTCAGTCGTACTGACTGACTGCATGACTGACTGCATGCATGATGCGTATCGAGCGGCGCTGCTGTGGTCGTATATCTGGTCGTATGTGCGTACGTGTAGTCATGCGTACTG")
         "uFoo"
         SliceType.REGULAR
-        EmptyPragmas
+        PragmaCollection.empty
         true
         false
         true
@@ -87,7 +88,7 @@ let dFoo =
             "TTTGGTATGCTGTTATCGTGTTGGGCGGTCTATTGAGTTTTGCGTGTCGTAGTCGTGCGGCGCGTATTGTGCGTGTCGGCGCGATGCGTGTGTTGAGTCGTGTGGGATTGGTGTGTGTCGTCGCGACTGATCATGTATCAGTCGAGCGATGGTGTGTCAGTGTTGTGAGTCG")
         "dFoo"
         SliceType.REGULAR
-        EmptyPragmas
+        PragmaCollection.empty
         true  // from approx
         false  // to approx
         true  // amplified
@@ -100,7 +101,7 @@ let oBar =
             "ATGTCTCAGAACGTTTACATTGTATCGACTGCCAGAACCCCAATTGGTTCATTCCAGGGTTCTCTATCCTCCAAGACAGCAGTGGAATTGGGTGCTGTTGCTTTAAAAGGCGCCTTGGCTAAGGTTCCAGAATTGGATGCATCCAAGGAT")
         "oBar"
         SliceType.REGULAR
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -113,7 +114,7 @@ let oBar2 =
             "ATTGTGATGCTGTACGTGGTTGCGTTGCTGTGTGCGTGCGCGCGTATATTATAGTCGCGGCTAGTTACGTGCGGCGTACTGGTCGTGTCGATGGTAGTCGTCGGCGCGAGTGTCGTATGCGTACGTACTGACGGCGCGCGCAGTTGATAG")
         "oBar"
         SliceType.REGULAR
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -126,7 +127,7 @@ let pBaz =
             "TTGACTGATGCTGACTGACTGATGCTGACTGACTGGGGGCTAGTGCTACTATCTATCCATCACACACACATCAGTCGTACTTATATTATATGATCTTACGATCTATATTATTACGGATCTGATATATTTACGTTGATTATGCGATCTGAT")
         "pBaz"
         SliceType.REGULAR
-        EmptyPragmas
+        PragmaCollection.empty
         true  // from approx
         false  // to approx
         true  // amplified
@@ -139,7 +140,7 @@ let tShaz =
             "ATATTATATACTGTCGCGACTTATATATATATCTGACGTCTGTGCTGATGATTATATATTACTGACTGCGTCATGATCTATTATATATATATTATATCTGGTCGTCGTCTGAGTCATGCGTACTGACGTACTATATATATATATATATAG")
         "pBaz"
         SliceType.REGULAR
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         true  // to approx
         true  // amplified
@@ -151,7 +152,7 @@ let marker =
             "TGTACTGACGTAGTCGTACACGTAGTCGTATCGATGTGCGACGTACTGAGCGTAGTCTGATGCGTATGCTCGTAGTAGTCGTACGTACGTGTCGTCGTGTGTGTAGTCGTGTACGAGCGTACGATCGATCAGTCTGACGTAGTGTAGTCGTAGTGTCGTAGTACGTA")
         "###"
         SliceType.MARKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -162,60 +163,30 @@ let shortInline =
         (Dna "CACATGTGGAGATT")
         "shortInline1"
         SliceType.INLINEST
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
         Breed.B_MARKER
 
 let rabitStart =
-    { Definition =
-          { Name = "rabitstart"
-            Shape = Zero
-            Scope = PartOnly
-            Description = "Designate part as the start of a RYSE rabit."
-            InvertsTo = Some("rabitend")
-            Validate = noValidate }
+    { Definition = BuiltIn.rabitStartPragmaDef
       Arguments = [] }
 
 let rabitEnd =
-    { Definition =
-          { Name = "rabitend"
-            Shape = Zero
-            Scope = PartOnly
-            Description = "Designate part as the end of a RYSE rabit."
-            InvertsTo = Some("rabitstart")
-            Validate = noValidate }
+    { Definition = BuiltIn.rabitEndPragmaDef
       Arguments = [] }
 
 let amp =
-    { Definition =
-          { Name = "amp"
-            Shape = Zero
-            Scope = PartOnly
-            Description = "make part through amplification"
-            InvertsTo = Some("amp")
-            Validate = noValidate }
+    { Definition = BuiltIn.ampPragmaDef
       Arguments = [] }
 
 let fusePragma =
-    { Definition =
-          { Name = "fuse"
-            Shape = Zero
-            Scope = PartOnly
-            Description = "join part with next part without linker"
-            InvertsTo = Some("fuse")
-            Validate = noValidate }
+    { Definition = BuiltIn.fusePragmaDef
       Arguments = [] }
 
 let inlinePragma =
-    { Definition =
-          { Name = "inline"
-            Shape = Zero
-            Scope = PartOnly
-            Description = "inline pragma"
-            InvertsTo = Some("inline")
-            Validate = noValidate }
+    { Definition = BuiltIn.inlinePragmaDef
       Arguments = [] }
 
 /// 102 bp inline
@@ -224,7 +195,7 @@ let longInline =
         (Dna "ATGTCTCAGAACGTTTACATTGTATCGACTGCCAGAACCCCAATTGGTTCATTCCAGGGTTCTCTATCCTCCAAGACAGCAGTGGAATTGGGTGCTGTTATG")
         "longinline"
         SliceType.INLINEST
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -236,7 +207,7 @@ let mediumInline =
         (Dna "TTTGACGTGTAGTCGTGCGCGGTCGCGCGCGTCTATTTTTGTCGTCGTACGTACGTACGGCTAGCGTACGTACGT")
         "mediuminline"
         SliceType.INLINEST
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -248,7 +219,7 @@ let smallInline =
         (Dna "TAGCTATATAGGTAGCTAGACTATCTTTATCTTACTACTTCTCTTTAT")
         "smallinline"
         SliceType.INLINEST
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -256,51 +227,71 @@ let smallInline =
 
 let uFooFuse =
     { uFoo with
-          pragmas = uFoo.pragmas.Add(fusePragma)
+          pragmas =
+              uFoo.pragmas
+              |> PragmaCollection.addPragma fusePragma
           sliceName = uFoo.sliceName + "#fuse" }
 
 let smallInlineAmp =
     { smallInline with
-          pragmas = smallInline.pragmas.Add(amp)
+          pragmas =
+              smallInline.pragmas
+              |> PragmaCollection.addPragma amp
           sliceName = smallInline.sliceName + "#amp" }
 
 let smallInlineFuse =
     { smallInline with
-          pragmas = smallInline.pragmas.Add(fusePragma)
+          pragmas =
+              smallInline.pragmas
+              |> PragmaCollection.addPragma fusePragma
           sliceName = smallInline.sliceName + "#fuse" }
 
 let mediumInlineAmp =
     { mediumInline with
-          pragmas = mediumInline.pragmas.Add(amp)
+          pragmas =
+              mediumInline.pragmas
+              |> PragmaCollection.addPragma amp
           sliceName = mediumInline.sliceName + "#amp" }
 
 let mediumInlineFuse =
     { mediumInline with
-          pragmas = mediumInline.pragmas.Add(fusePragma)
+          pragmas =
+              mediumInline.pragmas
+              |> PragmaCollection.addPragma fusePragma
           sliceName = mediumInline.sliceName + "#fuse" }
 
 let longInlineAmp =
     { longInline with
-          pragmas = longInline.pragmas.Add(amp)
+          pragmas =
+              longInline.pragmas
+              |> PragmaCollection.addPragma amp
           sliceName = longInline.sliceName + "#amp" }
 
 let longInlineAmpFuse =
     { longInlineAmp with
-          pragmas = longInlineAmp.pragmas.Add(fusePragma)
+          pragmas =
+              longInlineAmp.pragmas
+              |> PragmaCollection.addPragma fusePragma
           sliceName = longInlineAmp.sliceName + "#fuse" }
 
 let longInlineInline =
     { longInline with
-          pragmas = longInline.pragmas.Add(inlinePragma) }
+          pragmas =
+              longInline.pragmas
+              |> PragmaCollection.addPragma inlinePragma }
 
 let shortInlineWithRabitStart =
     { shortInline with
-          pragmas = shortInline.pragmas.Add(rabitStart)
+          pragmas =
+              shortInline.pragmas
+              |> PragmaCollection.addPragma rabitStart
           sliceName = shortInline.sliceName + "#rabitstart" }
 
 let shortInlineWithRabitEnd =
     { shortInline with
-          pragmas = shortInline.pragmas.Add(rabitEnd)
+          pragmas =
+              shortInline.pragmas
+              |> PragmaCollection.addPragma rabitEnd
           sliceName = shortInline.sliceName + "#rabitend" }
 
 let linkerAlice =
@@ -308,7 +299,7 @@ let linkerAlice =
         (Dna "GATCGATTAGATCGATAGGCTACG")
         "linkerAlice"
         SliceType.LINKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -354,7 +345,7 @@ let linkerBob =
         (Dna "TTTGGTTTGTAGCGGGGCTTTAGA")
         "linkerBob"
         SliceType.LINKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -365,7 +356,7 @@ let linkerCharlie =
         (Dna "ATGATGGGATCGGGATCGGGGGCAGACTTTG")
         "linkerCharlie"
         SliceType.LINKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -376,7 +367,7 @@ let linkerDoug =
         (Dna "GATCGATTAGCTTAGATCGTGATCGGTCG")
         "linkerDoug"
         SliceType.LINKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -387,7 +378,7 @@ let linkerEmma =
         (Dna "ATCGATTAGATTAGCTACTGTGGTCCAAA")
         "linkerEmma"
         SliceType.LINKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -398,7 +389,7 @@ let placeholder =
         (Dna "")
         "placeholder"
         SliceType.LINKER
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
@@ -409,7 +400,7 @@ let fuse =
         (Dna "")
         "fusion"
         SliceType.FUSIONST
-        EmptyPragmas
+        PragmaCollection.empty
         false  // from approx
         false  // to approx
         false  // amplified

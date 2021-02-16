@@ -1,6 +1,6 @@
 ﻿namespace GslCore.Tests
 
-open GslCore.PragmaTypes
+open GslCore.Pragma.Domain
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes

@@ -5,7 +5,8 @@ open System
 open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.CommandConfig
-open GslCore.PragmaTypes
+open GslCore.Pragma
+open GslCore.Pragma.Domain
 open GslCore.PluginTypes
 open Amyris.ErrorHandling
 
@@ -51,8 +52,10 @@ let gTagPragmaDef =
 let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly) =
     // gtag is global tag, tag is dna assembly tag
     match List.collect (fun pragma -> pragma.Arguments)
-              ([ a.pragmas.TryFind("tag")
-                 a.pragmas.TryFind("gtag") ]
+              ([ a.pragmas
+                 |> PragmaCollection.tryFindName tagPragmaDef.Name
+                 a.pragmas
+                 |> PragmaCollection.tryFindName gTagPragmaDef.Name ]
                |> List.choose id) with
     | [] ->
         let newTags =
@@ -116,4 +119,4 @@ let createTaggingPlugin extraArgProcessor =
       providesPragmas = [ tagPragmaDef; gTagPragmaDef ]
       providesCapas = [] }
 
-let taggingPlugin = createTaggingPlugin (fun _ x -> x)
+let taggingPlugin = createTaggingPlugin (fun _ -> id)
