@@ -27,11 +27,11 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            returnOrFail (Pragma.fromNameValue badName [ badOption ] pragmaCache)
+            returnOrFail (PragmaCache.pragmaFromNameValue badName [ badOption ] pragmaCache)
             |> ignore)
         |> ignore
 
-        Assert.DoesNotThrow(fun () -> Pragma.fromNameValue goodName [ goodOption ] |> ignore)
+        Assert.DoesNotThrow(fun () -> PragmaCache.pragmaFromNameValue goodName [ goodOption ] |> ignore)
 
 
     [<Test>]

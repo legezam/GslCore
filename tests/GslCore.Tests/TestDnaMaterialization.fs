@@ -32,7 +32,7 @@ type DnaMaterialization() =
         if Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
 
     let refGenomePragma =
-        match Pragma.fromNameValue "refgenome" [ "TestGenome2" ] PragmaCache.builtin with
+        match PragmaCache.pragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaCache.builtin with
         | Result.Ok (p, _) -> p
         | _ -> failwithf "Failure to build refgenome TestGenome2"
 

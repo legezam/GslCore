@@ -18,7 +18,7 @@ type TestMapRyseLinkers() =
 
 
     let makePragma name values =
-        match Pragma.fromNameValue name values PragmaCache.builtin with
+        match PragmaCache.pragmaFromNameValue name values PragmaCache.builtin with
         | Ok (p, []) ->
             let map =
                 { PragmaCollection.Cache = PragmaCache.builtin

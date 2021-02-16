@@ -110,9 +110,4 @@ module Pragma =
                 { Definition = pDef
                   Arguments = values })
 
-    /// Try to build a pragma from a name and values.
-    let fromNameValue (name: string) (values: string list) (cache: PragmaCache): Result<Pragma, string> =
-        // try to get the pragma defintion
-        match cache.Pragmas |> Map.tryFind name with
-        | Some pDef -> pDef |> fromDefinition values
-        | None -> fail (sprintf "Unknown or invalid pragma: '#%s'" name)        
+       

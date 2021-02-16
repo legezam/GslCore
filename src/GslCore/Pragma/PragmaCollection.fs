@@ -56,7 +56,7 @@ module PragmaCollection =
     /// Add a pragma to this collection using string name and values.
     let addNameValues (name: string, values: string list) (this: PragmaCollection): Result<PragmaCollection, string> =
         this.Cache
-        |> Pragma.fromNameValue name values
+        |> PragmaCache.pragmaFromNameValue name values
         >>= fun pragma -> this |> addPragma pragma |> ok
 
     /// Add a pragma to this collection using string name and single value.

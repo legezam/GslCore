@@ -1,5 +1,5 @@
 namespace GslCore.Pragma
-
+open Amyris.ErrorHandling
 type PragmaCache(pragmas: Map<string, PragmaDefinition>) =
     member this.Pragmas = pragmas
     
@@ -64,3 +64,10 @@ module PragmaCache =
     let validatePragmaName (pragmaName: string) (cache: PragmaCache): unit =
         if cache.Pragmas |> Map.containsKey pragmaName |> not
         then failwithf "Requested unknown pragma '#%s'." pragmaName
+        
+    /// Try to build a pragma from a name and values.
+    let pragmaFromNameValue (name: string) (values: string list) (cache: PragmaCache): Result<Pragma, string> =
+        // try to get the pragma defintion
+        match cache.Pragmas |> Map.tryFind name with
+        | Some pDef -> pDef |> Pragma.fromDefinition values
+        | None -> fail (sprintf "Unknown or invalid pragma: '#%s'" name)         

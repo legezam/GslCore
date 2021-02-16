@@ -624,7 +624,7 @@ let private compilePragma (legalCapas: Capabilities)
         |> collect
         >>= (fun values ->
             pragmaCache
-            |> Pragma.fromNameValue pragma.name values
+            |> PragmaCache.pragmaFromNameValue pragma.name values
             |> (mapMessages wrapPragmaErrorString))
         >>= checkDeprecated
         >>= checkScope

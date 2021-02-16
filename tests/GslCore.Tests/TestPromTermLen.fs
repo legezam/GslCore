@@ -65,7 +65,7 @@ type TestPromTermLen() =
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
-        match Pragma.fromNameValue name [ value ] PragmaCache.builtin with
+        match PragmaCache.pragmaFromNameValue name [ value ] PragmaCache.builtin with
         | Ok (p, []) ->
             let map =
                 { PragmaCollection.Pragmas =
@@ -87,7 +87,7 @@ type TestPromTermLen() =
     member __.TestPragmasExist() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
-                returnOrFail (Pragma.fromNameValue name [ "250" ] PragmaCache.builtin)
+                returnOrFail (PragmaCache.pragmaFromNameValue name [ "250" ] PragmaCache.builtin)
                 |> ignore)
 
         checkPragmaExists "promlen"
