@@ -137,7 +137,7 @@ let noValidate _ = ok ()
 // Pragma defs that are used internally by the compiler.
 
 let warningPragmaDef =
-    { Name = "warn"
+    { PragmaDefinition.Name = "warn"
       Shape = AtLeast(1)
       Scope = BlockOrPart(Transient)
       Description = "Print a warning message."
@@ -145,7 +145,7 @@ let warningPragmaDef =
       Validate = noValidate }
 
 let warnoffPragmaDef =
-    { Name = "warnoff"
+    { PragmaDefinition.Name = "warnoff"
       Shape = One
       Scope = BlockOnly(Persistent)
       Description = "Turn off specific warnings."
@@ -153,7 +153,7 @@ let warnoffPragmaDef =
       Validate = noValidate }
 
 let capaPragmaDef =
-    { Name = "capa"
+    { PragmaDefinition.Name = "capa"
       Shape = One
       Scope = BlockOnly(Persistent)
       Description = "Enables particular compiler capabilities."
@@ -161,7 +161,7 @@ let capaPragmaDef =
       Validate = noValidate }
 
 let platformPragmaDef =
-    { Name = "platform"
+    { PragmaDefinition.Name = "platform"
       Shape = One
       Scope = BlockOnly(Persistent)
       Description = "Specify an assembly platform to target, current options: 'stitch', 'megastitch'."
@@ -169,7 +169,7 @@ let platformPragmaDef =
       Validate = parsePlatform >> (lift ignore) }
 
 let markersetPragmaDef =
-    { Name = "markerset"
+    { PragmaDefinition.Name = "markerset"
       Shape = One
       Scope = BlockOnly(Persistent)
       Description = "Set the default marker set for a ### part."
@@ -177,7 +177,7 @@ let markersetPragmaDef =
       Validate = noValidate }
 
 let namePragmaDef =
-    { Name = "name"
+    { PragmaDefinition.Name = "name"
       Shape = One
       Scope = BlockOrPart(Transient)
       Description = "Override name for a assembly or part."
@@ -185,7 +185,7 @@ let namePragmaDef =
       Validate = noValidate }
 
 let fusePragmaDef =
-    { Name = "fuse"
+    { PragmaDefinition.Name = "fuse"
       Shape = Zero
       Scope = PartOnly
       Description = "Create a seamless junction with the next part."
@@ -193,7 +193,7 @@ let fusePragmaDef =
       Validate = noValidate }
 
 let ampPragmaDef =
-    { Name = "amp"
+    { PragmaDefinition.Name = "amp"
       Shape = Zero
       Scope = PartOnly
       Description = "Create a seamless junction with the next part."
@@ -201,15 +201,249 @@ let ampPragmaDef =
       Validate = noValidate }
 
 let topologyPragmaDef =
-    { Name = Topology.PragmaName
+    { PragmaDefinition.Name = Topology.PragmaName
       Shape = One
       Scope = BlockOnly(Persistent)
       Description = "The design has either linear or circular topology"
       InvertsTo = None
       Validate = Topology.parse >> (lift ignore) }
 
+let linkersPragmaDef =
+    { PragmaDefinition.Name = "linkers"
+      Shape = AtLeast(1)
+      Scope = BlockOnly(Persistent)
+      Description = "Override the default set of RYSE linkers."
+      InvertsTo = None
+      Validate = noValidate }
+
+let refGenomePragmaDef =
+    { PragmaDefinition.Name = "refgenome"
+      Shape = One
+      Scope = BlockOrPart(Persistent)
+      Description = "Specify a reference genome."
+      InvertsTo = None
+      Validate = noValidate }
+
+let dnaSrcPragmaDef =
+    { PragmaDefinition.Name = "dnasrc"
+      Shape = One
+      Scope = PartOnly
+      Description = "Specify a DNA source for a part."
+      InvertsTo = None
+      Validate = noValidate }
+
+let stitchPragmaDef =
+    { PragmaDefinition.Name = "stitch"
+      Shape = Zero
+      Scope = BlockOnly(Persistent)
+      Description = "TODO description"
+      InvertsTo = None
+      Validate = noValidate }
+
+let megastitchPragmaDef =
+    { PragmaDefinition.Name = "megastitch"
+      Shape = Zero
+      Scope = BlockOnly(Persistent)
+      Description = "TODO description"
+      InvertsTo = None
+      Validate = noValidate }
+
+let rabitEndPragmaDef =
+    { PragmaDefinition.Name = "rabitend"
+      Shape = Zero
+      Scope = PartOnly
+      Description = "Designate part as the end of a RYSE rabit."
+      InvertsTo = Some("rabitstart")
+      Validate = noValidate }
+
+let rabitStartPragmaDef =
+    { PragmaDefinition.Name = "rabitstart"
+      Shape = Zero
+      Scope = PartOnly
+      Description = "Designate part as the start of a RYSE rabit."
+      InvertsTo = Some("rabitend")
+      Validate = noValidate }
+
+let primerPosPragmaDef =
+    { PragmaDefinition.Name = "primerpos"
+      Shape = Exactly(2)
+      Scope = PartOnly
+      Description = "Dictate forward FWD or reverse REV primer position relative to first base of a short inline slice"
+      InvertsTo = None
+      Validate = noValidate }
+
+let primerMaxPragmaDef =
+    { PragmaDefinition.Name = "primermax"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "Max length of primer that can be designed."
+      InvertsTo = None
+      Validate = parseInt }
+
+let primerMinPragmaDef =
+    { PragmaDefinition.Name = "primermin"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "Max length of primer that can be designed."
+      InvertsTo = None
+      Validate = parseInt }
+
+let pcrParamsPragmaDef =
+    { PragmaDefinition.Name = "pcrparams"
+      Shape = Range(1, 5)
+      Scope = BlockOnly(Persistent)
+      Description = "Set various parts of PCR conditions."
+      InvertsTo = None
+      Validate = validatePcrParams }
+
+let targetTmPragmaDef =
+    { PragmaDefinition.Name = "targettm"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "Set target melting temperature for pcr designs."
+      InvertsTo = None
+      Validate = parseDouble }
+
+let seamlessTmPragmaDef =
+    { PragmaDefinition.Name = "seamlesstm"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description =
+          "Set target melting temperature for seamless designs (body of primer that amplifies the two pieces adjacent to the junction)."
+      InvertsTo = None
+      Validate = parseDouble }
+
+let seamlessOverlapTmPragmaDef =
+    { PragmaDefinition.Name = "seamlessoverlaptm"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description =
+          "Set target melting temperature for the tail of the seamless primers that overlap in the middle to form the junction."
+      InvertsTo = None
+      Validate = parseDouble }
+
+let atPenaltyPragmaDef =
+    { PragmaDefinition.Name = "atpenalty"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "Set degree of tm flexibility to get a terminal G or C and unstable 3' end of an oligo."
+      InvertsTo = None
+      Validate = parseDouble }
+
+let pcrAssemblyParamsPragmaDef =
+    { PragmaDefinition.Name = "pcrassemblyparams"
+      Shape = Range(1, 5)
+      Scope = BlockOnly(Persistent)
+      Description = "Set melting conditions for the overlap junction in a seamless design."
+      InvertsTo = None
+      Validate = validatePcrParams }
+
+let minOverlapLenPragmaDef =
+    { PragmaDefinition.Name = "minoverlaplen"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "Sets the minimum overlap length for junction in a seamless design."
+      InvertsTo = None
+      Validate = parseInt }
+
+let lenPragmaDef =
+    { PragmaDefinition.Name = "len"
+      Shape = One
+      Scope = PartOnly
+      Description = "Set specific heterology block length for a ~ part."
+      InvertsTo = None
+      Validate = parseInt }
+
+let userPragmaDef =
+    { PragmaDefinition.Name = "user"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "Set owner for any output fields with a creator field"
+      InvertsTo = None
+      Validate = noValidate }
+
+let stylePragmaDef =
+    { PragmaDefinition.Name = "style"
+      Shape = One
+      Scope = PartOnly
+      Description = "Set allele swap style."
+      InvertsTo = None
+      Validate = noValidate }
+
+let breedPragmaDef =
+    { PragmaDefinition.Name = "breed"
+      Shape = One
+      Scope = PartOnly
+      Description = "Specify RYSE breed for a specific rabit, overriding any breed inference."
+      InvertsTo = None
+      Validate = noValidate }
+
+let inlinePragmaDef =
+    { PragmaDefinition.Name = "inline"
+      Shape = Zero
+      Scope = PartOnly
+      Description = "Force long inline sequences to be created inline as part of a 2 piece rabit regardless of length."
+      InvertsTo = None
+      Validate = noValidate }
+
+let seedPragmaDef =
+    { PragmaDefinition.Name = "seed"
+      Shape = One
+      Scope = BlockOrPart(Persistent)
+      Description = "Sets the seed for the random number generator for things like codon optimization."
+      InvertsTo = None
+      Validate = parseInt }
+
+let codonOptPragmaDef =
+    { PragmaDefinition.Name = "codonopt"
+      Shape = AtLeast 1
+      Scope = BlockOnly(Persistent)
+      Description = "Set codon optimization parameters."
+      InvertsTo = None
+      Validate = noValidate }
+
+let uriPragmaDef =
+    { PragmaDefinition.Name = "uri"
+      Shape = One
+      Scope = BlockOrPart(Transient)
+      Description = "Tag a part or assembly with a URI."
+      InvertsTo = None
+      Validate = noValidate }
+
+let swapEndPragmaDef =
+    { PragmaDefinition.Name = "swapend"
+      Shape = One
+      Scope = PartOnly
+      Description = "State an end preference for an allele swap. Arg should be '3' or '5'."
+      InvertsTo = None
+      Validate = parseInt }
+
+let promLenPragmaDef =
+    { PragmaDefinition.Name = "promlen"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "preferred promoter length - overrides genome or system default."
+      InvertsTo = None
+      Validate = parseInt }
+
+let termLenPragmaDef =
+    { PragmaDefinition.Name = "termlen"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "preferred terminator length - overrides genome or system default."
+      InvertsTo = None
+      Validate = parseInt }
+
+let termLenMrnaPragmaDef =
+    { PragmaDefinition.Name = "termlenmrna"
+      Shape = One
+      Scope = BlockOnly(Persistent)
+      Description = "preferred terminator region length when part of mRNA part- overrides genome or system default."
+      InvertsTo = None
+      Validate = parseInt }
+
 /// Base set of hard coded pragmas.  Plugins might augment this list
-let pragmaDefsStatic: PragmaDefinition list =
+let builtInPragmas: PragmaDefinition list =
     [ warningPragmaDef
       warnoffPragmaDef
       capaPragmaDef
@@ -218,206 +452,60 @@ let pragmaDefsStatic: PragmaDefinition list =
       namePragmaDef
       fusePragmaDef
       ampPragmaDef
-      { Name = "linkers"
-        Shape = AtLeast(1)
-        Scope = BlockOnly(Persistent)
-        Description = "Override the default set of RYSE linkers."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "refgenome"
-        Shape = One
-        Scope = BlockOrPart(Persistent)
-        Description = "Specify a reference genome."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "dnasrc"
-        Shape = One
-        Scope = PartOnly
-        Description = "Specify a DNA source for a part."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "stitch"
-        Shape = Zero
-        Scope = BlockOnly(Persistent)
-        Description = "TODO description"
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "megastitch"
-        Shape = Zero
-        Scope = BlockOnly(Persistent)
-        Description = "TODO description"
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "rabitstart"
-        Shape = Zero
-        Scope = PartOnly
-        Description = "Designate part as the start of a RYSE rabit."
-        InvertsTo = Some("rabitend")
-        Validate = noValidate }
-      { Name = "rabitend"
-        Shape = Zero
-        Scope = PartOnly
-        Description = "Designate part as the end of a RYSE rabit."
-        InvertsTo = Some("rabitstart")
-        Validate = noValidate }
-      { Name = "primerpos"
-        Shape = Exactly(2)
-        Scope = PartOnly
-        Description =
-            "Dictate forward FWD or reverse REV primer position relative to first base of a short inline slice"
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "primermax"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "Max length of primer that can be designed."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "primermin"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "Max length of primer that can be designed."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "pcrparams"
-        Shape = Range(1, 5)
-        Scope = BlockOnly(Persistent)
-        Description = "Set various parts of PCR conditions."
-        InvertsTo = None
-        Validate = validatePcrParams }
-      { Name = "targettm"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "Set target melting temperature for pcr designs."
-        InvertsTo = None
-        Validate = parseDouble }
-      { Name = "seamlesstm"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description =
-            "Set target melting temperature for seamless designs (body of primer that amplifies the two pieces adjacent to the junction)."
-        InvertsTo = None
-        Validate = parseDouble }
-      { Name = "seamlessoverlaptm"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description =
-            "Set target melting temperature for the tail of the seamless primers that overlap in the middle to form the junction."
-        InvertsTo = None
-        Validate = parseDouble }
-      { Name = "atpenalty"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "Set degree of tm flexibility to get a terminal G or C and unstable 3' end of an oligo."
-        InvertsTo = None
-        Validate = parseDouble }
-      { Name = "pcrassemblyparams"
-        Shape = Range(1, 5)
-        Scope = BlockOnly(Persistent)
-        Description = "Set melting conditions for the overlap junction in a seamless design."
-        InvertsTo = None
-        Validate = validatePcrParams }
-      { Name = "minoverlaplen"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "Sets the minimum overlap length for junction in a seamless design."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "len"
-        Shape = One
-        Scope = PartOnly
-        Description = "Set specific heterology block length for a ~ part."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "user"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "Set owner for any output fields with a creator field"
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "style"
-        Shape = One
-        Scope = PartOnly
-        Description = "Set allele swap style."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "breed"
-        Shape = One
-        Scope = PartOnly
-        Description = "Specify RYSE breed for a specific rabit, overriding any breed inference."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "inline"
-        Shape = Zero
-        Scope = PartOnly
-        Description =
-            "Force long inline sequences to be created inline as part of a 2 piece rabit regardless of length."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "seed"
-        Shape = One
-        Scope = BlockOrPart(Persistent)
-        Description = "Sets the seed for the random number generator for things like codon optimization."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "codonopt"
-        Shape = AtLeast 1
-        Scope = BlockOnly(Persistent)
-        Description = "Set codon optimization parameters."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "uri"
-        Shape = One
-        Scope = BlockOrPart(Transient)
-        Description = "Tag a part or assembly with a URI."
-        InvertsTo = None
-        Validate = noValidate }
-      { Name = "swapend"
-        Shape = One
-        Scope = PartOnly
-        Description = "State an end preference for an allele swap. Arg should be '3' or '5'."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "promlen"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "preferred promoter length - overrides genome or system default."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "termlen"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "preferred terminator length - overrides genome or system default."
-        InvertsTo = None
-        Validate = parseInt }
-      { Name = "termlenmrna"
-        Shape = One
-        Scope = BlockOnly(Persistent)
-        Description = "preferred terminator region length when part of mRNA part- overrides genome or system default."
-        InvertsTo = None
-        Validate = parseInt }
+      linkersPragmaDef
+      refGenomePragmaDef
+      dnaSrcPragmaDef
+      stitchPragmaDef
+      megastitchPragmaDef
+      rabitStartPragmaDef
+      rabitEndPragmaDef
+      primerPosPragmaDef
+      primerMaxPragmaDef
+      primerMinPragmaDef
+      pcrParamsPragmaDef
+      targetTmPragmaDef
+      seamlessTmPragmaDef
+      seamlessOverlapTmPragmaDef
+      atPenaltyPragmaDef
+      pcrAssemblyParamsPragmaDef
+      minOverlapLenPragmaDef
+      lenPragmaDef
+      userPragmaDef
+      stylePragmaDef
+      breedPragmaDef
+      inlinePragmaDef
+      seedPragmaDef
+      codonOptPragmaDef
+      uriPragmaDef
+      swapEndPragmaDef
+      promLenPragmaDef
+      termLenPragmaDef
+      termLenMrnaPragmaDef
       topologyPragmaDef ]
 
 
 
 
 type PragmaCache(pragmas: Map<string, PragmaDefinition>) =
-    member this.Pragmas with get() = pragmas
-    
+    member this.Pragmas = pragmas
+
 module PragmaCache =
     /// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
-    let inverts  (pragmaDefinition: PragmaDefinition) (cache: PragmaCache): PragmaDefinition option =
+    let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaCache): PragmaDefinition option =
         match pragmaDefinition.InvertsTo with
         | None -> None
         | Some name ->
             match cache.Pragmas.TryFind name with
             | None -> failwithf "Pragma %s inverts to an unknown pragma %s" (pragmaDefinition.Name) name
             | Some result -> // inverts to a known pragma, make sure they have the same shape
-                if pragmaDefinition.Shape <> result.Shape
-                then failwithf "Pragma %s inverts to %s but they have differing argShapes." (pragmaDefinition.Name) (result.Name)
+                if pragmaDefinition.Shape <> result.Shape then
+                    failwithf
+                        "Pragma %s inverts to %s but they have differing argShapes."
+                        (pragmaDefinition.Name)
+                        (result.Name)
 
-                Some result    
-    
+                Some result
+
     let create (pragmas: PragmaDefinition list): PragmaCache =
         let pragmaDefinitions =
             pragmas
@@ -440,16 +528,13 @@ module PragmaCache =
         // Raises an exception if any one doesn't validate.
         for pragmaDefinition in pragmaDefinitions do
             cache |> inverts pragmaDefinition |> ignore
+
         cache
-    
-    let createWithBuiltinPragmas (pragmas: PragmaDefinition list) =
-        pragmas @ pragmaDefsStatic
-        |> create
-        
-    let builtin =
-        pragmaDefsStatic
-        |> create        
-    
+
+    let createWithBuiltinPragmas (pragmas: PragmaDefinition list) = pragmas @ builtInPragmas |> create
+
+    let builtin = builtInPragmas |> create
+
 /// Instance of a pragma directive.
 [<CustomEquality; CustomComparison>]
 type Pragma =
@@ -479,7 +564,9 @@ type Pragma =
     /// Only consider pragma name and args in comparions.
     override this.Equals(obj) =
         match obj with
-        | :? Pragma as other -> (this.name = other.name && this.Arguments = other.Arguments)
+        | :? Pragma as other ->
+            (this.name = other.name
+             && this.Arguments = other.Arguments)
         | _ -> false
     /// Hash a Pragma as a combination of pName and args.
     override this.GetHashCode() = hash (this.name, this.Arguments)
@@ -541,7 +628,7 @@ let pragmaUsage (cache: PragmaCache) =
         printfn "%s" (formatPragma p)
 
 /// Raise an exception if pName is not among the registered pragmas.
-let validatePragmaName  (pragmaName: string) (cache: PragmaCache) =
+let validatePragmaName (pragmaName: string) (cache: PragmaCache) =
     if cache.Pragmas |> Map.containsKey pragmaName |> not
     then failwithf "Requested unknown pragma '#%s'." pragmaName
 
@@ -634,6 +721,7 @@ type PragmaCollection =
                      | Ok (newPragma, _messages) -> this.Pragmas.Add(pragma.name, newPragma)
                      | Bad messages -> failwithf "%s" (String.Join(";", messages))
              | _ -> this.Pragmas.Add(pragma.name, pragma))
+
         { this with Pragmas = pragmas }
     /// Add a pragma to this collection using string name.
     member x.Add(pName: string) = x.Add(pName, [])
@@ -641,11 +729,13 @@ type PragmaCollection =
     member x.Add(pName: string, value: string) = x.Add(pName, [ value ])
     /// Add a pragma to this collection using string name and values.
     member x.Add(pName: string, values: string list) =
-        x.Cache |> buildPragma pName values
+        x.Cache
+        |> buildPragma pName values
         >>= (fun p -> ok (x.Add(p)))
     /// Remove a pragma from this collection.
     member this.Remove(name: string) =
-        { this with Pragmas = this.Pragmas |> Map.remove name }
+        { this with
+              Pragmas = this.Pragmas |> Map.remove name }
     /// Remove a pragma from this collection.
     member x.Remove(pDef: PragmaDefinition) = x.Remove(pDef.Name)
     /// Remove a pragma from this collection.
@@ -656,6 +746,7 @@ type PragmaCollection =
         let newPragmas =
             incoming
             |> List.fold (fun (pc: Map<string, Pragma>) prag -> pc.Add(prag.name, prag)) this.Pragmas
+
         { this with Pragmas = newPragmas }
     /// Merge another PragmaCollection into this one.
     /// The incoming pragmas will clobber any pragmas set in this collection.
@@ -663,6 +754,7 @@ type PragmaCollection =
         let newPragmas =
             incoming.Pragmas
             |> Map.fold (fun (pc: Map<string, Pragma>) name prag -> pc.Add(name, prag)) this.Pragmas
+
         { this with Pragmas = newPragmas }
     /// Has a pragma been set?
     /// Raises an exception if pName is not a registered pragma.
@@ -670,7 +762,8 @@ type PragmaCollection =
         this.Cache |> validatePragmaName pName
         this.Pragmas |> Map.containsKey pName
     /// Has a pragma been set?
-    member this.ContainsKey(pDef: PragmaDefinition) = this.Pragmas |> Map.containsKey pDef.Name
+    member this.ContainsKey(pDef: PragmaDefinition) =
+        this.Pragmas |> Map.containsKey pDef.Name
     /// Has a pragma been set?
     member x.ContainsKey(p: Pragma) = x.Pragmas |> Map.containsKey p.name
     /// Get the values associated with a pragma.
@@ -721,11 +814,14 @@ let createPragmaCollection (pragmas: seq<Pragma>) (cache: PragmaCache) =
         pragmas
         |> Seq.map (fun p -> p.name, p)
         |> Map.ofSeq
+
     { PragmaCollection.Cache = cache
       Pragmas = pragmas }
-    
 
-let EmptyPragmas = { PragmaCollection.Pragmas = Map.empty; Cache = PragmaCache.builtin }
+
+let EmptyPragmas =
+    { PragmaCollection.Pragmas = Map.empty
+      Cache = PragmaCache.builtin }
 
 /// Determine the current assembly mode from pragma collection.
 let assemblyMode (pc: PragmaCollection) =

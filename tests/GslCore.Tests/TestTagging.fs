@@ -18,7 +18,7 @@ open GslCore.PragmaTypes
 [<TestFixture>]
 type TestTagging() =
 
-    
+
     /// Grab high level part wrappers around assemblies so we can see pragmas
     let rec extractParts (n: AstNode): ParsePart list =
         [ match n with
@@ -34,7 +34,7 @@ type TestTagging() =
           | _ -> () ]
 
     /// compile one GSL source example and extract assemblies
-    let compileOne cache source  =
+    let compileOne cache source =
         source
         |> GslSourceCode
         |> compile (phase1 Set.empty cache)
@@ -139,11 +139,10 @@ uADH2; dADH2
 
             p, tagPragmas)
 
-    
-    static member PragmaCache with get() =
-        PragmaCache.createWithBuiltinPragmas
-            [ TaggingPlugin.tagPragmaDef
-              TaggingPlugin.gTagPragmaDef ]    
+
+    static member PragmaCache =
+        PragmaCache.createWithBuiltinPragmas [ TaggingPlugin.tagPragmaDef
+                                               TaggingPlugin.gTagPragmaDef ]
 
     [<Test>]
     member __.TestNoTag() =
@@ -376,14 +375,15 @@ uADH2; dADH2
         let cliTags = input.CliTags
 
         let pragmaCollection =
-            createPragmaCollection [ for pragma in input.PragmaTags do
-                                         { Pragma.Arguments = [ pragma ]
-                                           Definition = TaggingPlugin.tagPragmaDef }
+            createPragmaCollection
+                [ for pragma in input.PragmaTags do
+                    { Pragma.Arguments = [ pragma ]
+                      Definition = TaggingPlugin.tagPragmaDef }
 
-                                     for pragma in input.GlobalPragmaTags do
-                                         { Pragma.Arguments = [ pragma ]
-                                           Definition = TaggingPlugin.gTagPragmaDef } ]
-                                   TestTagging.PragmaCache
+                  for pragma in input.GlobalPragmaTags do
+                      { Pragma.Arguments = [ pragma ]
+                        Definition = TaggingPlugin.gTagPragmaDef } ]
+                TestTagging.PragmaCache
 
         let context = TestTagging.dummyContext
 
