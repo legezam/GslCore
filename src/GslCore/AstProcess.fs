@@ -10,7 +10,6 @@ open GslCore.AstAlgorithms
 open GslCore.RefGenome
 open GslCore.Constants
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 
 // ==========================
 // Helper functions to ease working with pragmas and parts.

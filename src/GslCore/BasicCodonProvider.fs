@@ -6,7 +6,6 @@ open MathNet.Numerics.Random
 open System.Collections.Generic
 open System.IO
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open Amyris.Bio.biolib
 open Amyris.Bio.IO.CodonUsage
 open Amyris.Bio.SuffixTree

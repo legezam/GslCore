@@ -2,7 +2,6 @@
 
 open GslCore.CommonTypes
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.LegacyParseTypes
 open GslCore.Ryse
 open GslCore.ApplySlices

@@ -5,7 +5,7 @@ open GslCore.PluginTypes
 open GslCore.CommonTypes
 open Amyris.Bio.utils
 open System.IO
-open GslCore.Pragma.Domain
+open GslCore.Pragma
 open GslCore.RefGenome
 open Amyris.Dna
 

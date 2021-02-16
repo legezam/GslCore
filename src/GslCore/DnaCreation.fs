@@ -6,7 +6,6 @@ open GslCore.Constants
 open GslCore.LegacyParseTypes
 open GslCore.RefGenome
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.CommonTypes
 open GslCore.ApplySlices
 open Amyris.Bio

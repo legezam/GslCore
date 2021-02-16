@@ -4,7 +4,7 @@ open System.IO
 open System
 open System.Text
 open System.Reflection
-open GslCore.Pragma.Domain
+open GslCore.Pragma
 open Microsoft.FSharp.Core.Printf
 
 open GslCore.CommonTypes

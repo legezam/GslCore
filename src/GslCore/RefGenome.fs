@@ -7,7 +7,6 @@ open Amyris.Bio.utils
 open Amyris.Bio.SuffixTree
 open GslCore.Constants
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open Amyris.ErrorHandling
 open Amyris.Dna
 (*

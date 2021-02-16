@@ -7,7 +7,6 @@ open GslCore.GslcProcess
 open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open Amyris.Dna
 open GslCore.Constants
 

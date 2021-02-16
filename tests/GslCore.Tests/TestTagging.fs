@@ -14,7 +14,6 @@ open GslCore.CommonTypes
 open GslCore.Constants
 open GslCore.BasicCodonProvider
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 
 [<TestFixture>]
 type TestTagging() =

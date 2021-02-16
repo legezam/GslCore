@@ -3,7 +3,6 @@
 open System.IO
 open System
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.CommonTypes
 open Amyris.Bio.utils
 open Amyris.Dna

@@ -2,7 +2,7 @@
 
 open System.IO
 open GslCore
-open GslCore.Pragma.Domain
+open GslCore.Pragma
 open NUnit.Framework
 open Amyris.Bio.biolib
 open GslCore.LegacyParseTypes

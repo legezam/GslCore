@@ -8,7 +8,7 @@ open GslCore.PluginTypes
 open GslCore.Constants
 open Amyris.ErrorHandling
 open GslCore.GslcProcess
-open GslCore.Pragma.Domain
+open GslCore.Pragma
 
 let mt =
     { id = None

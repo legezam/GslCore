@@ -2,7 +2,6 @@
 
 open System
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.Uri

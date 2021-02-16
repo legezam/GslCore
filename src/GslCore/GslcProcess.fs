@@ -8,7 +8,6 @@ open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.DnaCreation
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.PrimerCreation
 open GslCore.ProcessCmdLineArgs
 open GslCore.PluginTypes

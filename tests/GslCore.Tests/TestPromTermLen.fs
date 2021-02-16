@@ -6,7 +6,6 @@ open GslCore.LegacyParseTypes
 open GslCore.Constants
 open GslCore.CommonTypes
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open Amyris.ErrorHandling
 
 /// location of test gslc_lib fixtures

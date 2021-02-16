@@ -6,7 +6,6 @@ open GslCore.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.CommandConfig
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.PluginTypes
 open Amyris.ErrorHandling
 

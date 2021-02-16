@@ -6,7 +6,6 @@ open GslCore.Constants
 open System
 open GslCore.Uri
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.AstTypes
 open GslCore.AstProcess
 open GslCore.AstErrorHandling

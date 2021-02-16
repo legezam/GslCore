@@ -10,7 +10,6 @@ open Amyris.Bio.biolib
 open Amyris.Dna
 open GslCore.DesignParams
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 
 /// Check if tail of A overlaps head of B
 let checkTailAOverlapsHeadB (a: Dna) (b: Dna) =

@@ -2,7 +2,7 @@ namespace GslCore.Tests
 
 open System
 open GslCore
-open GslCore.Pragma.Domain
+open GslCore.Pragma
 open NUnit.Framework
 open GslCore.GslcProcess
 open GslCore.CommonTypes

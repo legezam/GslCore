@@ -14,7 +14,6 @@ open GslCore.LegacyParseTypes
 open Amyris.Dna
 open GslCore.DnaCreation
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.AlleleSwaps
 open Amyris.Bio.utils
 open GslCore.ApplySlices

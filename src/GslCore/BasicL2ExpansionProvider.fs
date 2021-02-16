@@ -5,7 +5,6 @@
 /// Modelled roughly on roughage syntax  e.g. gHO^ ; a> b ; c>d etc
 ///
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.LegacyParseTypes
 open GslCore.AstTypes
 open GslCore.AstAlgorithms

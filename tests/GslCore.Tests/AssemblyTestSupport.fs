@@ -8,7 +8,6 @@ open GslCore.Constants
 open Amyris.ErrorHandling
 open GslCore.CommonTypes
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open Amyris.Dna
 
 let rec extractAssemblies (n: AstNode): AstNode list =

@@ -3,7 +3,6 @@
 open Amyris.Bio.primercore
 open Amyris.ErrorHandling
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open GslCore.Constants
 open GslCore.PcrParamParse
 

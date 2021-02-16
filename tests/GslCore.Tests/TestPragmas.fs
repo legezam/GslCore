@@ -1,7 +1,6 @@
 ﻿namespace GslCore
 
 open GslCore.Pragma
-open GslCore.Pragma.Domain
 open NUnit.Framework
 open Amyris.ErrorHandling
 open Amyris.Bio.primercore
