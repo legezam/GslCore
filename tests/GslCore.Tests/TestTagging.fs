@@ -142,8 +142,8 @@ uADH2; dADH2
 
 
     static member PragmaCache =
-        PragmaCache.createWithBuiltinPragmas [ TaggingPlugin.tagPragmaDef
-                                               TaggingPlugin.gTagPragmaDef ]
+        PragmaBuilder.createWithBuiltinPragmas [ TaggingPlugin.tagPragmaDef
+                                                 TaggingPlugin.gTagPragmaDef ]
 
     [<Test>]
     member __.TestNoTag() =
@@ -313,7 +313,7 @@ uADH2; dADH2
           name = "fooslice"
           uri = None
           linkerHint = "hint"
-          pragmas = PragmaCollection.create Seq.empty TestTagging.PragmaCache
+          pragmas = PragmaCollection.create Seq.empty
           designParams = DesignParams.identity
           docStrings = []
           materializedFrom = AssemblyTestBase.emptyAssembly
@@ -384,7 +384,6 @@ uADH2; dADH2
                   for pragma in input.GlobalPragmaTags do
                       { Pragma.Arguments = [ pragma ]
                         Definition = TaggingPlugin.gTagPragmaDef } ]
-                TestTagging.PragmaCache
 
         let context = TestTagging.dummyContext
 

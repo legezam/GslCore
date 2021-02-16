@@ -15,8 +15,7 @@ open GslCore.Pragma
 /// It should be impossible to add invalid pragmas to this structure without
 /// doing it manually through the underlying map.</summary>
 type PragmaCollection =
-    { Pragmas: Map<string, Pragma>
-      Cache: PragmaCache }
+    { Pragmas: Map<string, Pragma>  }
 
     /// Pretty-print a collection of pragmas.
     override x.ToString() =
@@ -33,46 +32,32 @@ type PragmaCollection =
 
 module PragmaCollection =
     /// Add a Pragma to this collection.
-    let addPragma (pragma: Pragma) (this: PragmaCollection): PragmaCollection =
+    let add (pragma: Pragma) (this: PragmaCollection): PragmaCollection =
         let pragmas =
-            (match pragma.Definition.Scope with
-             | BlockOnly (PersistentCumulative)
-             | BlockOrPart (PersistentCumulative)
-             | BlockOnly (TransientCumulative)
-             | BlockOrPart (TransientCumulative) ->
-                 match this.Pragmas.TryFind(pragma.Name) with
-                 | None -> this.Pragmas.Add(pragma.Name, pragma)
-                 | Some (existing) ->
-                     let newArgs = existing.Arguments @ pragma.Arguments // new args go on the end
+            match pragma.Definition.Scope with
+            | BlockOnly PersistentCumulative
+            | BlockOrPart PersistentCumulative
+            | BlockOnly TransientCumulative
+            | BlockOrPart TransientCumulative ->
+                match this.Pragmas |> Map.tryFind pragma.Name with
+                | None -> this.Pragmas |> Map.add pragma.Name pragma
+                | Some existing ->
+                    let newArgs = existing.Arguments @ pragma.Arguments // new args go on the end
 
-                     match existing.Definition
-                           |> Pragma.fromDefinition newArgs with
-                     | Ok (newPragma, _messages) -> this.Pragmas.Add(pragma.Name, newPragma)
-                     | Bad messages -> failwithf "%s" (String.Join(";", messages))
-             | _ -> this.Pragmas.Add(pragma.Name, pragma))
+                    match existing.Definition
+                          |> Pragma.fromDefinition newArgs with
+                    | Ok (newPragma, _messages) -> this.Pragmas |> Map.add pragma.Name newPragma
+                    | Bad messages -> failwithf "%s" (String.Join(";", messages))
+            | _ -> this.Pragmas |> Map.add pragma.Name pragma
 
         { this with Pragmas = pragmas }
-
-    /// Add a pragma to this collection using string name and values.
-    let addNameValues (name: string, values: string list) (this: PragmaCollection): Result<PragmaCollection, string> =
-        this.Cache
-        |> PragmaCache.pragmaFromNameValue name values
-        >>= fun pragma -> this |> addPragma pragma |> ok
-
-    /// Add a pragma to this collection using string name and single value.
-    let addNameValue (name: string, value: string) (this: PragmaCollection): Result<PragmaCollection, string> =
-        this |> addNameValues (name, [ value ])
-
-    /// Add a pragma to this collection using string name.
-    let addName (name: string) (this: PragmaCollection): Result<PragmaCollection, string> =
-        this |> addNameValues (name, [])
 
     /// Remove a pragma from this collection.
     let removeName (name: string) (this: PragmaCollection): PragmaCollection =
         { this with
               Pragmas = this.Pragmas |> Map.remove name }
     /// Remove a pragma from this collection.
-    let removeDefinition (definition: PragmaDefinition) (this: PragmaCollection): PragmaCollection =
+    let remove (definition: PragmaDefinition) (this: PragmaCollection): PragmaCollection =
         this |> removeName definition.Name
 
     /// Remove a pragma from this collection.
@@ -96,13 +81,9 @@ module PragmaCollection =
                 collection |> Map.add name pragma) this.Pragmas
 
         { this with Pragmas = newPragmas }
+
     /// Has a pragma been set?
-    /// Raises an exception if pName is not a registered pragma.
-    let containsName (name: string) (this: PragmaCollection): bool =
-        this.Cache |> PragmaCache.validatePragmaName name
-        this.Pragmas |> Map.containsKey name
-    /// Has a pragma been set?
-    let containsPragmaDef (definition: PragmaDefinition) (this: PragmaCollection): bool =
+    let contains (definition: PragmaDefinition) (this: PragmaCollection): bool =
         this.Pragmas |> Map.containsKey definition.Name
     /// Has a pragma been set?
     let containsPragma (pragma: Pragma) (this: PragmaCollection) =
@@ -110,30 +91,21 @@ module PragmaCollection =
 
     /// Get the values associated with a pragma.
     /// Raises an exception is pName is not a registered pragma.
-    let tryGetValues (name: string) (this: PragmaCollection): string list option =
-        this.Cache |> PragmaCache.validatePragmaName name
+    let tryGetValues (definition: PragmaDefinition) (this: PragmaCollection): string list option =
 
         this.Pragmas
-        |> Map.tryFind name
+        |> Map.tryFind definition.Name
         |> Option.map (fun pragma -> pragma.Arguments)
 
     /// Get a single value associated with a pragma, ignoring any extras.
     /// Raises an exception is pName is not a registered pragma.
-    let tryGetValue (name: string) (this: PragmaCollection): string option =
-        this.Cache |> PragmaCache.validatePragmaName name
-
+    let tryGetValue (definition: PragmaDefinition) (this: PragmaCollection): string option =
         this
-        |> tryGetValues name
+        |> tryGetValues definition
         |> Option.bind List.tryHead
 
-    /// Get a pragma.
-    /// Raises an exception is pName is not a registered pragma.
-    let tryFindName (name: string) (this: PragmaCollection): Pragma option =
-        this.Cache |> PragmaCache.validatePragmaName name
-        this.Pragmas.TryFind name
-
     /// Get a pragma by definition.
-    let tryFindDefinition (definition: PragmaDefinition) (this: PragmaCollection) =
+    let tryFind (definition: PragmaDefinition) (this: PragmaCollection) =
         this.Pragmas |> Map.tryFind definition.Name
 
     let names (this: PragmaCollection): Set<string> =
@@ -146,25 +118,23 @@ module PragmaCollection =
     let isEmpty (this: PragmaCollection): bool = this.Pragmas.IsEmpty
 
 
-    let create (pragmas: seq<Pragma>) (cache: PragmaCache) =
+    let create (pragmas: seq<Pragma>) =
         let pragmas =
             pragmas
             |> Seq.map (fun pragma -> pragma.Name, pragma)
             |> Map.ofSeq
 
-        { PragmaCollection.Cache = cache
-          Pragmas = pragmas }
+        { Pragmas = pragmas }
 
 
     let empty =
-        { PragmaCollection.Pragmas = Map.empty
-          Cache = PragmaCache.builtin }
+        { PragmaCollection.Pragmas = Map.empty }
 
     /// Determine the current assembly mode from pragma collection.
     let assemblyMode (collection: PragmaCollection): Platform =
         let maybePlatformDefinition =
             collection
-            |> tryFindName BuiltIn.platformPragmaDef.Name
+            |> tryFind BuiltIn.platformPragmaDef
 
         match maybePlatformDefinition with
         | Some platformPragma ->

@@ -34,7 +34,7 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 let compileOne source =
     source
     |> GslSourceCode
-    |> compile (phase1 Set.empty PragmaCache.builtin)
+    |> compile (phase1 Set.empty PragmaBuilder.builtin)
     |> returnOrFail
     |> fun x -> extractAssemblies x.wrappedNode
 
@@ -228,69 +228,69 @@ let uFooFuse =
     { uFoo with
           pragmas =
               uFoo.pragmas
-              |> PragmaCollection.addPragma fusePragma
+              |> PragmaCollection.add fusePragma
           sliceName = uFoo.sliceName + "#fuse" }
 
 let smallInlineAmp =
     { smallInline with
           pragmas =
               smallInline.pragmas
-              |> PragmaCollection.addPragma amp
+              |> PragmaCollection.add amp
           sliceName = smallInline.sliceName + "#amp" }
 
 let smallInlineFuse =
     { smallInline with
           pragmas =
               smallInline.pragmas
-              |> PragmaCollection.addPragma fusePragma
+              |> PragmaCollection.add fusePragma
           sliceName = smallInline.sliceName + "#fuse" }
 
 let mediumInlineAmp =
     { mediumInline with
           pragmas =
               mediumInline.pragmas
-              |> PragmaCollection.addPragma amp
+              |> PragmaCollection.add amp
           sliceName = mediumInline.sliceName + "#amp" }
 
 let mediumInlineFuse =
     { mediumInline with
           pragmas =
               mediumInline.pragmas
-              |> PragmaCollection.addPragma fusePragma
+              |> PragmaCollection.add fusePragma
           sliceName = mediumInline.sliceName + "#fuse" }
 
 let longInlineAmp =
     { longInline with
           pragmas =
               longInline.pragmas
-              |> PragmaCollection.addPragma amp
+              |> PragmaCollection.add amp
           sliceName = longInline.sliceName + "#amp" }
 
 let longInlineAmpFuse =
     { longInlineAmp with
           pragmas =
               longInlineAmp.pragmas
-              |> PragmaCollection.addPragma fusePragma
+              |> PragmaCollection.add fusePragma
           sliceName = longInlineAmp.sliceName + "#fuse" }
 
 let longInlineInline =
     { longInline with
           pragmas =
               longInline.pragmas
-              |> PragmaCollection.addPragma inlinePragma }
+              |> PragmaCollection.add inlinePragma }
 
 let shortInlineWithRabitStart =
     { shortInline with
           pragmas =
               shortInline.pragmas
-              |> PragmaCollection.addPragma rabitStart
+              |> PragmaCollection.add rabitStart
           sliceName = shortInline.sliceName + "#rabitstart" }
 
 let shortInlineWithRabitEnd =
     { shortInline with
           pragmas =
               shortInline.pragmas
-              |> PragmaCollection.addPragma rabitEnd
+              |> PragmaCollection.add rabitEnd
           sliceName = shortInline.sliceName + "#rabitend" }
 
 let linkerAlice =

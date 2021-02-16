@@ -16,8 +16,7 @@ let testLibDir2 = @"../../../../../TestGslcLib"
 type TestPromTermLen() =
     
     let emptyPragmas =
-        { PragmaCollection.Pragmas = Map.empty
-          Cache = PragmaCache.builtin }
+        PragmaCollection.empty
 
     let testLibDir =
         if System.IO.Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
@@ -65,12 +64,11 @@ type TestPromTermLen() =
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
-        match PragmaCache.pragmaFromNameValue name [ value ] PragmaCache.builtin with
+        match PragmaBuilder.createPragmaFromNameValue name [ value ] PragmaBuilder.builtin with
         | Ok (p, []) ->
             let map =
                 { PragmaCollection.Pragmas =
-                    [ p.Name, p ] |> Map.ofList
-                  Cache = PragmaCache.builtin }
+                    [ p.Name, p ] |> Map.ofList }
 
             checkOneGenome map refGenome expProm expTerm expTermMRNA
         | _ -> failwith "building promlen pragma"
@@ -87,7 +85,7 @@ type TestPromTermLen() =
     member __.TestPragmasExist() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
-                returnOrFail (PragmaCache.pragmaFromNameValue name [ "250" ] PragmaCache.builtin)
+                returnOrFail (PragmaBuilder.createPragmaFromNameValue name [ "250" ] PragmaBuilder.builtin)
                 |> ignore)
 
         checkPragmaExists "promlen"

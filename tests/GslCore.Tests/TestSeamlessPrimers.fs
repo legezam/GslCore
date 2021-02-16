@@ -11,8 +11,7 @@ open GslCore.Pragma
 let map = Map.ofSeq
 
 let emptyPragmas =
-    { PragmaCollection.Cache = PragmaCache.builtin
-      Pragmas =  Map.empty }
+    PragmaCollection.empty
 
 let uHO: DNASlice =
     { id = Some(2)

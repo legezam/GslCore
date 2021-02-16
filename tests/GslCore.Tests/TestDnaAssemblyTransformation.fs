@@ -85,8 +85,10 @@ type Test() =
 
         let refGenomePragmas =
             PragmaCollection.empty
-            |> PragmaCollection.addNameValue ("refgenome", "foogenome")
-            |> returnOrFail
+            |> PragmaCollection.add
+                   { Pragma.Definition = BuiltIn.refGenomePragmaDef
+                     Arguments = [ "foogenome" ] }
+            
 
         let assemblyHasRefGenome =
             AssemblyTestBase.testAssembly sliceNoSource refGenomePragmas
@@ -95,8 +97,9 @@ type Test() =
 
         let sliceWithSource =
             PragmaCollection.empty
-            |> PragmaCollection.addNameValue ("dnasrc", "foosource")
-            |> returnOrFail
+            |> PragmaCollection.add
+                   { Pragma.Definition = BuiltIn.dnaSrcPragmaDef
+                     Arguments = [ "foosource" ] }
             |> AssemblyTestBase.testSlice
 
         let assemblyHasSource =

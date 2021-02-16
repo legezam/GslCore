@@ -16,7 +16,7 @@ open GslCore.Constants
 
 [<TestFixture>]
 type TestPragmas() =
-    let pragmaCache = PragmaCache.builtin
+    let pragmaCache = PragmaBuilder.builtin
 
     [<Test>]
     member x.TestBadPragmasLocal() =
@@ -27,11 +27,11 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            returnOrFail (PragmaCache.pragmaFromNameValue badName [ badOption ] pragmaCache)
+            returnOrFail (PragmaBuilder.createPragmaFromNameValue badName [ badOption ] pragmaCache)
             |> ignore)
         |> ignore
 
-        Assert.DoesNotThrow(fun () -> PragmaCache.pragmaFromNameValue goodName [ goodOption ] |> ignore)
+        Assert.DoesNotThrow(fun () -> PragmaBuilder.createPragmaFromNameValue goodName [ goodOption ] |> ignore)
 
 
     [<Test>]
@@ -57,7 +57,7 @@ type TestPragmas() =
 [<TestFixture>]
 type TestPragmasAST() =
     
-    let pragmaCache = PragmaCache.builtin
+    let pragmaCache = PragmaBuilder.builtin
 
     let pragmaBuildPipeline =
         resolveVariables
@@ -198,7 +198,7 @@ gBAZ"""
             Pragma
                 (nodeWrap
                     { Definition =
-                          PragmaCache.builtin.Pragmas.TryFind("seed")
+                          PragmaBuilder.builtin.Pragmas.TryFind("seed")
                               .Value
                       Arguments = [ "123" ] })
 
@@ -206,7 +206,7 @@ gBAZ"""
             Pragma
                 (nodeWrap
                     { Definition =
-                          PragmaCache.builtin.Pragmas.TryFind("seed")
+                          PragmaBuilder.builtin.Pragmas.TryFind("seed")
                               .Value
                       Arguments = [ "456" ] })
 

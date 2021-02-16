@@ -181,7 +181,7 @@ let configureGslc unconfiguredPlugins argv =
 
 
             // fulfill this request only after we've processed all the plugins and determined full list of pragmas
-            if s.opts.doHelpPragmas then PragmaCache.pragmaUsage s.ga.pragmaCache
+            if s.opts.doHelpPragmas then PragmaBuilder.printPragmaUsage s.ga.pragmaCache
 
             Continue(s)
         with e -> Exit(1, Some(sprintf "An error occurred during configuration:\n%s" e.Message))

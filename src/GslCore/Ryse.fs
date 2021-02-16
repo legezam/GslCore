@@ -169,7 +169,7 @@ let getLinkerSetsForDesign (assembly: DnaAssembly): string list * string list =
         let invalidLinkerWarn (a: string list) (b: string list): bool =
             let linkerWarnOff =
                 assembly.pragmas
-                |> PragmaCollection.tryFindName BuiltIn.warnoffPragmaDef.Name
+                |> PragmaCollection.tryFind BuiltIn.warnoffPragmaDef
                 |> Option.map (Pragma.hasVal "zeronine")
                 |> Option.defaultValue false
 
@@ -228,9 +228,9 @@ let rec countRyseLinkersNeeded printVerbose total (l: DNASlice list) =
         countRyseLinkersNeeded printVerbose total tl
     | a :: _ :: tl when a.sliceType = INLINEST
                         && (a.pragmas
-                            |> PragmaCollection.containsName BuiltIn.rabitStartPragmaDef.Name
+                            |> PragmaCollection.contains BuiltIn.rabitStartPragmaDef
                             || a.pragmas
-                               |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name) ->
+                               |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef) ->
         printVerbose
             (sprintf
                 "  countRyseLinkersNeeded:  +0 inline slice at start/end of rabit 0 more linkers needed for %s"
@@ -422,7 +422,7 @@ let mapRyseLinkers (opts: ParsedOptions)
                                         || b.sliceType = SliceType.INLINEST
                                         || b.sliceType = SliceType.MARKER)
                                        && a.pragmas
-                                          |> PragmaCollection.containsName BuiltIn.rabitStartPragmaDef.Name ->
+                                          |> PragmaCollection.contains BuiltIn.rabitStartPragmaDef ->
             printVerbose "MRL-CASE 1"
             // a in an inline type with a pragma telling us to initiate the
             // start of a rabit here, so it needs to be preceded by a linker in
@@ -451,7 +451,7 @@ let mapRyseLinkers (opts: ParsedOptions)
                                           || b.sliceType = MARKER
                                           || b.sliceType = INLINEST)
                                          && a.pragmas
-                                            |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name ->
+                                            |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef ->
             printVerbose "MRL-CASE 2"
             // a in an inline type with a pragma telling us to end a rabit here,
             // so it needs to be followed by a rabit in the final part list
@@ -499,8 +499,8 @@ let mapRyseLinkers (opts: ParsedOptions)
         // MRL-CASE 5
         | FusionSlice _ :: b :: InlineSlice (c) :: d when not
                                                               (c.pragmas
-                                                               |> PragmaCollection.containsName
-                                                                   BuiltIn.rabitStartPragmaDef.Name) ->
+                                                               |> PragmaCollection.contains
+                                                                   BuiltIn.rabitStartPragmaDef) ->
             printVerbose "MRL-CASE 5"
             printVerbose "fusionST followed by X and then inline that is not a rabit start"
             // Note: a not emitted - we are not passing FUSIONST through in this case
@@ -509,12 +509,12 @@ let mapRyseLinkers (opts: ParsedOptions)
         // MRL-CASE 6
         | FusionSlice _ :: InlineSlice (b) :: c :: d when not
                                                               (b.pragmas
-                                                               |> PragmaCollection.containsName
-                                                                   BuiltIn.rabitStartPragmaDef.Name)
+                                                               |> PragmaCollection.contains
+                                                                   BuiltIn.rabitStartPragmaDef)
                                                           && not
                                                               (b.pragmas
-                                                               |> PragmaCollection.containsName
-                                                                   BuiltIn.rabitEndPragmaDef.Name) ->
+                                                               |> PragmaCollection.contains
+                                                                   BuiltIn.rabitEndPragmaDef) ->
             printVerbose "MRL-CASE 6"
             printVerbose "fusionST followed by inline that is not a rabit start"
             // No need for a linker before or after a fusion place holder, since
@@ -548,12 +548,12 @@ let mapRyseLinkers (opts: ParsedOptions)
         // MRL-CASE 9
         | InlineSlice (a) :: FusionSlice (b) :: c when (not
                                                             (a.pragmas
-                                                             |> PragmaCollection.containsName
-                                                                 BuiltIn.rabitStartPragmaDef.Name))
+                                                             |> PragmaCollection.contains
+                                                                 BuiltIn.rabitStartPragmaDef))
                                                        && (not
                                                                (a.pragmas
-                                                                |> PragmaCollection.containsName
-                                                                    BuiltIn.rabitEndPragmaDef.Name)) ->
+                                                                |> PragmaCollection.contains
+                                                                    BuiltIn.rabitEndPragmaDef)) ->
             printVerbose "MRL-CASE 9"
             // inline then fuse slice type and no directive to end or start here.
             // avoid dropping linkers into the middle of it all
@@ -564,9 +564,9 @@ let mapRyseLinkers (opts: ParsedOptions)
 
         // MRL-CASE 10
         | [ InlineSlice (hd) ] when (hd.pragmas
-                                     |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name
+                                     |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
                                      || hd.pragmas
-                                        |> PragmaCollection.containsName BuiltIn.inlinePragmaDef.Name) ->
+                                        |> PragmaCollection.contains BuiltIn.inlinePragmaDef) ->
             printVerbose "MRL-CASE 10"
             printVerbose "terminal inline slice that will be made off final linker, just move it to output list"
             assign startLinkers phase [] linkers (hd :: res)
@@ -574,7 +574,7 @@ let mapRyseLinkers (opts: ParsedOptions)
         // MRL-CASE 11
         | hd :: tl when (match res with
                          | InlineSlice (x) :: _ when x.pragmas
-                                                     |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name
+                                                     |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
                                                      |> not -> true
                          | _ -> false) ->
             printVerbose "MRL-CASE 11 - slice with preceding inline slice , don't drop linker"

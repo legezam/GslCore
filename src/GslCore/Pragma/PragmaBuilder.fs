@@ -1,11 +1,11 @@
 namespace GslCore.Pragma
 open Amyris.ErrorHandling
-type PragmaCache(pragmas: Map<string, PragmaDefinition>) =
+type PragmaBuilder(pragmas: Map<string, PragmaDefinition>) =
     member this.Pragmas = pragmas
     
-module PragmaCache =
+module PragmaBuilder =
     /// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
-    let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaCache): PragmaDefinition option =
+    let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaBuilder): PragmaDefinition option =
         match pragmaDefinition.InvertsTo with
         | None -> None
         | Some name ->
@@ -20,7 +20,7 @@ module PragmaCache =
 
                 Some result
 
-    let create (pragmas: PragmaDefinition list): PragmaCache =
+    let create (pragmas: PragmaDefinition list): PragmaBuilder =
         let pragmaDefinitions =
             pragmas
             |> List.distinctBy LanguagePrimitives.PhysicalHash
@@ -37,7 +37,7 @@ module PragmaCache =
                 (pragmaDefinitions.Length)
                 (pragsByName.Count)
 
-        let cache = PragmaCache(pragsByName)
+        let cache = PragmaBuilder(pragsByName)
         // Make sure any pragmas that invert do it sensibly.
         // Raises an exception if any one doesn't validate.
         for pragmaDefinition in pragmaDefinitions do
@@ -50,7 +50,7 @@ module PragmaCache =
     let builtin = BuiltIn.all |> create
 
     /// Print all available pragmas.
-    let pragmaUsage (cache: PragmaCache) =
+    let printPragmaUsage (cache: PragmaBuilder) =
         let orderedPragmas =
             cache.Pragmas
             |> Map.toList
@@ -59,15 +59,9 @@ module PragmaCache =
 
         for p in orderedPragmas do
             printfn "%s" (PragmaDefinition.format p)
-
-    /// Raise an exception if pName is not among the registered pragmas.
-    let validatePragmaName (pragmaName: string) (cache: PragmaCache): unit =
-        if cache.Pragmas |> Map.containsKey pragmaName |> not
-        then failwithf "Requested unknown pragma '#%s'." pragmaName
         
     /// Try to build a pragma from a name and values.
-    let pragmaFromNameValue (name: string) (values: string list) (cache: PragmaCache): Result<Pragma, string> =
-        // try to get the pragma defintion
+    let createPragmaFromNameValue (name: string) (values: string list) (cache: PragmaBuilder): Result<Pragma, string> =
         match cache.Pragmas |> Map.tryFind name with
-        | Some pDef -> pDef |> Pragma.fromDefinition values
+        | Some definition -> definition |> Pragma.fromDefinition values
         | None -> fail (sprintf "Unknown or invalid pragma: '#%s'" name)         

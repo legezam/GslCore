@@ -39,13 +39,13 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
 
     let sliceName =
         match ppp.pr
-              |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name with
+              |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef with
         | Some (name) -> name
         | None -> ""
 
     let uri =
         ppp.pr
-        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
     match legalPartPrefix pid with
     | None -> failwithf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid
@@ -100,7 +100,7 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
                       template = Some dna // not amplifying from this
                       dnaSource =
                           match ppp.pr
-                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
+                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                           | Some (d) -> d
                           | None -> pid
                       pragmas = ppp.pr
@@ -166,7 +166,7 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
                       sliceType = REGULAR
                       dnaSource =
                           match ppp.pr
-                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
+                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                           | Some (d) -> d
                           | None -> pid
                       pragmas = ppp.pr
@@ -270,13 +270,13 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
                             =
     let sliceName =
         match pr
-              |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name with
+              |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef with
         | Some (n) -> n
         | None -> ""
 
     let uri =
         pr
-        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
     if partId.mods.Length = 0 then
         let dna =
@@ -303,7 +303,7 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
           sliceType = REGULAR
           dnaSource =
               pr
-              |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name
+              |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef
               |> Option.defaultValue extPart.id
 
           pragmas = pr
@@ -352,7 +352,7 @@ let applySliceToExtSequence (_ (* verbose*) : bool)
           sliceType = REGULAR
           dnaSource =
               pr
-              |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name
+              |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef
               |> Option.defaultValue extPart.id
           pragmas = pr
           breed = B_X

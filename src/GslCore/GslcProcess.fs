@@ -122,32 +122,29 @@ let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
             && s.dna.Length > 30
             && not
                 (s.pragmas
-                 |> PragmaCollection.containsName BuiltIn.inlinePragmaDef.Name)) then
+                 |> PragmaCollection.contains BuiltIn.inlinePragmaDef)) then
             { s with
                   sliceType = REGULAR
                   dnaSource =
                       match s.pragmas
-                            |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
+                            |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                       | Some (x) -> x
                       | None ->
                           match p
-                                |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+                                |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                           | None -> "synthetic"
                           | Some (x) -> x
                   // add in an amp tag on this guy too, since we are now comitting to
                   // not placing it inline using primers
                   pragmas =
                       match s.pragmas
-                            |> PragmaCollection.tryFindName BuiltIn.ampPragmaDef.Name with
+                            |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
                       | Some _ -> s.pragmas // already there
                       | None ->
-                          match s.pragmas
-                                |> PragmaCollection.addName BuiltIn.ampPragmaDef.Name with
-                          | Result.Ok (result, _) -> result
-                          | Bad messages ->
-                              // has to be a cleaner way of converting result to
-                              // exn if necessary
-                              failwithf "%s" (String.Join(";", messages)) }
+                          s.pragmas
+                          |> PragmaCollection.add
+                              { Pragma.Definition = BuiltIn.ampPragmaDef
+                                Arguments = [] } }
         else
             s)
 

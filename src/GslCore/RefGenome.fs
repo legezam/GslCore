@@ -152,7 +152,6 @@ type GenomeDef(libDir: string, name: string) as this =
                         r
                         chr
                         (f.[chr].Length)
-
                 f.[chr].[l..r]
 
         member x.SuffixTree =
@@ -217,7 +216,9 @@ let getRGNew (genomeDefinitions: GenomeDefs) (pragmaCollections: PragmaCollectio
     let refGenomeName =
 
         pragmaCollections
-        |> List.tryPick (fun pragma -> pragma |> PragmaCollection.tryGetValue "refgenome")
+        |> List.tryPick (fun pragma ->
+            pragma
+            |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef)
         |> Option.defaultValue Default.RefGenome
 
 
@@ -244,7 +245,7 @@ let refGenomeWarning () = "" // DISABLED FOR NOW  ..  // sprintf "Warning, defau
 // FIXME: warning should be swallowed up by ROP rather than printed.
 let chooseRefGenome (pragmaCollection: PragmaCollection): string =
     match pragmaCollection
-          |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+          |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
     | Some refGenome -> refGenome
     | None ->
         printf "%s" (refGenomeWarning ())

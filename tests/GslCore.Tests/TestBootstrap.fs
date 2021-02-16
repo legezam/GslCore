@@ -28,10 +28,10 @@ type TestBootstrapping() =
         match node with
         | Splice (nodes) -> AstTreeHead(Block(nodeWrap (List.ofArray nodes)))
 
-    let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty PragmaCache.builtin
+    let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty PragmaBuilder.builtin
 
     let compilePhase1NoCapas =
-        GslSourceCode >> (compile (phase1 Set.empty PragmaCache.builtin))
+        GslSourceCode >> (compile (phase1 Set.empty PragmaBuilder.builtin))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =

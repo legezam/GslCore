@@ -64,7 +64,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
         { left =
               { Position =
                     match pragmas
-                          |> PragmaCollection.tryFindName BuiltIn.promLenPragmaDef.Name with
+                          |> PragmaCollection.tryFind BuiltIn.promLenPragmaDef with
                     | None -> -gd.getPromLen ()
                     | Some p -> p.Arguments.[0] |> int |> (*) -1<OneOffset>
                 RelativeTo = FivePrime }
@@ -91,7 +91,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
           right =
               { Position =
                     match pragmas
-                          |> PragmaCollection.tryFindName BuiltIn.termLenPragmaDef.Name with
+                          |> PragmaCollection.tryFind BuiltIn.termLenPragmaDef with
                     | None -> gd.getTermLen ()
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
@@ -140,7 +140,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
           right =
               { Position =
                     match pragmas
-                          |> PragmaCollection.tryFindName BuiltIn.termLenMrnaPragmaDef.Name with
+                          |> PragmaCollection.tryFind BuiltIn.termLenMrnaPragmaDef with
                     | None -> gd.getTermLenMRNA ()
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
@@ -235,14 +235,14 @@ let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDef) (gp:
 /// Extract slice name from a PPP, if it has one.
 let getSliceName (ppp: PPP) =
     ppp.pr
-    |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name
+    |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef
     |> Option.defaultValue ""
 
 
 /// Extract URI from a PPP, if it has one.
 let getUri (ppp: PPP) =
     ppp.pr
-    |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
+    |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
 let expandInlineDna dnaSource (ppp: PPP) (dnaFwd: Dna) =
 
@@ -593,7 +593,7 @@ let expandGenePart verbose
 
 let private determineTopology (pragmas: PragmaCollection): Topology =
     match pragmas
-          |> PragmaCollection.tryFindName Topology.PragmaName with
+          |> PragmaCollection.tryFind BuiltIn.topologyPragmaDef with
     | Some pragma -> pragma.Arguments |> Topology.parse |> returnOrFail
     | None -> Linear
 
@@ -614,17 +614,17 @@ let expandAssembly (verbose: bool)
             for ppp in pppList do
                 let dnaSource =
                     match ppp.pr
-                          |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef.Name with
+                          |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                     | Some (d) -> d
                     | None ->
                         // specifying a different reference genome implies a non standard
                         // DNA source, so we can use that too (they can override with dnasrc)
                         match ppp.pr
-                              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+                              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                         | Some (rg) -> rg
                         | None ->
                             match a.pragmas
-                                  |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+                                  |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                             | Some (rg) -> rg
                             | None -> "" // Revert to the current default part origin
 
@@ -645,7 +645,7 @@ let expandAssembly (verbose: bool)
 
                     let markerSet =
                         match a.pragmas
-                              |> PragmaCollection.tryGetValue BuiltIn.markersetPragmaDef.Name with
+                              |> PragmaCollection.tryGetValue BuiltIn.markersetPragmaDef with
                         | Some (x) ->
                             let x' = x.ToLower()
 
@@ -672,7 +672,7 @@ let expandAssembly (verbose: bool)
                 // Might also want to yield a fusion slice
                 //
                 if ppp.pr
-                   |> PragmaCollection.containsName BuiltIn.fusePragmaDef.Name then
+                   |> PragmaCollection.contains BuiltIn.fusePragmaDef then
                     yield fusionSliceConstant
         }
         |> List.ofSeq

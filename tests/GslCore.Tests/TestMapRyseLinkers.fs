@@ -18,11 +18,10 @@ type TestMapRyseLinkers() =
 
 
     let makePragma name values =
-        match PragmaCache.pragmaFromNameValue name values PragmaCache.builtin with
+        match PragmaBuilder.createPragmaFromNameValue name values PragmaBuilder.builtin with
         | Ok (p, []) ->
             let map =
-                { PragmaCollection.Cache = PragmaCache.builtin
-                  Pragmas = [ p.Name, p ] |> Map.ofList }
+                { Pragmas = [ p.Name, p ] |> Map.ofList }
 
             map
         | _ -> failwith "building pragma"

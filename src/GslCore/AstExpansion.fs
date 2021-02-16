@@ -31,7 +31,7 @@ let immediateValidations =
     validate (checkParseError &&& validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
-let phase1 legalCapas (pragmaCache: PragmaCache) =
+let phase1 legalCapas (pragmaCache: PragmaBuilder) =
     linters
     >=> immediateValidations
     >=> checkRecursiveCalls
@@ -276,7 +276,7 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
     /// Which reference genome are we using
     let refGenome' =
         match pragmas
-              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
         // specifying a different reference genome implies a non standard
         // DNA source, so we can use that too (they can override with dnasrc)
         | Some (rg) -> rg.Trim([| ' '; '\t' |])
@@ -325,17 +325,17 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (c
 
 let validateNoAssemblyInL2Promoter (node: AstNode) =
     match node with
-    | L2Element (e) ->
+    | L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
         match e.x.promoter with
-        | AssemblyPart (a) -> error L2ExpansionError "Unsupported use of an Assembly." node
-        | RecursivePart (_) ->
+        | AssemblyPart a -> error L2ExpansionError "Unsupported use of an Assembly." node
+        | RecursivePart _ ->
             error (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
         | _ -> good
     | _ -> good
 
 /// Expand all level 2 expressions.
-let expandLevel2 legalCapas (pragmaCache: PragmaCache) (providers: L2Provider list) (rgs: GenomeDefs) tree =
+let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider list) (rgs: GenomeDefs) tree =
 
     let bootstrapExpandL2Expression pragmaContext node =
         /// Perform the expansion operation, capturing any exception as an error.
@@ -384,9 +384,9 @@ let private prioritize mode1 mode2 =
 /// Given a node, determine what expansion step it requires to continue.
 let private expansionMode node =
     match node with
-    | Mutation (_) -> Some(ExpandMutation)
-    | InlineProtein (_) -> Some(ExpandProtein)
-    | HetBlock (_) -> Some(ExpandHetBlock)
+    | Mutation _ -> Some(ExpandMutation)
+    | InlineProtein _ -> Some(ExpandProtein)
+    | HetBlock _ -> Some(ExpandHetBlock)
     | _ -> None
 
 /// Given an AST, determine the highest priority of expansion needed to continue.
@@ -448,11 +448,11 @@ let private expandMut verbose
         // Refactor Assembly to have an unconditional name.
         match p.part with
         | HETBLOCK -> p // don't expect this but just in case
-        | INLINEDNA (_) -> p
-        | INLINEPROT (_) -> p
+        | INLINEDNA _ -> p
+        | INLINEPROT _ -> p
         | MARKERPART -> p
-        | SOURCE_CODE (_) -> p
-        | PARTID (part) ->
+        | SOURCE_CODE _ -> p
+        | PARTID part ->
             // Does it contain a mutation modification
             match part.mods |> List.choose modIsMutation with
             | [] -> p
@@ -461,7 +461,7 @@ let private expandMut verbose
 
                 let asAACheck =
                     match a.pragmas
-                          |> PragmaCollection.tryFindName BuiltIn.warnoffPragmaDef.Name with
+                          |> PragmaCollection.tryFind BuiltIn.warnoffPragmaDef with
                     | Some pragma -> pragma |> Pragma.hasVal "asaacheck" |> not
                     | None -> true
 
@@ -497,7 +497,7 @@ let private expandMut verbose
 
                 let endPref =
                     match p.pr
-                          |> PragmaCollection.tryGetValue BuiltIn.swapEndPragmaDef.Name with
+                          |> PragmaCollection.tryGetValue BuiltIn.swapEndPragmaDef with
                     | Some ("5") -> NTERM
                     | Some ("3") -> CTERM
                     | Some _ -> failwithf "#swapend argument should be 5 or 3"
@@ -515,7 +515,7 @@ let private expandMut verbose
 
                 let asAACheck =
                     match a.pragmas
-                          |> PragmaCollection.tryFindName BuiltIn.warnoffPragmaDef.Name with
+                          |> PragmaCollection.tryFind BuiltIn.warnoffPragmaDef with
                     | Some (p) -> not (p |> Pragma.hasVal "asaacheck")
                     | None -> true
 
@@ -523,7 +523,7 @@ let private expandMut verbose
                 // short or long allele swap styles at the part level
                 let longStyle =
                     match p.pr
-                          |> PragmaCollection.tryGetValue BuiltIn.stylePragmaDef.Name with
+                          |> PragmaCollection.tryGetValue BuiltIn.stylePragmaDef with
                     | None -> true // default is long style
                     | Some ("long") -> true // long style
                     | Some ("short") -> false // short style
@@ -567,7 +567,7 @@ let private expandMut verbose
 /// Expand all mutations in an AST.
 let expandMutations verbose
                     legalCapas
-                    (pragmaCache: PragmaCache)
+                    (pragmaCache: PragmaBuilder)
                     (providers: AlleleSwapProvider list)
                     (rgs: GenomeDefs)
                     codonProvider
@@ -602,7 +602,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
 
             let refGenome' =
                 match p.pr
-                      |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef.Name with
+                      |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                 | Some (rg) -> rg
                 | None -> refGenome
 
@@ -613,7 +613,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
                 // fall back on the version in the codon opt parameters globally
                 let seedOverride =
                     match p.pr
-                          |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef.Name with
+                          |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef with
                     | None -> None
                     | Some (seed) ->
                         match System.Int32.TryParse seed with
@@ -643,7 +643,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
     |> prettyPrintAssembly
 
 /// Expand all inline protein sequences in an AST.
-let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaCache) (rgs: GenomeDefs) codonProvider tree =
+let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefs) codonProvider tree =
 
     let mode = if doParallel then Parallel else Serial
 
@@ -668,12 +668,12 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
 
     let modIsNotSlice m =
         match m with
-        | SLICE (_) -> false
+        | SLICE _ -> false
         | _ -> true
 
     let getLenPragma (pr: PragmaCollection) =
         match pr
-              |> PragmaCollection.tryGetValue BuiltIn.lenPragmaDef.Name with
+              |> PragmaCollection.tryGetValue BuiltIn.lenPragmaDef with
         | None -> None
         | Some (v) ->
             match Int32.TryParse(v) with
@@ -757,9 +757,10 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                   pr3,
                   fwd3)
                  :: (INLINEDNA(alt),
-                     returnOrFail
-                         (pr2
-                          |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                     (pr2
+                      |> PragmaCollection.add
+                          { Pragma.Definition = BuiltIn.inlinePragmaDef
+                            Arguments = [] }),
                      fwd2)
                     :: (GENEPART(gpUp), pr1, fwd1) :: res)
                 tl
@@ -824,9 +825,10 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                   pr4,
                   fwd4)
                  :: (INLINEDNA(newInline),
-                     returnOrFail
-                         (pr2
-                          |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                     (pr2
+                      |> PragmaCollection.add
+                          { Pragma.Definition = BuiltIn.inlinePragmaDef
+                            Arguments = [] }),
                      fwd2)
                     :: (GENEPART(gpUp), pr1, fwd1) :: res)
                 tl
@@ -900,9 +902,11 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                 a
                 ((GENEPART(gpDown), pr4, fwd4)
                  :: (INLINEDNA(newInline),
-                     returnOrFail
-                         (pr3
-                          |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+
+                     (pr3
+                      |> PragmaCollection.add
+                          { Pragma.Definition = BuiltIn.inlinePragmaDef
+                            Arguments = [] }),
                      fwd3)
                     :: (GENEPART
                             ({ gp with
@@ -987,9 +991,10 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
                         a
                         ((PARTID(pid4), pr4, fwd4)
                          :: (INLINEDNA(newInline),
-                             returnOrFail
-                                 (pr3
-                                  |> PragmaCollection.addName BuiltIn.inlinePragmaDef.Name),
+                             (pr3
+                              |> PragmaCollection.add
+                                  { Pragma.Definition = BuiltIn.inlinePragmaDef
+                                    Arguments = [] }),
                              fwd3)
                             :: (PARTID({ pid1 with mods = newMods }), pr1, fwd1)
                                :: res)
@@ -1024,7 +1029,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
     else newSource
 
 /// Expand all heterology blocks in an AST.
-let expandHetBlocks verbose legalCapas (pragmaCache: PragmaCache) (rgs: GenomeDefs) codonProvider tree =
+let expandHetBlocks verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefs) codonProvider tree =
 
     let assemblyExpansion = expandHB verbose rgs codonProvider
 
@@ -1054,7 +1059,7 @@ let phase2 oneShot
            doParallel
            verbose
            legalCapas
-           (pragmaCache: PragmaCache)
+           (pragmaCache: PragmaBuilder)
            asProviders
            rgs
            codonTableCache
@@ -1105,7 +1110,7 @@ let private convertAndGatherAssembly (accum: ResizeArray<Assembly>) conversionCo
 /// Convert all assembly parts to legacy Assemblies, and gather them in a mutable accumulator.
 /// Return the accumulation if all conversions were successful.
 let convertAndGatherAssemblies tree =
-    let accum = new ResizeArray<Assembly>()
+    let accum = ResizeArray<Assembly>()
 
     foldmap Serial TopDown updateConversionContext emptyConversionContext (convertAndGatherAssembly accum) tree
     >>= (fun treeOut ->

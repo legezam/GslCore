@@ -202,7 +202,7 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         updatedPlugins
         |> List.map (fun p -> p.providesPragmas)
         |> List.concat
-        |> PragmaCache.createWithBuiltinPragmas    
+        |> PragmaBuilder.createWithBuiltinPragmas    
     
     // Load static assets and initialize caches.
     let ga =

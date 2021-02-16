@@ -87,10 +87,10 @@ type TestTransformation() =
              >=> stripFunctions)
 
     let flattenAssemblyTest =
-        sourceCompareTest (buildPragmas Set.empty PragmaCache.builtin >=> flattenAssemblies PragmaCache.builtin)
+        sourceCompareTest (buildPragmas Set.empty PragmaBuilder.builtin >=> flattenAssemblies PragmaBuilder.builtin)
 
     let flattenPartTest =
-        sourceCompareTest (resolveVariables >=> flattenAssemblies PragmaCache.builtin)
+        sourceCompareTest (resolveVariables >=> flattenAssemblies PragmaBuilder.builtin)
 
     let variableResolutionPipeline =
         checkRecursiveCalls

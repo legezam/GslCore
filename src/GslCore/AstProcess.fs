@@ -543,7 +543,7 @@ let private updatePragmaConstructionContext mode (s: PragmaConstructionContext l
 
 /// Attempt to build a real pragma from a parsed pragma.
 let private compilePragma (legalCapas: Capabilities)
-                          (pragmaCache: PragmaCache)
+                          (pragmaCache: PragmaBuilder)
                           (contexts: PragmaConstructionContext list)
                           (node: AstNode)
                           : Result<AstNode, AstMessage> =
@@ -624,7 +624,7 @@ let private compilePragma (legalCapas: Capabilities)
         |> collect
         >>= (fun values ->
             pragmaCache
-            |> PragmaCache.pragmaFromNameValue pragma.name values
+            |> PragmaBuilder.createPragmaFromNameValue pragma.name values
             |> (mapMessages wrapPragmaErrorString))
         >>= checkDeprecated
         >>= checkScope
@@ -637,7 +637,7 @@ let private compilePragma (legalCapas: Capabilities)
     | _ -> ok node
 
 /// Build genuine pragmas from reduced parsed pragmas.
-let buildPragmas legalCapas (pragmaCache: PragmaCache) =
+let buildPragmas legalCapas (pragmaCache: PragmaBuilder) =
     foldmap Serial TopDown updatePragmaConstructionContext [] (compilePragma legalCapas pragmaCache)
 
 
@@ -678,7 +678,7 @@ let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): Result<
             let newPragmas =
                 if addFuse then
                     pragmas
-                    |> PragmaCollection.addPragma fusablePragma
+                    |> PragmaCollection.add fusablePragma
                 else
                     pragmas
                     |> PragmaCollection.removePragma fusablePragma
@@ -694,16 +694,16 @@ let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): Result<
     else ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
-let private invertPragma (pragmaCache: PragmaCache) (part: Node<ParsePart>): Node<ParsePart> =
+let private invertPragma (pragmaCache: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
     part
     |> getPragmas
     |> PragmaCollection.values
     |> Seq.map (fun pragma ->
         pragmaCache
-        |> PragmaCache.inverts pragma.Definition
+        |> PragmaBuilder.inverts pragma.Definition
         |> Option.map (fun invertsTo -> { pragma with Definition = invertsTo })
         |> Option.defaultValue pragma)
-    |> fun collection -> PragmaCollection.create collection pragmaCache
+    |> PragmaCollection.create
     |> replacePragmas part
 
 ///<summary>
@@ -711,7 +711,7 @@ let private invertPragma (pragmaCache: PragmaCache) (part: Node<ParsePart>): Nod
 /// This function encodes the logic that used to reside in MULTIPART expansion.
 /// This function ignores various unexpected conditions, like nodes besides parts inside the assembly.
 ///</summary>
-let private explodeAssembly (pragmaCache: PragmaCache)
+let private explodeAssembly (pragmaCache: PragmaBuilder)
                             (assemblyPart: Node<ParsePart>)
                             (assemblyBasePart: Node<AstNode list>)
                             =
@@ -760,7 +760,7 @@ let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<
 // should use an active pattern to match.
 // FIXME: we should probably check for pragma collisions and complain about them, though this is
 // before stuffing pragmas into assemblies so it may be an edge case.
-let private flattenAssembly (pragmaCache: PragmaCache) node =
+let private flattenAssembly (pragmaCache: PragmaBuilder) node =
     match node with
     | AssemblyPart (assemblyPart, assemblyBasePart) ->
         // iterate over the parts in the assembly, accumulating lists of parts we will concatenate
@@ -787,7 +787,7 @@ let private flattenAssembly (pragmaCache: PragmaCache) node =
     | _ -> ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
-let flattenAssemblies (pragmaCache: PragmaCache) =
+let flattenAssemblies (pragmaCache: PragmaBuilder) =
     map Serial BottomUp (flattenAssembly pragmaCache)
 
 // =====================
@@ -845,12 +845,12 @@ let updatePragmaEnvironment (mode: StateUpdateMode) (environment: PragmaEnvironm
                     { environment with
                           unassignedTransients =
                               environment.unassignedTransients
-                              |> PragmaCollection.addPragma pragma }
+                              |> PragmaCollection.add pragma }
                 else
                     { environment with
                           persistent =
                               environment.persistent
-                              |> PragmaCollection.addPragma pragma }
+                              |> PragmaCollection.add pragma }
         | Part _
         | L2Expression _ ->
             // replace assignedTransients with unassignedTransients, and empty unassignedTransients
@@ -891,7 +891,7 @@ let private checkPragmaCollisions (incoming: PragmaCollection)
         |> PragmaCollection.values
         |> Seq.map (fun existingPragma ->
             match incoming
-                  |> PragmaCollection.tryFindDefinition existingPragma.Definition with
+                  |> PragmaCollection.tryFind existingPragma.Definition with
             | Some colliding ->
                 if existingPragma.Arguments <> colliding.Arguments then // pragma collision with unequal arguments
                     collidingPragmaError existingPragma colliding node
@@ -928,7 +928,7 @@ let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment) (nod
                           Arguments = Set.toList pragmaEnvironment.warnOffs }
 
                     newPragmas
-                    |> PragmaCollection.addPragma warnOffPragma
+                    |> PragmaCollection.add warnOffPragma
                 else
                     newPragmas
 
@@ -1097,7 +1097,7 @@ let private nameAssembly (node: AstNode): AstNode =
         let pragmas = getPragmas assemblyWrapper
 
         if pragmas
-           |> PragmaCollection.containsPragmaDef BuiltIn.namePragmaDef then node // already named
+           |> PragmaCollection.contains BuiltIn.namePragmaDef then node // already named
         else let literal = decompile node |> cleanHashName
 
              let name =
@@ -1110,7 +1110,7 @@ let private nameAssembly (node: AstNode): AstNode =
                    Arguments = [ name ] }
 
              let mergedPragmas =
-                 pragmas |> PragmaCollection.addPragma namePragma
+                 pragmas |> PragmaCollection.add namePragma
 
              let namedAssembly =
                  Part(replacePragmas assemblyWrapper mergedPragmas)

@@ -52,9 +52,9 @@ let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly)
     // gtag is global tag, tag is dna assembly tag
     match List.collect (fun pragma -> pragma.Arguments)
               ([ a.pragmas
-                 |> PragmaCollection.tryFindName tagPragmaDef.Name
+                 |> PragmaCollection.tryFind tagPragmaDef
                  a.pragmas
-                 |> PragmaCollection.tryFindName gTagPragmaDef.Name ]
+                 |> PragmaCollection.tryFind gTagPragmaDef ]
                |> List.choose id) with
     | [] ->
         let newTags =

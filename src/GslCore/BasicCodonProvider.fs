@@ -197,7 +197,7 @@ type CodonOptData =
 
 let parseCodonOptParams (pragmaCollection: PragmaCollection): CodonOptParams =
     let seed =
-        match pragmaCollection |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef.Name with
+        match pragmaCollection |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef with
         | None -> defaultCodonOptSeed
         | Some seedValue ->
             match Int32.TryParse seedValue with
@@ -205,7 +205,7 @@ let parseCodonOptParams (pragmaCollection: PragmaCollection): CodonOptParams =
             | _ -> failwithf "ERROR: invalid integer '%s' for #seed" seedValue
 
     let globalRepeatAvoidUser =
-        match pragmaCollection |> PragmaCollection.tryGetValue BuiltIn.codonOptPragmaDef.Name with
+        match pragmaCollection |> PragmaCollection.tryGetValue BuiltIn.codonOptPragmaDef with
         | None -> defaultCodonOptParams.globalRepeatCheck
         | Some codonOptValues ->
             let parts =

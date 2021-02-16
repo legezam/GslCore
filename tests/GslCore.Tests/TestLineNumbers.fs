@@ -47,7 +47,7 @@ type TestLineNumbers() =
     let compileOne source =
         source
         |> GslSourceCode
-        |> compile (phase1 Set.empty PragmaCache.builtin)
+        |> compile (phase1 Set.empty PragmaBuilder.builtin)
         |> returnOrFail
         |> fun x -> extractAssemblies x.wrappedNode
 

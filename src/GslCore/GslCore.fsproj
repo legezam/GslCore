@@ -28,7 +28,7 @@
     <Compile Include="Pragma\PragmaDefinition.fs" />
     <Compile Include="Pragma\BuiltInPragmas.fs" />
     <Compile Include="Pragma\Pragma.fs" />
-    <Compile Include="Pragma\PragmaCache.fs" />
+    <Compile Include="Pragma\PragmaBuilder.fs" />
     <Compile Include="Pragma\PragmaCollection.fs" />
     <Compile Include="Pragma\PragmaDeprecation.fs" />
     <Compile Include="DesignParams.fs" />

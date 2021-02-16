@@ -32,13 +32,12 @@ type DnaMaterialization() =
         if Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
 
     let refGenomePragma =
-        match PragmaCache.pragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaCache.builtin with
+        match PragmaBuilder.createPragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaBuilder.builtin with
         | Result.Ok (p, _) -> p
         | _ -> failwithf "Failure to build refgenome TestGenome2"
 
-    let pc =
-        { PragmaCollection.Cache = PragmaCache.builtin
-          Pragmas = [ "refgenome", refGenomePragma ] |> Map.ofList }
+    let pc = PragmaCollection.create [ refGenomePragma ]
+        
 
     /// We don't need much from an assembly so ok to leave it mostly empty
     let emptyAssembly =
@@ -132,7 +131,7 @@ type DnaMaterialization() =
         { gp = gpWithLinker
           ppp =
               { part = GENEPART gpWithLinker
-                pr = { PragmaCollection.Pragmas = Map.empty; Cache = PragmaCache.builtin }
+                pr = PragmaCollection.empty
                 fwd = not revPart }
           revPart = revPart
           revReference = revReference }

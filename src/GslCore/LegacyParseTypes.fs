@@ -300,15 +300,15 @@ let convertAssembly (context: AssemblyConversionContext)
 
     let name =
         assemblyPragmas
-        |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name
+        |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef
 
     let uri =
         assemblyPragmas
-        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
     let linkerHint =
         assemblyPragmas
-        |> PragmaCollection.tryGetValues BuiltIn.linkersPragmaDef.Name
+        |> PragmaCollection.tryGetValues BuiltIn.linkersPragmaDef
         |> Option.map (String.concat "")
         |> Option.defaultValue ""
 
@@ -372,11 +372,11 @@ let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expressio
 
     let name =
         pragmas
-        |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef.Name
+        |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef
 
     let uri =
         pragmas
-        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef.Name
+        |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
     buildL2Expression l2Expression
     >>= fun l2Design ->

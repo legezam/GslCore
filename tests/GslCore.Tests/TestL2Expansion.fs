@@ -14,7 +14,7 @@ open GslCore.Constants
 type TestL2Expansion() =
 
     let phase1WithL2Validation =
-        phase1 Set.empty PragmaCache.builtin
+        phase1 Set.empty PragmaBuilder.builtin
         >=> (validate validateNoAssemblyInL2Promoter)
 
     //    let phase1AndL2 =

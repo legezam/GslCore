@@ -356,11 +356,13 @@ let tuneTails verbose
 
 
 
+
                         if state.bestAnnealDelta < 0.0<C>
                            && state.ft > fwdTailLenMin then
                             yield CHOP_F_ANNEAL
                         elif state.ft < fwdTailLenMax then
                             yield EXT_F_ANNEAL
+
 
 
 
@@ -374,6 +376,7 @@ let tuneTails verbose
                                 elif (state.rt > revTailLenMin
                                       && state.ft < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
+
 
 
 
@@ -393,6 +396,7 @@ let tuneTails verbose
                                 else if (state.rt > revTailLenMin
                                          && state.ft < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
+
 
 
 
@@ -434,12 +438,14 @@ let tuneTails verbose
 
 
 
+
                 | _ ->
                     if state.bestRevDelta < 0.0<C>
                        && state.rb > dp.PrimerParams.minLength then
                         yield CHOP_R_AMP
                     elif state.rb < rev.body.Length then
                         yield EXT_R_AMP
+
 
 
 
@@ -454,6 +460,7 @@ let tuneTails verbose
 
 
 
+
                         match sign state.bestAnnealDelta, sign state.bestRevDelta with
                         | 1, 1 -> // both anneal and rev amp are too cold, could cut either back and extend the other
                             if state.bestAnnealDelta < state.bestRevDelta then
@@ -462,6 +469,7 @@ let tuneTails verbose
                                     yield SLIDE_R_LEFT
                                 elif state.rt < revTailLenMax then
                                     yield SLIDE_R_RIGHT
+
 
 
 
@@ -478,6 +486,7 @@ let tuneTails verbose
                                     yield SLIDE_R_LEFT
                                 elif state.rt < revTailLenMax then
                                     yield SLIDE_R_RIGHT
+
 
 
 
@@ -640,7 +649,8 @@ let tuneTails verbose
             let annealTemp =
                 Amyris.Bio.primercore.temp dp.PrimerParams p.tail.arr p.tail.Length
 
-            let annealDelta = abs (annealTemp - dp.SeamlessOverlapTemp)
+            let annealDelta =
+                abs (annealTemp - dp.SeamlessOverlapTemp)
 
             if ampDelta < annealDelta
                && p.body.Length > dp.PrimerParams.minLength then
@@ -772,7 +782,7 @@ type PrimerPosOrient =
 
 let parsePrimerPos (pragmas: PragmaCollection): PrimerPosOrient =
     match pragmas
-          |> PragmaCollection.tryGetValues BuiltIn.primerPosPragmaDef.Name with
+          |> PragmaCollection.tryGetValues BuiltIn.primerPosPragmaDef with
     | Some v ->
         match v |> List.map (fun (s: string) -> s.ToUpper()) with
         // TODO: these should be parsed and converted into union cases much earlier
@@ -1135,13 +1145,16 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
 /// Chop bases off a primer whose tail is a linker until it meets the length requirement
 let trimLinkerTailBody (dp: DesignParams) (p: Primer) =
     let tailTargetTM =
-        if p.tail.Length = 0 then 0.0<C> else temp dp.PrimerParams p.tail.arr p.tail.Length
+        if p.tail.Length = 0
+        then 0.0<C>
+        else temp dp.PrimerParams p.tail.arr p.tail.Length
 
     let bodyTargetTm = dp.TargetTemp
 
     let rec find bLen tLen =
         if bLen + tLen <= dp.PrimerParams.maxLength
-           || (bLen = dp.PrimerParams.minLength && tLen = dp.PrimerParams.minLength) then
+           || (bLen = dp.PrimerParams.minLength
+               && tLen = dp.PrimerParams.minLength) then
             { p with
                   body = p.body.[..bLen - 1]
                   tail = p.tail.[p.tail.Length - tLen..] }
@@ -1360,11 +1373,11 @@ can design (say) a primer against might be further back in the stack and it's ju
                                 && // Actual mid rabit inline slice not one at the end of a rabit
                                 not
                                     (hd.pragmas
-                                     |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name
+                                     |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
                                      || hd.pragmas
-                                        |> PragmaCollection.containsName BuiltIn.rabitStartPragmaDef.Name
+                                        |> PragmaCollection.contains BuiltIn.rabitStartPragmaDef
                                      || hd.pragmas
-                                        |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name)) // if directed to amplify, don't do as an inline
+                                        |> PragmaCollection.contains BuiltIn.ampPragmaDef)) // if directed to amplify, don't do as an inline
                                && prev <> [] -> // must be a previous slice to do an inline
 
         if verbose
@@ -1743,7 +1756,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                      revMiddleLen,
                      Microsoft.FSharp.Core.int.MaxValue)
                 elif isLinker then
-                    let linkerTm = temp dp.PrimerParams hd.dna.arr hd.dna.Length
+                    let linkerTm =
+                        temp dp.PrimerParams hd.dna.arr hd.dna.Length
                     ///beginning of linker.
                     let fwdTailLenMax = midArg.Length - lenSR
                     ///end of linker.
@@ -2152,9 +2166,9 @@ can design (say) a primer against might be further back in the stack and it's ju
     | hd :: tl when hd.sliceType = INLINEST
                     && (not
                             (hd.pragmas
-                             |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name
+                             |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
                              || hd.pragmas
-                                |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name)) ->
+                                |> PragmaCollection.contains BuiltIn.ampPragmaDef)) ->
         if verbose
         then printfn "procAssembly: PACASE 5 -... (GAP) INLINEST"
         // For now we don't know what is going to happen with this slice.  It will get created
@@ -2174,7 +2188,7 @@ can design (say) a primer against might be further back in the stack and it's ju
     // This slice will be implemented when linker goes out
     | hd :: tl when hd.sliceType = INLINEST
                     && hd.pragmas
-                       |> PragmaCollection.containsName BuiltIn.rabitEndPragmaDef.Name ->
+                       |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef ->
         if verbose then
             printfn "procAssembly: PACASE 6 -"
             printfn "procAssembly: ... (GAP) INLINEST rabitend case hd=%s" hd.description
@@ -2195,7 +2209,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                 "procAssembly: PACASE 7 -... (GAP) catchall case - should this be fused with previous slice? hd.dna.Length=%d hd.containsAmp=%s"
                 hd.dna.Length
                 (if hd.pragmas
-                    |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name then
+                    |> PragmaCollection.contains BuiltIn.ampPragmaDef then
                     "Y"
                  else
                      "N")
@@ -2206,7 +2220,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                     "procAssembly: ...                      phd.dna.Length=%d phd.containsAmp=%s"
                     pHd.dna.Length
                     (if pHd.pragmas
-                        |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name then
+                        |> PragmaCollection.contains BuiltIn.ampPragmaDef then
                         "Y"
                      else
                          "N")
@@ -2218,12 +2232,12 @@ can design (say) a primer against might be further back in the stack and it's ju
           // IF prev head long enough or using amp / pcr
           (pHd.dna.Length > 100
            || pHd.pragmas
-              |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name)
+              |> PragmaCollection.contains BuiltIn.ampPragmaDef)
           &&
           // AND this big enough or using amp/pcr THEN
           (hd.dna.Length > 100
            || hd.pragmas
-              |> PragmaCollection.containsName BuiltIn.ampPragmaDef.Name) ->
+              |> PragmaCollection.contains BuiltIn.ampPragmaDef) ->
 
               // If previous head and this slice are big enough or being forced into an amplification
               // strategy then we are going seamless between them
@@ -2281,7 +2295,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                       //    ---------------|--------------------
                       //          <------------oxxxxxxx
                       let maxTailLen =
-                          dp.PrimerParams.maxLength - primerRStep2.body.Length
+                          dp.PrimerParams.maxLength
+                          - primerRStep2.body.Length
                           |> min (primerFStep2.body.Length + x - 1)
 
                       let primerRNewTail = hd.dna.[..maxTailLen - 1].RevComp()
@@ -2295,7 +2310,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                       //    ---------------|--------------------
                       //          <------o
                       let maxTailLen =
-                          dp.PrimerParams.maxLength - primerFStep2.body.Length
+                          dp.PrimerParams.maxLength
+                          - primerFStep2.body.Length
                           |> min (primerRStep2.body.Length + x - 1)
 
                       let primerFNewTail = pHd.dna.[pHd.dna.Length - maxTailLen..]
@@ -2383,13 +2399,13 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
 
             let primerMaxLen =
                 assembly.pragmas
-                |> PragmaCollection.tryGetValue BuiltIn.primerMaxPragmaDef.Name
+                |> PragmaCollection.tryGetValue BuiltIn.primerMaxPragmaDef
                 |> Option.map int
                 |> Option.defaultValue Default.PrimerMaxLength
 
             let primerMinLen =
                 assembly.pragmas
-                |> PragmaCollection.tryGetValue BuiltIn.primerMinPragmaDef.Name
+                |> PragmaCollection.tryGetValue BuiltIn.primerMinPragmaDef
                 |> Option.map int
                 |> Option.defaultValue Default.PrimerMinLength
 
