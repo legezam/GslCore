@@ -28,17 +28,16 @@ type DnaMaterialization() =
     let testLibDir2 = @"../../../../../TestGslcLib"
 
     let testLibDir =
-        if System.IO.Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
-
-    do PragmaTypes.finalizePragmas []
+        if Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
 
     let refGenomePragma =
-        match buildPragma "refgenome" [ "TestGenome2" ] with
+        match buildPragma "refgenome" [ "TestGenome2" ] PragmaCache.builtin with
         | Result.Ok (p, _) -> p
         | _ -> failwithf "Failure to build refgenome TestGenome2"
 
     let pc =
-        PragmaCollection([ "refgenome", refGenomePragma ] |> Map.ofList)
+        { PragmaCollection.Cache = PragmaCache.builtin
+          Pragmas = [ "refgenome", refGenomePragma ] |> Map.ofList }
 
     /// We don't need much from an assembly so ok to leave it mostly empty
     let emptyAssembly =
@@ -65,7 +64,7 @@ type DnaMaterialization() =
 
     // general retrieval parameters that are gene agnostic
     let gd =
-        new RefGenome.GenomeDef(testLibDir, "TestGenome2")
+        GenomeDef(testLibDir, "TestGenome2")
 
     let verbose = false
     let rgs: GenomeDefs = [ ("TestGenome2", gd) ] |> Map.ofList
@@ -132,7 +131,7 @@ type DnaMaterialization() =
         { gp = gpWithLinker
           ppp =
               { part = GENEPART gpWithLinker
-                pr = PragmaCollection(Map.empty)
+                pr = { PragmaCollection.Pragmas = Map.empty; Cache = PragmaCache.builtin }
                 fwd = not revPart }
           revPart = revPart
           revReference = revReference }
@@ -151,12 +150,6 @@ type DnaMaterialization() =
 
     let testContext1 = [ placeholder; linkerAlice; dFoo ]
     let testContext2 = [ linkerAlice; placeholder; dFoo ]
-
-    [<SetUp>]
-    member __.setupPragmas() =
-        do
-        // initialize pragmas
-        PragmaTypes.finalizePragmas []
 
     [<Test>]
     /// Check basic sequence

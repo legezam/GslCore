@@ -10,6 +10,10 @@ open GslCore.PragmaTypes
 
 let map = Map.ofSeq
 
+let emptyPragmas =
+    { PragmaCollection.Cache = PragmaCache.builtin
+      Pragmas =  Map.empty }
+
 let uHO: DNASlice =
     { id = Some(2)
       amplified = true
@@ -25,7 +29,7 @@ let uHO: DNASlice =
       dnaSource = "S288C"
       extId = None
       materializedFrom = None // Some({LegacyParseTypes.PPP})
-      pragmas = PragmaCollection Map.empty
+      pragmas = emptyPragmas
       sliceName = ""
       sliceType = REGULAR
       sourceChr = "4"
@@ -53,7 +57,7 @@ let inlineSlice =
       extId = None
       id = Some(0)
       materializedFrom = None
-      pragmas = PragmaCollection Map.empty
+      pragmas = emptyPragmas
       sliceName = ""
       sliceType = INLINEST
       sourceChr = "inline"
@@ -80,7 +84,7 @@ let dHO =
       extId = None
       id = Some(1)
       materializedFrom = None
-      pragmas = PragmaCollection Map.empty
+      pragmas = emptyPragmas
       sliceName = ""
       sliceType = REGULAR
       sourceChr = "4"

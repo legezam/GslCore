@@ -398,55 +398,58 @@ let pragmaDefsStatic: PragmaDefinition list =
         Validate = parseInt }
       topologyPragmaDef ]
 
-/// Legal/Valid pragma names and defintions for lookup by name
-let mutable private globalLegalPragmas: Map<_, _> option = None
 
-let getLegalPragmas () =
-    match globalLegalPragmas with
-    | Some p -> p
-    | None -> failwithf "Global pragma collection is not initialized."
 
-/// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
-let validatePragmaInversion (declaredPragmas: Map<string, PragmaDefinition>) (pragmaDefinition: PragmaDefinition): PragmaDefinition option =
-    match pragmaDefinition.InvertsTo with
-    | None -> None
-    | Some name ->
-        match declaredPragmas.TryFind name with
-        | None -> failwithf "Pragma %s inverts to an unknown pragma %s" (pragmaDefinition.Name) name
-        | Some result -> // inverts to a known pragma, make sure they have the same shape
-            if pragmaDefinition.Shape <> result.Shape
-            then failwithf "Pragma %s inverts to %s but they have differing argShapes." (pragmaDefinition.Name) (result.Name)
 
-            Some result
+type PragmaCache(pragmas: Map<string, PragmaDefinition>) =
+    member this.Pragmas with get() = pragmas
+    
+module PragmaCache =
+    /// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
+    let inverts  (pragmaDefinition: PragmaDefinition) (cache: PragmaCache): PragmaDefinition option =
+        match pragmaDefinition.InvertsTo with
+        | None -> None
+        | Some name ->
+            match cache.Pragmas.TryFind name with
+            | None -> failwithf "Pragma %s inverts to an unknown pragma %s" (pragmaDefinition.Name) name
+            | Some result -> // inverts to a known pragma, make sure they have the same shape
+                if pragmaDefinition.Shape <> result.Shape
+                then failwithf "Pragma %s inverts to %s but they have differing argShapes." (pragmaDefinition.Name) (result.Name)
 
-/// Initialize the global collection of valid pragmas, merging in definitions from plugins
-/// to the built-in pragmas.  Performs some validation as well.
-/// Raises an exception if something fails validation.
-let finalizePragmas (pluginPragmas: PragmaDefinition list): unit =
-    let pragmaDefinitions =
-        pluginPragmas @ pragmaDefsStatic
-        |> List.distinctBy LanguagePrimitives.PhysicalHash
+                Some result    
+    
+    let create (pragmas: PragmaDefinition list): PragmaCache =
+        let pragmaDefinitions =
+            pragmas
+            |> List.distinctBy LanguagePrimitives.PhysicalHash
 
-    let pragsByName =
-        pragmaDefinitions
-        |> List.map (fun pragma -> pragma.Name, pragma)
-        |> Map.ofList
+        let pragsByName =
+            pragmaDefinitions
+            |> List.map (fun pragma -> pragma.Name, pragma)
+            |> Map.ofList
 
-    // Idiot check that we don't have any duplicate pragmas.
-    if pragsByName.Count <> pragmaDefinitions.Length then
-        failwithf
-            "%d pragmas were defined but size of legalPragmas map is only %d. Name aliases?"
-            (pragmaDefinitions.Length)
-            (pragsByName.Count)
+        // Idiot check that we don't have any duplicate pragmas.
+        if pragsByName.Count <> pragmaDefinitions.Length then
+            failwithf
+                "%d pragmas were defined but size of legalPragmas map is only %d. Name aliases?"
+                (pragmaDefinitions.Length)
+                (pragsByName.Count)
 
-    // Make sure any pragmas that invert do it sensibly.
-    // Raises an exception if any one doesn't validate.
-    for pragmaDefinition in pragmaDefinitions do
-        validatePragmaInversion pragsByName pragmaDefinition |> ignore
-
-    // Initialize the global collection.
-    globalLegalPragmas <- Some(pragsByName)
-
+        let cache = PragmaCache(pragsByName)
+        // Make sure any pragmas that invert do it sensibly.
+        // Raises an exception if any one doesn't validate.
+        for pragmaDefinition in pragmaDefinitions do
+            cache |> inverts pragmaDefinition |> ignore
+        cache
+    
+    let createWithBuiltinPragmas (pragmas: PragmaDefinition list) =
+        pragmas @ pragmaDefsStatic
+        |> create
+        
+    let builtin =
+        pragmaDefsStatic
+        |> create        
+    
 /// Instance of a pragma directive.
 [<CustomEquality; CustomComparison>]
 type Pragma =
@@ -490,11 +493,6 @@ type Pragma =
     override this.ToString() =
         sprintf "#%s %s" this.name (String.concat " " this.Arguments)
 
-/// Determine if a pragma inverts.  Return the definition of the pragma it inverts to.
-/// This function will only fail if finalization hasn't occurred properly or if there are
-/// invalid pragmas that somehow escaped validation.
-let pragmaInverts (p: Pragma): PragmaDefinition option =
-    validatePragmaInversion (getLegalPragmas ()) p.Definition
 
 /// Format a pragma definition.
 let formatPragma p =
@@ -532,9 +530,9 @@ let formatPragma p =
     |> String.concat "\n"
 
 /// Print all available pragmas.
-let pragmaUsage () =
+let pragmaUsage (cache: PragmaCache) =
     let orderedPragmas =
-        getLegalPragmas ()
+        cache.Pragmas
         |> Map.toList
         |> List.sortBy fst // sort the pairs by name
         |> List.map snd // pull out just the sorted pragmas
@@ -543,9 +541,9 @@ let pragmaUsage () =
         printfn "%s" (formatPragma p)
 
 /// Raise an exception if pName is not among the registered pragmas.
-let validatePragmaName pName =
-    if not (getLegalPragmas().ContainsKey pName)
-    then failwithf "Requested unknown pragma '#%s'." pName
+let validatePragmaName  (pragmaName: string) (cache: PragmaCache) =
+    if cache.Pragmas |> Map.containsKey pragmaName |> not
+    then failwithf "Requested unknown pragma '#%s'." pragmaName
 
 /// Validated pragma construction during parsing
 let buildPragmaFromDef (pDef: PragmaDefinition) (values: string list) =
@@ -599,10 +597,10 @@ let buildPragmaFromDef (pDef: PragmaDefinition) (values: string list) =
               Arguments = values })
 
 /// Try to build a pragma from a name and values.
-let buildPragma (name: string) (values: string list) =
+let buildPragma (name: string) (values: string list) (cache: PragmaCache): Result<Pragma, string> =
     // try to get the pragma defintion
-    match getLegalPragmas().TryFind name with
-    | Some (pDef) -> buildPragmaFromDef pDef values
+    match cache.Pragmas |> Map.tryFind name with
+    | Some pDef -> buildPragmaFromDef pDef values
     | None -> fail (sprintf "Unknown or invalid pragma: '#%s'" name)
 
 
@@ -617,96 +615,98 @@ let buildPragma (name: string) (values: string list) =
 /// It should be impossible to add invalid pragmas to this structure without
 /// doing it manually through the underlying map.</summary>
 type PragmaCollection =
-    | PragmaCollection of Map<string, Pragma>
-    member x.pmap =
-        match x with
-        | PragmaCollection (pc) -> pc
+    { Pragmas: Map<string, Pragma>
+      Cache: PragmaCache }
     /// Add a Pragma to this collection.
-    member x.Add(p: Pragma) =
-        PragmaCollection
-            (match p.Definition.Scope with
+    member this.Add(pragma: Pragma) =
+        let pragmas =
+            (match pragma.Definition.Scope with
              | BlockOnly (PersistentCumulative)
              | BlockOrPart (PersistentCumulative)
              | BlockOnly (TransientCumulative)
              | BlockOrPart (TransientCumulative) ->
-                 match x.pmap.TryFind(p.name) with
-                 | None -> x.pmap.Add(p.name, p)
+                 match this.Pragmas.TryFind(pragma.name) with
+                 | None -> this.Pragmas.Add(pragma.name, pragma)
                  | Some (existing) ->
-                     let newArgs = existing.Arguments @ p.Arguments // new args go on the end
+                     let newArgs = existing.Arguments @ pragma.Arguments // new args go on the end
 
                      match buildPragmaFromDef existing.Definition newArgs with
-                     | Ok (newPragma, _messages) -> x.pmap.Add(p.name, newPragma)
+                     | Ok (newPragma, _messages) -> this.Pragmas.Add(pragma.name, newPragma)
                      | Bad messages -> failwithf "%s" (String.Join(";", messages))
-             | _ -> x.pmap.Add(p.name, p))
+             | _ -> this.Pragmas.Add(pragma.name, pragma))
+        { this with Pragmas = pragmas }
     /// Add a pragma to this collection using string name.
     member x.Add(pName: string) = x.Add(pName, [])
     /// Add a pragma to this collection using string name and single value.
     member x.Add(pName: string, value: string) = x.Add(pName, [ value ])
     /// Add a pragma to this collection using string name and values.
     member x.Add(pName: string, values: string list) =
-        buildPragma pName values
+        x.Cache |> buildPragma pName values
         >>= (fun p -> ok (x.Add(p)))
     /// Remove a pragma from this collection.
-    member x.Remove(name: string) = PragmaCollection(x.pmap.Remove(name))
+    member this.Remove(name: string) =
+        { this with Pragmas = this.Pragmas |> Map.remove name }
     /// Remove a pragma from this collection.
     member x.Remove(pDef: PragmaDefinition) = x.Remove(pDef.Name)
     /// Remove a pragma from this collection.
     member x.Remove(p: Pragma) = x.Remove(p.name)
     /// Merge a list of Pragmas into this collection.
     /// The incoming pragmas will clobber any pragmas set in this collection.
-    member x.MergeIn(incoming: Pragma list) =
-        incoming
-        |> List.fold (fun (pc: Map<string, Pragma>) prag -> pc.Add(prag.name, prag)) x.pmap
-        |> PragmaCollection
+    member this.MergeIn(incoming: Pragma list) =
+        let newPragmas =
+            incoming
+            |> List.fold (fun (pc: Map<string, Pragma>) prag -> pc.Add(prag.name, prag)) this.Pragmas
+        { this with Pragmas = newPragmas }
     /// Merge another PragmaCollection into this one.
     /// The incoming pragmas will clobber any pragmas set in this collection.
-    member x.MergeIn(incoming: PragmaCollection) =
-        incoming.pmap
-        |> Map.fold (fun (pc: Map<string, Pragma>) name prag -> pc.Add(name, prag)) x.pmap
-        |> PragmaCollection
+    member this.MergeIn(incoming: PragmaCollection) =
+        let newPragmas =
+            incoming.Pragmas
+            |> Map.fold (fun (pc: Map<string, Pragma>) name prag -> pc.Add(name, prag)) this.Pragmas
+        { this with Pragmas = newPragmas }
     /// Has a pragma been set?
     /// Raises an exception if pName is not a registered pragma.
-    member x.ContainsKey(pName: string) =
-        validatePragmaName pName
-        x.pmap.ContainsKey pName
+    member this.ContainsKey(pName: string) =
+        this.Cache |> validatePragmaName pName
+        this.Pragmas |> Map.containsKey pName
     /// Has a pragma been set?
-    member x.ContainsKey(pDef: PragmaDefinition) = x.pmap.ContainsKey pDef.Name
+    member this.ContainsKey(pDef: PragmaDefinition) = this.Pragmas |> Map.containsKey pDef.Name
     /// Has a pragma been set?
-    member x.ContainsKey(p: Pragma) = x.pmap.ContainsKey p.name
+    member x.ContainsKey(p: Pragma) = x.Pragmas |> Map.containsKey p.name
     /// Get the values associated with a pragma.
     /// Raises an exception is pName is not a registered pragma.
-    member x.TryGetValues(pName: string) =
-        validatePragmaName pName
+    member this.TryGetValues(pName: string) =
+        this.Cache |> validatePragmaName pName
 
-        match x.pmap.TryFind pName with
+        match this.Pragmas |> Map.tryFind pName with
         | Some (p) -> Some(p.Arguments)
         | None -> None
     /// Get a single value associated with a pragma, ignoring any extras.
     /// Raises an exception is pName is not a registered pragma.
-    member x.TryGetOne(pName: string) =
-        validatePragmaName pName
+    member this.TryGetOne(pName: string) =
+        this.Cache |> validatePragmaName pName
 
-        match x.TryGetValues pName with
+        match this.TryGetValues pName with
         | Some (v :: _) -> Some(v)
         | None
         | Some ([]) -> None
     /// Get a pragma.
     /// Raises an exception is pName is not a registered pragma.
-    member x.TryFind(pName: string) =
-        validatePragmaName pName
-        x.pmap.TryFind pName
+    member this.TryFind(pName: string) =
+        this.Cache |> validatePragmaName pName
+        this.Pragmas.TryFind pName
     /// Get a pragma by definition.
-    member x.TryFind(pDef: PragmaDefinition) = x.pmap.TryFind pDef.Name
+    member x.TryFind(pDef: PragmaDefinition) = x.Pragmas.TryFind pDef.Name
 
     member x.Names =
-        x.pmap |> Map.toSeq |> Seq.map fst |> Set.ofSeq
+        x.Pragmas |> Map.toSeq |> Seq.map fst |> Set.ofSeq
 
-    member x.Values = x.pmap |> Map.toSeq |> Seq.map snd
-    member x.IsEmpty = x.pmap.IsEmpty
+    member x.Values = x.Pragmas |> Map.toSeq |> Seq.map snd
+    member x.IsEmpty = x.Pragmas.IsEmpty
     /// Pretty-print a collection of pragmas.
     override x.ToString() =
         let ordered =
-            x.pmap
+            x.Pragmas
             |> Map.toList
             |> List.sortBy fst
             |> List.map snd
@@ -716,13 +716,16 @@ type PragmaCollection =
 
         sprintf "PragmaCollection: %s" entries
 
-let createPragmaCollection (pragmas: seq<Pragma>) =
-    pragmas
-    |> Seq.map (fun p -> p.name, p)
-    |> Map.ofSeq
-    |> PragmaCollection
+let createPragmaCollection (pragmas: seq<Pragma>) (cache: PragmaCache) =
+    let pragmas =
+        pragmas
+        |> Seq.map (fun p -> p.name, p)
+        |> Map.ofSeq
+    { PragmaCollection.Cache = cache
+      Pragmas = pragmas }
+    
 
-let EmptyPragmas = PragmaCollection(Map.empty)
+let EmptyPragmas = { PragmaCollection.Pragmas = Map.empty; Cache = PragmaCache.builtin }
 
 /// Determine the current assembly mode from pragma collection.
 let assemblyMode (pc: PragmaCollection) =

@@ -31,7 +31,7 @@ let immediateValidations =
     validate (checkParseError &&& validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
-let phase1 legalCapas =
+let phase1 legalCapas (pragmaCache: PragmaCache) =
     linters
     >=> immediateValidations
     >=> checkRecursiveCalls
@@ -41,11 +41,11 @@ let phase1 legalCapas =
     >=> resolveVariablesStrict
     >=> stripVariables
     >=> reduceMathExpressions
-    >=> buildPragmas legalCapas
+    >=> buildPragmas legalCapas pragmaCache
     >=> collectWarnings
     >=> buildRelativePositions
     >=> expandRoughageLines // inline roughage expansion is pretty simple so we always do it
-    >=> flattenAssemblies
+    >=> flattenAssemblies pragmaCache
     >=> (validate checkMods)
     >=> stuffPragmasIntoAssemblies
 
@@ -148,8 +148,8 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
 
 /// Parse string source code, run compiler phase 1, and return the resulting contents of the
 /// top-level block.
-let bootstrapPhase1 legalCapas originalPosition =
-    bootstrap originalPosition (phase1 legalCapas)
+let bootstrapPhase1 legalCapas pragmaCache originalPosition  =
+    bootstrap originalPosition (phase1 legalCapas pragmaCache)
 
 // =================
 // splicing bootstraps back into the tree
@@ -334,7 +334,7 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     | _ -> good
 
 /// Expand all level 2 expressions.
-let expandLevel2 legalCapas (providers: L2Provider list) (rgs: GenomeDefs) tree =
+let expandLevel2 legalCapas (pragmaCache: PragmaCache) (providers: L2Provider list) (rgs: GenomeDefs) tree =
 
     let bootstrapExpandL2Expression pragmaContext node =
         /// Perform the expansion operation, capturing any exception as an error.
@@ -346,7 +346,7 @@ let expandLevel2 legalCapas (providers: L2Provider list) (rgs: GenomeDefs) tree 
         | L2Expression (l2e) ->
             convertL2Line pragmaContext l2e
             >>= expandCaptureException
-            >>= (bootstrapPhase1 legalCapas l2e.positions)
+            >>= (bootstrapPhase1 legalCapas pragmaCache l2e.positions)
         | _ -> ok node
 
     foldmap  // run the bootstrapped expand operation
@@ -561,6 +561,7 @@ let private expandMut verbose
 /// Expand all mutations in an AST.
 let expandMutations verbose
                     legalCapas
+                    (pragmaCache: PragmaCache)
                     (providers: AlleleSwapProvider list)
                     (rgs: GenomeDefs)
                     codonProvider
@@ -571,7 +572,7 @@ let expandMutations verbose
         expandMut verbose providers rgs codonProvider
 
     let bootstrapOperation =
-        bootstrapExpandLegacyAssembly MutationError assemblyExpansion (bootstrapPhase1 legalCapas)
+        bootstrapExpandLegacyAssembly MutationError assemblyExpansion (bootstrapPhase1 legalCapas pragmaCache)
 
     let expansionOnlyOnNodesWithMutations =
         maybeBypassBootstrap ExpandMutation bootstrapOperation
@@ -634,14 +635,14 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
     |> prettyPrintAssembly
 
 /// Expand all inline protein sequences in an AST.
-let expandInlineProteins doParallel verbose legalCapas (rgs: GenomeDefs) codonProvider tree =
+let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaCache) (rgs: GenomeDefs) codonProvider tree =
 
     let mode = if doParallel then Parallel else Serial
 
     let assemblyExpansion = expandProtein verbose rgs codonProvider
 
     let bootstrapOperation =
-        bootstrapExpandLegacyAssembly ProteinError assemblyExpansion (bootstrapPhase1 legalCapas)
+        bootstrapExpandLegacyAssembly ProteinError assemblyExpansion (bootstrapPhase1 legalCapas pragmaCache)
 
     let expansionOnlyOnNodesWithProteins =
         maybeBypassBootstrap ExpandProtein bootstrapOperation
@@ -985,12 +986,12 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
     else newSource
 
 /// Expand all heterology blocks in an AST.
-let expandHetBlocks verbose legalCapas (rgs: GenomeDefs) codonProvider tree =
+let expandHetBlocks verbose legalCapas (pragmaCache: PragmaCache) (rgs: GenomeDefs) codonProvider tree =
 
     let assemblyExpansion = expandHB verbose rgs codonProvider
 
     let bootstrapOperation =
-        bootstrapExpandLegacyAssembly HetBlockError assemblyExpansion (bootstrapPhase1 legalCapas)
+        bootstrapExpandLegacyAssembly HetBlockError assemblyExpansion (bootstrapPhase1 legalCapas pragmaCache)
 
     let expansionOnlyOnNodesWithHetBlocks =
         maybeBypassBootstrap ExpandHetBlock bootstrapOperation
@@ -1010,13 +1011,13 @@ let expandHetBlocks verbose legalCapas (rgs: GenomeDefs) codonProvider tree =
 /// so we should probably have a hard limit at N^2, where N is the number of nontrivial expansion
 /// passes.
 // FIXME: way too many arguments
-let phase2 oneShot maxPasses doParallel verbose legalCapas asProviders rgs codonTableCache treeIn =
+let phase2 oneShot maxPasses doParallel verbose legalCapas (pragmaCache: PragmaCache) asProviders rgs codonTableCache treeIn =
 
     let runPhase2 mode tree =
         match mode with
-        | ExpandMutation -> expandMutations verbose legalCapas asProviders rgs codonTableCache tree
-        | ExpandProtein -> expandInlineProteins doParallel verbose legalCapas rgs codonTableCache tree
-        | ExpandHetBlock -> expandHetBlocks verbose legalCapas rgs codonTableCache tree
+        | ExpandMutation -> expandMutations verbose legalCapas pragmaCache asProviders rgs codonTableCache tree
+        | ExpandProtein -> expandInlineProteins doParallel verbose legalCapas pragmaCache rgs codonTableCache tree
+        | ExpandHetBlock -> expandHetBlocks verbose legalCapas pragmaCache rgs codonTableCache tree
 
     let rec doPhase2 passNumber (tree: AstTreeHead) =
         match maxPasses with

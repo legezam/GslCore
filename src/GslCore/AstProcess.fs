@@ -526,7 +526,7 @@ let private updatePragmaConstructionContext mode (s: PragmaConstructionContext l
     | None -> s
 
 /// Attempt to build a real pragma from a parsed pragma.
-let private compilePragma (legalCapas: Capabilities) context node =
+let private compilePragma (legalCapas: Capabilities) (pragmaCache: PragmaCache) context node =
 
     let checkDeprecated (p: Pragma) =
         match DeprecatedPragmas.TryFind(p.name) with
@@ -596,7 +596,7 @@ let private compilePragma (legalCapas: Capabilities) context node =
         |> List.map checkPragmaArg
         |> collect
         >>= (fun vals ->
-            buildPragma p.name vals
+            pragmaCache |> buildPragma p.name vals
             |> (mapMessages wrapPragmaErrorString))
         >>= checkDeprecated
         >>= checkScope
@@ -609,8 +609,8 @@ let private compilePragma (legalCapas: Capabilities) context node =
     | _ -> ok node
 
 /// Build genuine pragmas from reduced parsed pragmas.
-let buildPragmas legalCapas =
-    foldmap Serial TopDown updatePragmaConstructionContext [] (compilePragma legalCapas)
+let buildPragmas legalCapas (pragmaCache: PragmaCache) =
+    foldmap Serial TopDown updatePragmaConstructionContext [] (compilePragma legalCapas pragmaCache)
 
 
 // ==========================
@@ -659,15 +659,15 @@ let private shiftFusePragmaAndReverseList parts =
     else ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
-let private invertPragmas parts =
+let private invertPragmas (pragmaCache: PragmaCache) parts =
     parts
     |> List.map (fun part ->
         (getPragmas part).Values
         |> Seq.map (fun p ->
-            match pragmaInverts p with
+            match pragmaCache |> PragmaCache.inverts p.Definition with
             | None -> p
             | Some (invertsTo) -> { p with Definition = invertsTo })
-        |> createPragmaCollection
+        |> fun collection -> createPragmaCollection collection pragmaCache
         |> replacePragmas part)
 
 ///<summary>
@@ -675,7 +675,7 @@ let private invertPragmas parts =
 /// This function encodes the logic that used to reside in MULTIPART expansion.
 /// This function ignores various unexpected conditions, like nodes besides parts inside the assembly.
 ///</summary>
-let private explodeAssembly (assemblyPart: Node<ParsePart>) (assemblyBasePart: Node<AstNode list>) =
+let private explodeAssembly (pragmaCache: PragmaCache) (assemblyPart: Node<ParsePart>) (assemblyBasePart: Node<AstNode list>) =
     // This operation is trivial if the assembly is in the forward orientation.
     // If it needs to reverse, it is rather tedious.
     let subparts = unpackParts assemblyBasePart.x
@@ -688,7 +688,7 @@ let private explodeAssembly (assemblyPart: Node<ParsePart>) (assemblyBasePart: N
             |> List.map (fun p ->
                 { p with
                       x = { p.x with fwd = not p.x.fwd } }) // flip the part
-            |> invertPragmas // flip the pragmas
+            |> (invertPragmas pragmaCache) // flip the pragmas
             |> shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
     // now that the parts are correctly oriented, stuff the assembly pragmas into them
     correctlyOrientedParts
@@ -721,14 +721,14 @@ let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<
 // should use an active pattern to match.
 // FIXME: we should probably check for pragma collisions and complain about them, though this is
 // before stuffing pragmas into assemblies so it may be an edge case.
-let private flattenAssembly node =
+let private flattenAssembly (pragmaCache: PragmaCache) node =
     match node with
     | AssemblyPart (assemblyPart, assemblyBasePart) ->
         // iterate over the parts in the assembly, accumulating lists of parts we will concatenate
         assemblyBasePart.x
         |> Seq.map (fun part ->
             match part with
-            | AssemblyPart (sap, sabp) -> explodeAssembly sap sabp
+            | AssemblyPart (sap, sabp) -> explodeAssembly pragmaCache sap sabp
             | x -> ok [ x ])
         |> collect
         |> lift (fun partLists ->
@@ -748,7 +748,7 @@ let private flattenAssembly node =
     | _ -> ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
-let flattenAssemblies = map Serial BottomUp flattenAssembly
+let flattenAssemblies (pragmaCache: PragmaCache) = map Serial BottomUp (flattenAssembly pragmaCache)
 
 // =====================
 // determining the pragma environment at any given node; stuffing assemblies

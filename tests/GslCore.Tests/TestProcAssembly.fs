@@ -36,10 +36,6 @@ type TestProcAssembly() =
     // enable for detailed (very detailed) output from procAssembly. Useful for debugging test cases
     let verbose = true
 
-    do
-        // initialize pragmas
-        PragmaTypes.finalizePragmas []
-
     let _doProcAssembly testName (slices: DNASlice list) designParams =
         // simulate what compiler will do cleaning up inline seqs
         // that are too short to be treated as inlines

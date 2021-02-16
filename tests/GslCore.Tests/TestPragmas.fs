@@ -15,9 +15,7 @@ open GslCore.Constants
 
 [<TestFixture>]
 type TestPragmas() =
-
-    [<SetUp>]
-    member x.SetUp() = finalizePragmas []
+    let pragmaCache = PragmaCache.builtin
 
     [<Test>]
     member x.TestBadPragmasLocal() =
@@ -28,7 +26,7 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            returnOrFail (buildPragma badName [ badOption ])
+            returnOrFail (buildPragma badName [ badOption ] pragmaCache)
             |> ignore)
         |> ignore
 
@@ -57,6 +55,8 @@ type TestPragmas() =
 
 [<TestFixture>]
 type TestPragmasAST() =
+    
+    let pragmaCache = PragmaCache.builtin
 
     let pragmaBuildPipeline =
         resolveVariables
@@ -65,7 +65,7 @@ type TestPragmasAST() =
         >=> resolveVariablesStrict
         >=> stripVariables
         >=> reduceMathExpressions
-        >=> (buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList))
+        >=> (buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList) pragmaCache)
 
     let compilePragmas = compile pragmaBuildPipeline
 
@@ -86,11 +86,8 @@ type TestPragmasAST() =
 
     let stuffPragmasPipeline =
         pragmaBuildPipeline
-        >=> flattenAssemblies
+        >=> flattenAssemblies pragmaCache
         >=> stuffPragmasIntoAssemblies
-
-    [<SetUp>]
-    member x.SetUp() = initGlobals ()
 
     [<Test>]
     member x.TestBasicPragmaBuild() =
@@ -200,7 +197,7 @@ gBAZ"""
             Pragma
                 (nodeWrap
                     { Definition =
-                          PragmaTypes.getLegalPragmas().TryFind("seed")
+                          PragmaCache.builtin.Pragmas.TryFind("seed")
                               .Value
                       Arguments = [ "123" ] })
 
@@ -208,7 +205,7 @@ gBAZ"""
             Pragma
                 (nodeWrap
                     { Definition =
-                          PragmaTypes.getLegalPragmas().TryFind("seed")
+                          PragmaCache.builtin.Pragmas.TryFind("seed")
                               .Value
                       Arguments = [ "456" ] })
 

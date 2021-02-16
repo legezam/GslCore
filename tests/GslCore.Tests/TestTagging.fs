@@ -18,6 +18,7 @@ open GslCore.PragmaTypes
 [<TestFixture>]
 type TestTagging() =
 
+    
     /// Grab high level part wrappers around assemblies so we can see pragmas
     let rec extractParts (n: AstNode): ParsePart list =
         [ match n with
@@ -33,10 +34,10 @@ type TestTagging() =
           | _ -> () ]
 
     /// compile one GSL source example and extract assemblies
-    let compileOne source =
+    let compileOne cache source  =
         source
         |> GslSourceCode
-        |> compile (phase1 Set.empty)
+        |> compile (phase1 Set.empty cache)
         |> returnOrFail
         |> fun x -> extractParts x.wrappedNode
 
@@ -126,7 +127,7 @@ uADH2; dADH2
 
     let runAndExtractTags code =
         code
-        |> compileOne
+        |> compileOne TestTagging.PragmaCache
         |> List.map (fun p ->
             let tagPragmas =
                 p.pragmas
@@ -138,10 +139,11 @@ uADH2; dADH2
 
             p, tagPragmas)
 
-    do
-        // initialize pragmas
-        finalizePragmas [ TaggingPlugin.tagPragmaDef
-                          TaggingPlugin.gTagPragmaDef ]
+    
+    static member PragmaCache with get() =
+        PragmaCache.createWithBuiltinPragmas
+            [ TaggingPlugin.tagPragmaDef
+              TaggingPlugin.gTagPragmaDef ]    
 
     [<Test>]
     member __.TestNoTag() =
@@ -299,6 +301,7 @@ uADH2; dADH2
         { ATContext.ga =
               { GlobalAssets.rgs = Map.empty
                 seqLibrary = Map.empty
+                pragmaCache = TestTagging.PragmaCache
                 codonProvider =
                     { BasicCodonProvider.parameters = None
                       cache = None } }
@@ -310,7 +313,7 @@ uADH2; dADH2
           name = "fooslice"
           uri = None
           linkerHint = "hint"
-          pragmas = createPragmaCollection Seq.empty
+          pragmas = createPragmaCollection Seq.empty TestTagging.PragmaCache
           designParams = DesignParams.initialDesignParams
           docStrings = []
           materializedFrom = AssemblyTestBase.emptyAssembly
@@ -380,6 +383,7 @@ uADH2; dADH2
                                      for pragma in input.GlobalPragmaTags do
                                          { Pragma.Arguments = [ pragma ]
                                            Definition = TaggingPlugin.gTagPragmaDef } ]
+                                   TestTagging.PragmaCache
 
         let context = TestTagging.dummyContext
 

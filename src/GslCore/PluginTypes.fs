@@ -59,6 +59,7 @@ type ICodonProvider =
 type GlobalAssets =
     { seqLibrary: SequenceLibrary
       codonProvider: ICodonProvider
+      pragmaCache: PragmaCache
       rgs: Map<string, GenomeDef> }
 // =========================
 // plugin behavior defintion for allele swaps

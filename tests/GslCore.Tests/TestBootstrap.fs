@@ -1,5 +1,6 @@
 ﻿namespace GslCore.Tests
 
+open GslCore.PragmaTypes
 open NUnit.Framework
 open GslCore.Constants
 open Amyris.ErrorHandling
@@ -27,10 +28,10 @@ type TestBootstrapping() =
         match node with
         | Splice (nodes) -> AstTreeHead(Block(nodeWrap (List.ofArray nodes)))
 
-    let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty
+    let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty PragmaCache.builtin
 
     let compilePhase1NoCapas =
-        GslSourceCode >> (compile (phase1 Set.empty))
+        GslSourceCode >> (compile (phase1 Set.empty PragmaCache.builtin))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =
@@ -55,10 +56,6 @@ type TestBootstrapping() =
             bootstrapExpandLegacyAssembly Error expansionFail bootstrapPhase1NoCapas
 
         executeBootstrap bootstrapOperation Serial node
-
-    [<SetUp>]
-    member x.SetUp() = initGlobals ()
-
 
     [<Test>]
     member x.TestBootstrapAssembly() =

@@ -186,10 +186,10 @@ let rec printPPP ppp =
             lOut + gOut + modOut // String.Join("",Array.ofSeq modOut)
     // Now add in any inline pragma part with braces, ; separated etc
     let prOut =
-        if ppp.pr.pmap.Count = 0 then
+        if ppp.pr.Pragmas.Count = 0 then
             ""
         else
-            ppp.pr.pmap
+            ppp.pr.Pragmas
             |> Seq.map (fun pv -> sprintf "#%s %s" pv.Key (pv.Value.Arguments |> String.concat " "))
             |> fun ss -> String.Join(";", ss)
             |> sprintf "{%s}"

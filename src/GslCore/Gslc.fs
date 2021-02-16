@@ -4,6 +4,7 @@ open System.IO
 open System
 open System.Text
 open System.Reflection
+open GslCore.PragmaTypes
 open Microsoft.FSharp.Core.Printf
 
 open GslCore.CommonTypes
@@ -178,18 +179,9 @@ let configureGslc unconfiguredPlugins argv =
 
                 printfn "Installed plugins:\n%s" pluginDescs
 
-            let pluginPragmas =
-                s.plugins
-                |> List.map (fun p -> p.providesPragmas)
-                |> List.concat
-
-
-            // combine plugin pragmas and static pragmas into final legal list
-            // FIXME: should eliminate global pragma storage
-            PragmaTypes.finalizePragmas pluginPragmas
 
             // fulfill this request only after we've processed all the plugins and determined full list of pragmas
-            if s.opts.doHelpPragmas then PragmaTypes.pragmaUsage ()
+            if s.opts.doHelpPragmas then PragmaTypes.pragmaUsage s.ga.pragmaCache
 
             Continue(s)
         with e -> Exit(1, Some(sprintf "An error occurred during configuration:\n%s" e.Message))

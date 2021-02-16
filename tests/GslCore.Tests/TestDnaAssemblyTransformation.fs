@@ -73,9 +73,6 @@ type Test() =
 
         Assert.AreEqual(expectedSource, source)
 
-    [<SetUp>]
-    member x.SetUp() = finalizePragmas []
-
     [<Test>]
     member x.TestLongSliceUsesDnaSrc() =
         let sliceNoSource = AssemblyTestBase.testSlice EmptyPragmas

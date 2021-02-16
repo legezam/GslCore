@@ -11,9 +11,6 @@ open GslCore.AstFixtures
 open GslCore.LexAndParse
 open GslCore.Constants
 
-/// Initialize any globals that need to be set for tests.
-let initGlobals () = PragmaTypes.finalizePragmas []
-
 /// Lex and parse, in verbose mode.
 let lexparse = lexAndParse true
 

@@ -19,7 +19,7 @@ let rec processGSL (s: ConfigurationState) gslText =
     let opts, plugins, ga = s.opts, s.plugins, s.ga
 
     let verbose = opts.verbose
-
+    let pragmaCache = ga.pragmaCache
     /// Build up all legal capabilities by going through plugins
     // FIXME: need to inject this and validate legal capabilities
     // Should also eliminate global pragma state while we're at it, if possible.
@@ -38,18 +38,18 @@ let rec processGSL (s: ConfigurationState) gslText =
         |> getAllProviders getL2KOTitrationProviders
 
     let phase2WithData =
-        phase2 (not opts.iter) (Some(10)) opts.doParallel verbose legalCapas alleleSwapAlgs ga.rgs ga.codonProvider
+        phase2 (not opts.iter) (Some(10)) opts.doParallel verbose legalCapas pragmaCache alleleSwapAlgs ga.rgs ga.codonProvider
 
     /// Main compiler pipeline.
     let phase1Result =
-        lexAndParse verbose gslText >>= phase1 legalCapas
+        lexAndParse verbose gslText >>= phase1 legalCapas pragmaCache
 
     if opts.onlyPhase1 then
         phase1Result >>= convertAndGatherAssemblies
     else
         phase1Result
         //>>= failOnAssemblyInL2Promoter
-        >>= expandLevel2 legalCapas l2Providers ga.rgs
+        >>= expandLevel2 legalCapas pragmaCache l2Providers ga.rgs
         >>= prepPhase2 ga.rgs ga.seqLibrary
         >>= phase2WithData
         >>= convertAndGatherAssemblies // collect the assemblies in the tree and return them

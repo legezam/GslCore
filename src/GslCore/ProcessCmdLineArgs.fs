@@ -5,6 +5,7 @@ open GslCore.PluginTypes
 open GslCore.CommonTypes
 open Amyris.Bio.utils
 open System.IO
+open GslCore.PragmaTypes
 open GslCore.RefGenome
 open Amyris.Dna
 
@@ -197,6 +198,12 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         | [] -> failwithf "No CodonProvider plugins found.  GSLc requires exactly one to be provided."
         | x -> failwithf "%d CodonProvider behaviors found.  GSLc requires excatly one to be provided." x.Length
 
+    let pragmaCache =
+        updatedPlugins
+        |> List.map (fun p -> p.providesPragmas)
+        |> List.concat
+        |> PragmaCache.createWithBuiltinPragmas    
+    
     // Load static assets and initialize caches.
     let ga =
         if loadGA then
@@ -204,10 +211,12 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
 
             { seqLibrary = library
               codonProvider = codonProvider
+              pragmaCache = pragmaCache
               rgs = rgs }
         else
             { seqLibrary = Map.empty
               codonProvider = codonProvider
+              pragmaCache = pragmaCache
               rgs = Map.empty }
 
     { opts = parsedOptions

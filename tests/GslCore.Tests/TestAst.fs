@@ -1,5 +1,6 @@
 ﻿namespace GslCore.Tests
 
+open GslCore.PragmaTypes
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes
@@ -86,10 +87,10 @@ type TestTransformation() =
              >=> stripFunctions)
 
     let flattenAssemblyTest =
-        sourceCompareTest (buildPragmas Set.empty >=> flattenAssemblies)
+        sourceCompareTest (buildPragmas Set.empty PragmaCache.builtin >=> flattenAssemblies PragmaCache.builtin)
 
     let flattenPartTest =
-        sourceCompareTest (resolveVariables >=> flattenAssemblies)
+        sourceCompareTest (resolveVariables >=> flattenAssemblies PragmaCache.builtin)
 
     let variableResolutionPipeline =
         checkRecursiveCalls
@@ -100,10 +101,6 @@ type TestTransformation() =
 
     let fullVariableResolutionTest =
         sourceCompareTest variableResolutionPipeline
-
-
-    [<SetUp>]
-    member x.SetUp() = initGlobals ()
 
     [<Test>]
     member x.TestVariableResolutionBasic() =

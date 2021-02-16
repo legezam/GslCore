@@ -14,11 +14,10 @@ let testLibDir2 = @"../../../../../TestGslcLib"
 
 [<TestFixture>]
 type TestPromTermLen() =
-    let emptyPragmas = PragmaCollection(Map.empty)
-
-    do
-        // initialize pragmas
-        PragmaTypes.finalizePragmas []
+    
+    let emptyPragmas =
+        { PragmaCollection.Pragmas = Map.empty
+          Cache = PragmaCache.builtin }
 
     let testLibDir =
         if System.IO.Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
@@ -28,7 +27,7 @@ type TestPromTermLen() =
         then failwithf "%s: expected= %d and actual=%d not equal" context expected actual
 
     let checkOneGenome pragmas name promLen termLen termLenMRNA =
-        let gd =
+        use gd =
             new RefGenome.GenomeDef(testLibDir, name)
 
 
@@ -66,17 +65,19 @@ type TestPromTermLen() =
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
-        match buildPragma name [ value ] with
+        match buildPragma name [ value ] PragmaCache.builtin with
         | Ok (p, []) ->
             let map =
-                [ p.name, p ] |> Map.ofList |> PragmaCollection
+                { PragmaCollection.Pragmas =
+                    [ p.name, p ] |> Map.ofList
+                  Cache = PragmaCache.builtin }
 
             checkOneGenome map refGenome expProm expTerm expTermMRNA
         | _ -> failwith "building promlen pragma"
 
     [<Test>]
     member __.TestGenomesLoadable() =
-        let gd =
+        use gd =
             new RefGenome.GenomeDef(testLibDir, "TestGenome")
 
         gd.Load()
@@ -86,9 +87,8 @@ type TestPromTermLen() =
     member __.TestPragmasExist() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
-                returnOrFail (buildPragma name [ "250" ])
+                returnOrFail (buildPragma name [ "250" ] PragmaCache.builtin)
                 |> ignore)
-            |> ignore
 
         checkPragmaExists "promlen"
         checkPragmaExists "termlen"

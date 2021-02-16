@@ -15,15 +15,13 @@ type TestMapRyseLinkers() =
     /// Enable for detailed (very detailed) output from mapRyseLinkers - useful for debugging test cases
     let verbose = false
 
-    do
-        // initialize pragmas
-        PragmaTypes.finalizePragmas []
 
     let makePragma name values =
-        match buildPragma name values with
+        match buildPragma name values PragmaCache.builtin with
         | Ok (p, []) ->
             let map =
-                [ p.name, p ] |> Map.ofList |> PragmaCollection
+                { PragmaCollection.Cache = PragmaCache.builtin
+                  Pragmas = [ p.name, p ] |> Map.ofList }
 
             map
         | _ -> failwith "building pragma"

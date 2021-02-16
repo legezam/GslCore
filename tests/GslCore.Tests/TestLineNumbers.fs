@@ -2,6 +2,7 @@
 
 open System
 open GslCore
+open GslCore.PragmaTypes
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes
@@ -47,7 +48,7 @@ type TestLineNumbers() =
     let compileOne source =
         source
         |> GslSourceCode
-        |> compile (phase1 Set.empty)
+        |> compile (phase1 Set.empty PragmaCache.builtin)
         |> returnOrFail
         |> fun x -> extractAssemblies x.wrappedNode
 
@@ -72,10 +73,6 @@ end
 
          functionThree() // line 19
 """
-
-    do
-        // initialize pragmas
-        PragmaTypes.finalizePragmas []
 
     [<Test>]
     member __.TestFunctionExpansion() =

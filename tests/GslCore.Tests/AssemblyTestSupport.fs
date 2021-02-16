@@ -34,7 +34,7 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 let compileOne source =
     source
     |> GslSourceCode
-    |> compile (phase1 Set.empty)
+    |> compile (phase1 Set.empty PragmaCache.builtin)
     |> returnOrFail
     |> fun x -> extractAssemblies x.wrappedNode
 
