@@ -3,6 +3,7 @@ module GslLexer
 open System
 open GslCore.GslParser
 open GslCore.AstTypes
+open GslCore.AstTypes.Lex
 open FSharp.Text.Lexing
 
 let newline (lexbuf:LexBuffer<_>) =

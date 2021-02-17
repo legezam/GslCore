@@ -21,7 +21,7 @@ open Amyris.Bio
 open primercore
 open GslCore.Constants
 open PluginTypes
-open AstTypes
+open GslCore.AstTypes
 open ProcessCmdLineArgs
 
 /// Test bed for investigating primer misadventure

@@ -383,7 +383,7 @@ let private inlineFunctionCall (s: FunctionInliningState) (node: AstNode) =
         | Some (fd) ->
             // Helper function to add new position to an AST node
             let addPositions (node: AstNode) =
-                ok (prependPositionsAstNode fcw.Positions node)
+                ok (Utils.prependPositionsAstNode fcw.Positions node)
 
             // inline the args into the function call block
             // this new block replaces the function call
