@@ -2,14 +2,15 @@
 
 open System.IO
 open System
-open GslCore.Pragma
-open GslCore.CommonTypes
+open System.Collections.Concurrent
+open Amyris.ErrorHandling
 open Amyris.Bio.utils
 open Amyris.Dna
 
-open System.Collections.Concurrent
 open GslCore.Constants
 open GslCore.Uri
+open GslCore.Pragma
+open GslCore.CommonTypes
 open GslCore.SbolExample
 open GslCore.AstTypes
 
@@ -294,11 +295,12 @@ let mapRyseLinkers (opts: ParsedOptions)
             let dna =
                 linker.dna
                 |> fun x -> if phase then x else x.RevComp()
+            let linkerUri = linker.name |> Uri.linkerUri |> returnOrFail
             // Build the linker entry
             { id = None
               extId = None
               sliceName = ""
-              uri = Some(linkerUri linker.name)
+              uri = Some linkerUri
               dna = dna
               sourceChr = "linker"
               sourceFr = 0<ZeroOffset>
@@ -663,7 +665,14 @@ let mapRyseLinkers (opts: ParsedOptions)
 
 /// Return the URIs for linker ComponentDefintion and Sequence
 let linkerUris linkCode =
-    (unwrap (buildUri [ "Component"; "Linker" ] linkCode), unwrap (buildUri [ "ComponentSequence"; "Linker" ] linkCode))
+    let componentLinker =
+        Uri.buildUri [ "Component"; "Linker" ] linkCode
+        |> returnOrFail
+        
+    let componentSequenceLinker =
+        Uri.buildUri [ "ComponentSequence"; "Linker" ] linkCode
+        |> returnOrFail
+    componentLinker, componentSequenceLinker
 
 /// Return the SBOL specification of a RYSE linker.
 let sbolLinker (linker: RYSELinker) =
@@ -694,7 +703,7 @@ let sbolPrimer (name: string) (tail: Dna) (body: Dna) (kind: PrimerType) =
     // make tail and body items
     let tailComp =
         { id =
-              { identity = createTempUri ()
+              { identity = Uri.createTempUri ()
                 name = Some(name + "_tail")
                 description = None }
           roles = [ primerTailRoleUri ]
@@ -707,7 +716,7 @@ let sbolPrimer (name: string) (tail: Dna) (body: Dna) (kind: PrimerType) =
 
     let bodyComp =
         { id =
-              { identity = createTempUri ()
+              { identity = Uri.createTempUri ()
                 name = Some(name + "_body")
                 description = None }
           roles = [ primerBodyRoleUri ]
@@ -725,7 +734,7 @@ let sbolPrimer (name: string) (tail: Dna) (body: Dna) (kind: PrimerType) =
 
     let fullComp =
         { id =
-              { identity = createTempUri ()
+              { identity = Uri.createTempUri ()
                 name = Some(name)
                 description = None }
           roles = [ primerRole ]
@@ -771,7 +780,7 @@ let sbolDnaElement (name: string)
           { identity =
                 (match compUri with
                  | Some (u) -> u
-                 | None -> createTempUri ())
+                 | None -> Uri.createTempUri ())
             name = Some(name)
             description = desc }
       roles = [ rabitDnaRoleUri ]
@@ -847,7 +856,7 @@ let sbolRabit (name: string)
           { identity =
                 (match compUri with
                  | Some (u) -> u
-                 | None -> createTempUri ())
+                 | None -> Uri.createTempUri ())
             name = Some(name)
             description = Some(desc) }
       roles = [ rabitRoleUri; (rabitBreedRole breed) ]
@@ -883,7 +892,7 @@ let sbolStitch (name: string) (desc: string) (compUri: Uri option) (rabits: Comp
           { identity =
                 (match compUri with
                  | Some (u) -> u
-                 | None -> createTempUri ())
+                 | None -> Uri.createTempUri ())
             name = Some(name)
             description = Some(desc) }
       roles = [ stitchRoleUri ]
@@ -913,7 +922,7 @@ let sbolMegastitch (name: string)
           { identity =
                 (match compUri with
                  | Some (u) -> u
-                 | None -> createTempUri ())
+                 | None -> Uri.createTempUri ())
             name = Some(name)
             description = Some(desc) }
       roles = [ megastitchRoleUri ]

@@ -1,7 +1,8 @@
 ﻿namespace GslCore
 
 open NUnit.Framework
-open Uri
+open GslCore.Uri
+open Amyris.ErrorHandling
 
 [<TestFixture>]
 type TestUri() = 
@@ -9,9 +10,7 @@ type TestUri() =
     [<Test>]
     member x.TestUriConstruction() =
 
-        match Uri.buildUri [] "test" with
-        | Ok(u) -> Assert.AreEqual("http://amyris.com/GBoM/test", u)
-        | Err(e) -> failwith e
-
-        Assert.AreEqual(Uri.linkerUri "0", "http://amyris.com/GBoM/Component/Linker/0")
-        Assert.AreEqual(Uri.linkerUri "A", "http://amyris.com/GBoM/Component/Linker/A")
+        let uri = Uri.buildUri [] "test" |> returnOrFail
+        Assert.AreEqual("http://amyris.com/GBoM/test", uri)
+        Assert.AreEqual(Uri.linkerUri "0" |> returnOrFail, "http://amyris.com/GBoM/Component/Linker/0")
+        Assert.AreEqual(Uri.linkerUri "A" |> returnOrFail, "http://amyris.com/GBoM/Component/Linker/A")

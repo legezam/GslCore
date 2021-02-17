@@ -1,6 +1,7 @@
 ﻿module GslCore.SbolExample
 
 open Amyris.Dna
+open Amyris.ErrorHandling
 open GslCore.Uri
 
 // NOTE: see helper functions below.  Dammit SBOL, why did you decide to wrap
@@ -359,9 +360,12 @@ let compileGbom (compDefs: seq<ComponentDefinition>) =
 // --- Roles ---
 
 let roleUriBase =
-    unwrap (addNamespaces Uri.amyrisUriBase [ "Role" ])
+    Uri.addNamespaces Uri.AmyrisUriBase [ "Role" ]
+    |> returnOrFail
 
-let addTermToNamespaceStatic ns term = unwrap (addTermToNamespace ns term)
+let addTermToNamespaceStatic ns term =
+    Uri.addTermToNamespace ns term
+    |> returnOrFail
 
 // --- static URI definitions ---
 let ryseLinkerRoleUri =
@@ -410,7 +414,9 @@ let megastitchRoleUri =
     addTermToNamespaceStatic roleUriBase "Megastitch"
 
 let rabitBreedUriBase =
-    unwrap (addNamespaces roleUriBase [ "RabitBreed" ])
+    Uri.addNamespaces roleUriBase [ "RabitBreed" ]
+    |> returnOrFail
 
 let rabitBreedRole breed =
-    unwrap (addTermToNamespace rabitBreedUriBase breed)
+    Uri.addTermToNamespace rabitBreedUriBase breed
+    |> returnOrFail

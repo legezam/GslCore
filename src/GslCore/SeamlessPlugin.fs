@@ -9,12 +9,14 @@ open GslCore.Constants
 open Amyris.ErrorHandling
 open GslCore.GslcProcess
 open GslCore.Pragma
+open GslCore.Uri
 
 let mt =
+    let mtLinkerUri = Uri.linkerUri "MT" |> returnOrFail
     { id = None
       extId = None
       sliceName = ""
-      uri = Some(Uri.linkerUri "MT")
+      uri = Some mtLinkerUri
       dna = Amyris.Dna.Dna("")
       sourceChr = "linker"
       sourceFr = 0<ZeroOffset>

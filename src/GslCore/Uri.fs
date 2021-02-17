@@ -1,102 +1,97 @@
-﻿module GslCore.Uri
+﻿namespace GslCore.Uri
 
-// Big TODO: dry out the duplication of these constants between Thumper and GSLc
-
-let amyrisUriBase = "http://amyris.com/GBoM"
-
-let uriPathDelimiter = "/"
-let uriTermDelimiter = "/"
-
+open Amyris.ErrorHandling
 type Uri = string
 
-// TODO: make this a specific instance of a generic Result type.
-type UriResult =
-    | Ok of Uri
-    | Err of string
+module Uri =
+    // Big TODO: dry out the duplication of these constants between Thumper and GSLc
 
-// TODO: make this generic
-/// Helper function to raise an exception on a bad UriResult
-let unwrap result =
-    match result with
-    | Ok (x) -> x
-    | Err (e) -> failwith e
+    [<Literal>]
+    let AmyrisUriBase = "http://amyris.com/GBoM"
 
-let forbiddenChars = [| uriPathDelimiter; uriTermDelimiter |]
+    [<Literal>]
+    let private UriPathDelimiter = "/"
 
-/// Check a string for forbidden characters, return Some(s, badChars) if any are found.
-let checkForbiddenChars (s: string) =
-    let badChars =
-        seq {
-            for c in forbiddenChars do
-                if s.Contains(c) then yield c
-        }
-        |> List.ofSeq
-
-    match badChars with
-    | [] -> None
-    | x -> Some(s, x)
-
-let checkTermsForIssues (ts: string list) =
-    let issues = List.choose checkForbiddenChars ts
-
-    if not issues.IsEmpty
-    then Some("Found bad chars TODO informative error message.")
-    else None
+    [<Literal>]
+    let private UriTermDelimiter = "/"
 
 
-/// Construct a local URI from a list of namespaces and an instance term.
-let buildUri (namespaces: string list) (term: string) =
-    // TODO: type constraint on stringifyable term?
-    match checkTermsForIssues (term :: namespaces) with
-    | Some (e) -> Err(e)
-    | None ->
-        let ub = System.Text.StringBuilder()
-        ub.Append(amyrisUriBase) |> ignore
+    let private forbiddenChars = [| UriPathDelimiter; UriTermDelimiter |]
 
-        for ns in namespaces do
-            ub.Append(uriPathDelimiter + ns) |> ignore
+    /// Check a string for forbidden characters, return Some(s, badChars) if any are found.
+    let private checkForbiddenChars (input: string): (string * string list) option =
+        let badChars =
+            [ for forbiddenChar in forbiddenChars do
+                if input.Contains(forbiddenChar) then yield forbiddenChar ]
 
-        ub.Append(uriTermDelimiter) |> ignore
-        ub.Append(term) |> ignore
-        Ok(ub.ToString())
+        match badChars with
+        | [] -> None
+        | x -> Some(input, x)
 
-/// Construct a URI namespace extension.
-let addNamespaces (baseNamespace: string) (namespaces: string list) =
-    match checkTermsForIssues namespaces with
-    | Some (e) -> Err(e)
-    | None ->
-        let ub = System.Text.StringBuilder()
-        ub.Append(baseNamespace) |> ignore
+    let private checkTermsForIssues (terms: string list): string option =
+        let issues = List.choose checkForbiddenChars terms
 
-        for ns in namespaces do
-            ub.Append(uriPathDelimiter + ns) |> ignore
+        if not issues.IsEmpty
+        then Some("Found bad chars TODO informative error message.")
+        else None
 
-        Ok(ub.ToString())
 
-/// Add a term entry into a namespace.
-let addTermToNamespace (baseNamespace: string) (term: string) =
-    match checkTermsForIssues [ term ] with
-    | Some (e) -> Err(e)
-    | None -> Ok(baseNamespace + uriTermDelimiter + term)
+    /// Construct a local URI from a list of namespaces and an instance term.
+    let buildUri (namespaces: string list) (term: string): Result<string, string> =
+        // TODO: type constraint on stringifyable term?
+        match checkTermsForIssues (term :: namespaces) with
+        | Some errorMessage -> fail errorMessage
+        | None ->
+            let ub = System.Text.StringBuilder()
+            ub.Append(AmyrisUriBase) |> ignore
 
-// TODO: possibly move these definitions into the appropriate module
-let linkerBase =
-    unwrap (addNamespaces amyrisUriBase [ "Component"; "Linker" ])
+            for ns in namespaces do
+                ub.Append(UriPathDelimiter + ns) |> ignore
 
-/// Construct a RYSE linker URI from a link code.
-/// Since this is entirely programmatic we expect it should never fail at
-/// runtime; thus, raises an exception on error.
-let linkerUri linkCode =
-    unwrap (addTermToNamespace linkerBase linkCode)
+            ub.Append(UriTermDelimiter) |> ignore
+            ub.Append(term) |> ignore
+            ok (ub.ToString())
 
-let gslcTempUriBase =
-    unwrap (addNamespaces amyrisUriBase [ "GSLC"; "TEMP" ])
+    /// Construct a URI namespace extension.
+    let addNamespaces (baseNamespace: string) (namespaces: string list): Result<string, string> =
+        match checkTermsForIssues namespaces with
+        | Some errorMessage -> fail errorMessage
+        | None ->
+            let ub = System.Text.StringBuilder()
+            ub.Append(baseNamespace) |> ignore
 
-// heap-allocated counter
-let globalUriCounter = ref 0
+            for ns in namespaces do
+                ub.Append(UriPathDelimiter + ns) |> ignore
 
-/// Construct a locally-unique temporary URI.
-let createTempUri () =
-    let value = !globalUriCounter
-    globalUriCounter := value + 1
-    unwrap (addTermToNamespace gslcTempUriBase (sprintf "%d" value))
+            ok (ub.ToString())
+
+    /// Add a term entry into a namespace.
+    let addTermToNamespace (baseNamespace: string) (term: string): Result<string, string> =
+        match checkTermsForIssues [ term ] with
+        | Some errorMessage -> fail errorMessage
+        | None -> ok (baseNamespace + UriTermDelimiter + term)
+
+    // TODO: possibly move these definitions into the appropriate module
+    let private linkerBase =
+        addNamespaces AmyrisUriBase [ "Component"; "Linker" ]
+        |> returnOrFail
+
+    /// Construct a RYSE linker URI from a link code.
+    /// Since this is entirely programmatic we expect it should never fail at
+    /// runtime; thus, raises an exception on error.
+    let linkerUri (linkCode: string): Result<string, string> = addTermToNamespace linkerBase linkCode
+
+    let private gslcTempUriBase =
+        addNamespaces AmyrisUriBase [ "GSLC"; "TEMP" ]
+        |> returnOrFail
+
+    // heap-allocated counter
+    let private globalUriCounter: int ref = ref 0
+
+    /// Construct a locally-unique temporary URI.
+    let createTempUri (): string =
+        let value = !globalUriCounter
+        globalUriCounter := value + 1
+
+        addTermToNamespace gslcTempUriBase (sprintf "%d" value)
+        |> returnOrFail
