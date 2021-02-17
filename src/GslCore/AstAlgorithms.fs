@@ -106,7 +106,7 @@ let decompile tree =
             _print rp.Item state
 
             match rp.Qualifier with
-            | Some (rpq) -> append (relPosQualifierToString rpq)
+            | Some (rpq) -> append (Parts.relPosQualifierToString rpq)
             | None -> ()
         | RelPos ({ Value = rp; Positions = _ }) ->
             appendff

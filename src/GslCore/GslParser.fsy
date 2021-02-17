@@ -91,7 +91,7 @@ Line:
 // ==================
 
 PragmaValue:
-    | VARIABLE          { (tokenToVariable $1 NotYetTyped) }
+    | VARIABLE          { (Utils.tokenToVariable $1 NotYetTyped) }
     | PVALUE            { String(Node.tokenAsNode $1) }
 
 PragmaValues:
@@ -99,8 +99,8 @@ PragmaValues:
     | PragmaValue              { [$1] }
 
 Pragma:
-    | PNAME PragmaValues { (createPragma $1 $2) }
-    | PNAME { (createPragma $1 []) }
+    | PNAME PragmaValues { (Create.pragma $1 $2) }
+    | PNAME { (Create.pragma $1 []) }
 
 Pragmas:
     |  Pragma {[$1]}
@@ -117,12 +117,12 @@ InlinePragmas:
 
 // A complete let expression, deriving type from the context.
 TypedVariableDeclaration:
-	| LET ID EQUALS VARIABLE NEWLINE		  { createVariableBinding $2 NotYetTyped (tokenToVariable $4 NotYetTyped) }
-    | LET ID EQUALS IntExp NEWLINE            { createVariableBinding $2 IntType $4 }
-    | LET ID EQUALS StringLiteral NEWLINE     { createVariableBinding $2 StringType $4 }
-    | LET ID EQUALS FloatLiteral NEWLINE      { createVariableBinding $2 FloatType $4 }
-    | LET ID EQUALS CompletePart NEWLINE      { createVariableBinding $2 PartType $4 }
-    | LET ID EQUALS AssemblyPart NEWLINE      { createVariableBinding $2 PartType $4 }
+	| LET ID EQUALS VARIABLE NEWLINE		  { Create.variableBinding $2 NotYetTyped (Utils.tokenToVariable $4 NotYetTyped) }
+    | LET ID EQUALS IntExp NEWLINE            { Create.variableBinding $2 IntType $4 }
+    | LET ID EQUALS StringLiteral NEWLINE     { Create.variableBinding $2 StringType $4 }
+    | LET ID EQUALS FloatLiteral NEWLINE      { Create.variableBinding $2 FloatType $4 }
+    | LET ID EQUALS CompletePart NEWLINE      { Create.variableBinding $2 PartType $4 }
+    | LET ID EQUALS AssemblyPart NEWLINE      { Create.variableBinding $2 PartType $4 }
 
 // ==================
 // function declarations
@@ -134,8 +134,8 @@ FunctionDefArgs:
     | ID COMMA FunctionDefArgs { $1.Item::$3 }
 
 FunctionDeclaration:
-    | LET ID LPAREN FunctionDefArgs RPAREN EQUALS CodeSection END { createFunctionDeclaration $2 $4 $7 }
-    | LET ID LPAREN RPAREN EQUALS CodeSection END { createFunctionDeclaration $2 [] $6 }
+    | LET ID LPAREN FunctionDefArgs RPAREN EQUALS CodeSection END { Create.functionDefinition $2 $4 $7 }
+    | LET ID LPAREN RPAREN EQUALS CodeSection END { Create.functionDefinition $2 [] $6 }
 
 // ==================
 // function calls
@@ -143,12 +143,12 @@ FunctionDeclaration:
 
 // Things that can be passed as args to functions.
 TypedValue:
-	| VARIABLE      { createTypedValue NotYetTyped (tokenToVariable $1 NotYetTyped) } // passing variables to functions
-    | IntExp        { createTypedValue IntType $1 } // integer expressions
-    | StringLiteral { createTypedValue StringType $1 }
-    | FloatLiteral  { createTypedValue FloatType $1 } // no support yet for floating point math
-    | CompletePart  { createTypedValue PartType $1 }
-    | AssemblyPart  { createTypedValue PartType $1 }
+	| VARIABLE      { Create.typedValue NotYetTyped (Utils.tokenToVariable $1 NotYetTyped) } // passing variables to functions
+    | IntExp        { Create.typedValue IntType $1 } // integer expressions
+    | StringLiteral { Create.typedValue StringType $1 }
+    | FloatLiteral  { Create.typedValue FloatType $1 } // no support yet for floating point math
+    | CompletePart  { Create.typedValue PartType $1 }
+    | AssemblyPart  { Create.typedValue PartType $1 }
 
 // A list of comma-separated values that acquire type information.
 CommaSeparatedTypedValues:
@@ -156,8 +156,8 @@ CommaSeparatedTypedValues:
     | TypedValue { [$1] }
 
 FunctionCall:
-    | ID LPAREN CommaSeparatedTypedValues RPAREN { createFunctionCall $1 $3 }
-    | ID LPAREN RPAREN { createFunctionCall $1 [] }
+    | ID LPAREN CommaSeparatedTypedValues RPAREN { Create.functionCall $1 $3 }
+    | ID LPAREN RPAREN { Create.functionCall $1 [] }
 
 // ==================
 // literals
@@ -168,7 +168,7 @@ IntLiteral:
     | INT           { Int(Node.tokenAsNode $1) }
 
 FloatLiteral:
-    | INT DOT INT   { createFloat $1 $3 } // float literal
+    | INT DOT INT   { Create.float $1 $3 } // float literal
 
 StringLiteral:
     | STRING        { String(Node.tokenAsNode $1) } // string literal
@@ -179,13 +179,13 @@ StringLiteral:
 
 IntExp:
     | IntLiteral                    { $1 }
-    | VARIABLE                      { (tokenToVariable $1 IntType) }
+    | VARIABLE                      { (Utils.tokenToVariable $1 IntType) }
     | LPAREN IntExp RPAREN          { $2 }
-    | HYPHEN IntExp %prec UMINUS    { (negate $2) }
-    | IntExp STAR IntExp          { (createBinaryOp Multiply $1 $3) }
-    | IntExp SLASH IntExp           { (createBinaryOp Divide $1 $3) }
-    | IntExp PLUS IntExp          { (createBinaryOp Add $1 $3) }
-    | IntExp HYPHEN IntExp       { (createBinaryOp Subtract $1 $3) }
+    | HYPHEN IntExp %prec UMINUS    { (Create.negation $2) }
+    | IntExp STAR IntExp          { (Create.binaryOperation Multiply $1 $3) }
+    | IntExp SLASH IntExp           { (Create.binaryOperation Divide $1 $3) }
+    | IntExp PLUS IntExp          { (Create.binaryOperation Add $1 $3) }
+    | IntExp HYPHEN IntExp       { (Create.binaryOperation Subtract $1 $3) }
 
 // ==================
 // parts
@@ -193,46 +193,46 @@ IntExp:
 
 // FIXME: should push this to the AST
 Linker: LINKER  { match $1.Item.Split([| '-' |]) with
-                  | [| a;b;c |] -> {l1 = a ; l2 = b; orient = c}
+                  | [| a;b;c |] -> { Linker.Linker1 = a ; Linker2 = b; Orient = c}
                   | _ -> failwithf "bad linker format '%s'" ($1.Item)
                 }
 
 Part:
     | LPAREN AssemblyPart RPAREN    { $2 }
     // gene part with a linker
-    | Linker HYPHEN ID              { createGenePart $3 (Some($1)) }
+    | Linker HYPHEN ID              { Parts.createGenePart $3 (Some($1)) }
     // gene part without a linker
-    | ID                            { createGenePart $1 None }
-    | MARKER                        { createPartWithBase (Marker(Node.tokenAsNode $1)) }
+    | ID                            { Parts.createGenePart $1 None }
+    | MARKER                        { Parts.createPartWithBase (Marker(Node.tokenAsNode $1)) }
     // Inline DNA sequence  / gatca /
-    | SLASH ID SLASH                { createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase $2)) }
+    | SLASH ID SLASH                { Parts.createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase $2)) }
     // Inline amino acid sequence  / ACDEFGH etc /
-    | SLASH DOLLAR ID SLASH         { createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase $3))}
+    | SLASH DOLLAR ID SLASH         { Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase $3))}
     // Inline amino acid sequence with stop / ACDEFGH* etc /
-    | SLASH DOLLAR ID STAR SLASH    { createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) $3 )) }
+    | SLASH DOLLAR ID STAR SLASH    { Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) $3 )) }
     // Simple inline stop codon
-    | SLASH DOLLAR STAR SLASH       { createPartWithBase (InlineProtein(Node.wrapNode "*")) }
-    | TILDE                         { createPartWithBase (HetBlock(Node.tokenAsNode $1)) }
+    | SLASH DOLLAR STAR SLASH       { Parts.createPartWithBase (InlineProtein(Node.wrapNode "*")) }
+    | TILDE                         { Parts.createPartWithBase (HetBlock(Node.tokenAsNode $1)) }
     // Part variable
-    | VARIABLE                      { createPartWithBase (tokenToVariable $1 PartType) }
+    | VARIABLE                      { Parts.createPartWithBase (Utils.tokenToVariable $1 PartType) }
     // External part reference
-    | AT ID                         { createPartWithBase (PartId(Node.tokenAsNode $2)) }
+    | AT ID                         { Parts.createPartWithBase (PartId(Node.tokenAsNode $2)) }
 
 // parts may have a trailing list of modifications
 PartMaybeMods:
     | Part          { $1 }
-    | Part ModList  { stuffModsIntoPart $1 $2 }
+    | Part ModList  { Parts.stuffModsIntoPart $1 $2 }
 
 // parts may have inline pragmas following their mods
 
 PartMaybePragma: // User can place an inline {#foo bar ; #cat dog} style pragma after a part to specify options allow for that here
-    | PartMaybeMods InlinePragmas       { stuffPragmasIntoPart $1 $2 }
+    | PartMaybeMods InlinePragmas       { Parts.stuffPragmasIntoPart $1 $2 }
     | PartMaybeMods                     { $1 }
 
 // parts may be reversed by prepending an exclaimation point
 PartFwdRev:    // User can specify a part forward or ! for reverse
     | PartMaybePragma { $1 }
-    | EXCLM PartMaybePragma { revPart $2 }
+    | EXCLM PartMaybePragma { Parts.revPart $2 }
 
 // name mangle to keep future refactorings clean
 CompletePart:
@@ -247,14 +247,14 @@ RelPos:
     | IntExp ID   { ($1, (Some $2)) }
 
 Slice: // Slice ranges of form  [ a : b] where a or b may be qualified with ~ to be approximate
-    | OPENSQBRACKET RelPos COLON RelPos CLOSESQBRACKET                { createParseSlice $2 $4 false false }
-    | OPENSQBRACKET TILDE RelPos COLON RelPos CLOSESQBRACKET          { createParseSlice $3 $5 true false }
-    | OPENSQBRACKET RelPos COLON TILDE RelPos CLOSESQBRACKET          { createParseSlice $2 $5 false true }
-    | OPENSQBRACKET TILDE RelPos COLON TILDE RelPos CLOSESQBRACKET    { createParseSlice $3 $6 true true }
+    | OPENSQBRACKET RelPos COLON RelPos CLOSESQBRACKET                { Parts.createParseSlice $2 $4 false false }
+    | OPENSQBRACKET TILDE RelPos COLON RelPos CLOSESQBRACKET          { Parts.createParseSlice $3 $5 true false }
+    | OPENSQBRACKET RelPos COLON TILDE RelPos CLOSESQBRACKET          { Parts.createParseSlice $2 $5 false true }
+    | OPENSQBRACKET TILDE RelPos COLON TILDE RelPos CLOSESQBRACKET    { Parts.createParseSlice $3 $6 true true }
 
 Mod:
-    | DNAMUTATION    { createMutation $1 NT }
-    | AAMUTATION     { createMutation $1 AA }
+    | DNAMUTATION    { Parts.createMutation $1 NT }
+    | AAMUTATION     { Parts.createMutation $1 AA }
     | Slice          { $1 }
 	| DOT ID         { DotMod(Node.tokenAsNode $2) }
 
@@ -273,7 +273,7 @@ PartList:
 
 // Grouping of parts; creates a single part wrapping the contents.
 AssemblyPart:
-    | PartList 					{ createAssemblyPart $1 }
+    | PartList 					{ Parts.createAssemblyPart $1 }
 
 
 
@@ -294,14 +294,14 @@ L2IdWrap:
 // better / cleaner but has grammatical consequences.
 
 L2Id:
-    | L2IdWrap  				{ createL2Id None $1 }
-    | L2IdWrap DOT L2IdWrap 	{ createL2Id (Some($1)) $3 }
+    | L2IdWrap  				{ L2.createL2Id None $1 }
+    | L2IdWrap DOT L2IdWrap 	{ L2.createL2Id (Some($1)) $3 }
 
 // We allow using regular level 1 parts/assemblies as the promoter as well as basic L2 descriptors.
 L2Promoter:
-  | STRING				 { createL2Id None (Node.tokenAsNode $1) }
-  | STRING DOT STRING    { createL2Id (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
-  | ID DOT ID            { createL2Id (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
+  | STRING				 { L2.createL2Id None (Node.tokenAsNode $1) }
+  | STRING DOT STRING    { L2.createL2Id (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
+  | ID DOT ID            { L2.createL2Id (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
   | CompletePart		 { $1 }
 
 
@@ -311,7 +311,7 @@ L2Locus:
 
 // pFoo>Bar
 L2ExpElement:
-    | L2Promoter GREATERTHAN L2Id		{ createL2Element $1 $3 } 
+    | L2Promoter GREATERTHAN L2Id		{ L2.createL2Element $1 $3 } 
 
 // List of semicolon separated expression elements
 L2ExpElementList:
@@ -320,9 +320,9 @@ L2ExpElementList:
 
 // L2 expression line.  Optional locus knockout followed by over expression constructs
 L2ExpLine:
-    | L2Locus        						{ createL2Expression (Some($1)) [] } //  HO^  - simple locus only
-    | L2Locus SEMICOLON L2ExpElementList 	{ createL2Expression (Some($1)) $3 } // HO^ ; pABC1>DEF2..
-    | L2ExpElementList  					{ createL2Expression None $1 } //  pABC1>DEF2..
+    | L2Locus        						{ L2.createL2Expression (Some($1)) [] } //  HO^  - simple locus only
+    | L2Locus SEMICOLON L2ExpElementList 	{ L2.createL2Expression (Some($1)) $3 } // HO^ ; pABC1>DEF2..
+    | L2ExpElementList  					{ L2.createL2Expression None $1 } //  pABC1>DEF2..
 
 // ================================
 // Roughage sections
@@ -330,8 +330,8 @@ L2ExpLine:
 
 // gene name
 RID:
-    | ID  { createL2IdNode None (Node.tokenAsNode $1) }
-    | ID DOT ID { createL2IdNode (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
+    | ID  { L2.createL2IdNode None (Node.tokenAsNode $1) }
+    | ID DOT ID { L2.createL2IdNode (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
 
 RoughageMarker:
 	| OPENSQBRACKET ID CLOSESQBRACKET { Node.tokenAsNode $2 }
@@ -342,17 +342,17 @@ RoughageMarkerMaybe:
     | { None }
 
 RoughagePartFwd:
-	| RID GREATERTHAN RID  { createRoughagePart RoughageFwd $1 $3 }
+	| RID GREATERTHAN RID  { L2.createRoughagePart RoughageFwd $1 $3 }
 
 RoughagePartRev:
-	| RID LESSTHAN RID  { createRoughagePart RoughageRev $3 $1 }
+	| RID LESSTHAN RID  { L2.createRoughagePart RoughageRev $3 $1 }
 
 // pFoo>Bar[mURA3]
 // Bar<pFoo-pCat>Dog
 RoughageElement:
-    | RoughagePartFwd RoughageMarkerMaybe { createRoughageElement $1 None $2 } // pGAL7>ERG12
+    | RoughagePartFwd RoughageMarkerMaybe { L2.createRoughageElement $1 None $2 } // pGAL7>ERG12
 
-    | RoughagePartRev HYPHEN RoughagePartFwd RoughageMarkerMaybe { createRoughageElement $1 (Some($3)) $4 } // ALD6<pTAD2-pKAR2>ACS2
+    | RoughagePartRev HYPHEN RoughagePartFwd RoughageMarkerMaybe { L2.createRoughageElement $1 (Some($3)) $4 } // ALD6<pTAD2-pKAR2>ACS2
 
 RoughageElementList:
     | RoughageElement { [$1] }
@@ -364,9 +364,9 @@ RoughageLocus:
     | RID CARAT RoughageMarker { (Some($1), Some($3)) } // e.g. HO^[mURA3LO]
 
 RoughageLine:
-    | RoughageLocus        { createRoughageLine $1 [] } //  HO^
-    | RoughageLocus COLON COLON RoughageElementList {  createRoughageLine $1 $4 } // HO^::pABC1>DEF2..
-    | RoughageElementList  { createRoughageLine (None, None) $1 } //  pABC1>DEF2..
+    | RoughageLocus        { L2.createRoughageLine $1 [] } //  HO^
+    | RoughageLocus COLON COLON RoughageElementList {  L2.createRoughageLine $1 $4 } // HO^::pABC1>DEF2..
+    | RoughageElementList  { L2.createRoughageLine (None, None) $1 } //  pABC1>DEF2..
 
 RoughageLineList:
     | RoughageLine                    { [$1] }

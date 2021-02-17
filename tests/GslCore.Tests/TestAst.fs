@@ -46,7 +46,7 @@ type TestValidation() =
     [<Test>]
     member x.TestDetectParseError() =
         let errorText = "test failure"
-        let err = createParseError errorText []
+        let err = Utils.createParseError errorText []
 
         let tree = treeify [ err ]
 

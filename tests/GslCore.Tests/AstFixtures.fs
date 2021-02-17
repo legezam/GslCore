@@ -25,7 +25,7 @@ let blockify items = Block(Node.wrapNode items)
 let treeify items = AstTreeHead(blockify items)
 
 /// Make a bare-bones assembly part out of some parts.
-let assemble = createAssemblyPart
+let assemble = Parts.createAssemblyPart
 
 let addPragsToPart prags a =
     match a with

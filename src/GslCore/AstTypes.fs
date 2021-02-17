@@ -654,366 +654,368 @@ let (|SelfReferentialVariable|_|) (node: AstNode) =
 // ====================
 
 // ------ deriving source code positions ------
+module SourcePositionBuilder =
+    /// Create a new position bracketed by a pair of positions.
+    let fromBracket (left: AstNode) (right: AstNode): SourcePosition option =
+        match left.pos, right.pos with
+        | Some leftPos, Some rightPos ->
+            { SourcePosition.Start = leftPos.Start
+              End = rightPos.End }
+            |> Some
+        | _ -> None
 
-/// Create a new position bracketed by a pair of positions.
-let posBracket (left: AstNode) (right: AstNode): SourcePosition option =
-    match left.pos, right.pos with
-    | Some leftPos, Some rightPos ->
-        { SourcePosition.Start = leftPos.Start
-          End = rightPos.End }
-        |> Some
-    | _ -> None
+    /// Create a new position bracketed by the first and last item in a list of nodes that have positions
+    let fromList (nodes: AstNode list): SourcePosition option =
+        let rec go (head: AstNode option) (tail: AstNode list) =
+            match head, tail with
+            | Some (h), [] -> h.pos
+            | Some (h), [ t ] -> fromBracket h t
+            | Some (h), _ :: tl -> go (Some(h)) tl
+            | None, [] -> None
+            | None, [ t ] -> t.pos
+            | None, hd :: tl -> go (Some(hd)) tl
 
-/// Create a new position bracketed by the first and last item in a list of nodes that have positions
-let posFromList (nodes: AstNode list): SourcePosition option =
-    let rec go (head: AstNode option) (tail: AstNode list) =
-        match head, tail with
-        | Some (h), [] -> h.pos
-        | Some (h), [ t ] -> posBracket h t
-        | Some (h), _ :: tl -> go (Some(h)) tl
-        | None, [] -> None
-        | None, [ t ] -> t.pos
-        | None, hd :: tl -> go (Some(hd)) tl
-
-    go None nodes
+        go None nodes
 
 
 // ------ general-purpose ------
 
-/// Create a parse error with message and position.
-let createParseError (msg: string) (positions: SourcePosition list): AstNode =
-    ParseError
-        { Node.Value = msg
-          Positions = positions }
+module Utils =
+    /// Create a parse error with message and position.
+    let createParseError (msg: string) (positions: SourcePosition list): AstNode =
+        ParseError
+            { Node.Value = msg
+              Positions = positions }
 
-/// Wrap a value with position taken from another node.
-let nodeWrapWithNodePosition (node: AstNode) (item: 'a): Node<'a> =
-    { Node.Value = item
-      Positions = node.positions }
+    /// Wrap a value with position taken from another node.
+    let nodeWrapWithNodePosition (node: AstNode) (item: 'a): Node<'a> =
+        { Node.Value = item
+          Positions = node.positions }
 
-/// Convert a string token to a TypedVariable
-let tokenToVariable (token: PString) (variableType: GslVariableType): AstNode =
-    let name = token.Item
-    TypedVariable(Node.wrapNodeWithTokenPosition token (name, variableType))
+    /// Convert a string token to a TypedVariable
+    let tokenToVariable (token: PString) (variableType: GslVariableType): AstNode =
+        let name = token.Item
+        TypedVariable(Node.wrapNodeWithTokenPosition token (name, variableType))
 
 // ------ general programming ------
 
-/// Parse two integer literals separated by a dot as a float.
-let createFloat (intPart: PInt) (fracPart: PInt): AstNode =
-    // position is bracketed by the two pieces
-    let position =
-        { SourcePosition.Start = intPart.Position.Start
-          End = fracPart.Position.End }
+module Create =
+    /// Parse two integer literals separated by a dot as a float.
+    let float (intPart: PInt) (fracPart: PInt): AstNode =
+        // position is bracketed by the two pieces
+        let position =
+            { SourcePosition.Start = intPart.Position.Start
+              End = fracPart.Position.End }
 
-    let value =
-        sprintf "%d.%d" intPart.Item fracPart.Item
-        |> float
+        let value =
+            sprintf "%d.%d" intPart.Item fracPart.Item
+            |> float
 
-    Float
-        { Node.Value = value
-          Positions = [ position ] }
+        Float
+            { Node.Value = value
+              Positions = [ position ] }
 
-/// Create a binary operation node from two other AST nodes.
-let createBinaryOp (op: BinaryOperator) (left: AstNode) (right: AstNode): AstNode =
-    BinaryOperation
-        { Node.Value =
-              { BinaryOperation.Operator = op
-                Left = left
-                Right = right }
-          Positions = posBracket left right |> Option.toList }
+    /// Create a binary operation node from two other AST nodes.
+    let binaryOperation (op: BinaryOperator) (left: AstNode) (right: AstNode): AstNode =
+        BinaryOperation
+            { Node.Value =
+                  { BinaryOperation.Operator = op
+                    Left = left
+                    Right = right }
+              Positions = SourcePositionBuilder.fromBracket left right |> Option.toList }
 
-/// Create an AST node for negation.
-let negate (node: AstNode): AstNode =
-    Negation(nodeWrapWithNodePosition node node)
+    /// Create an AST node for negation.
+    let negation (node: AstNode): AstNode =
+        Negation(Utils.nodeWrapWithNodePosition node node)
 
-/// Create an AST node for a typed variable declaration.
-// TODO: improve positioning
-let createVariableBinding (name: PString) (varType: GslVariableType) (value: AstNode): AstNode =
-    let binding =
-        { VariableBinding.Name = name.Item
-          Type = varType
-          Value = value }
+    /// Create an AST node for a typed variable declaration.
+    // TODO: improve positioning
+    let variableBinding (name: PString) (varType: GslVariableType) (value: AstNode): AstNode =
+        let binding =
+            { VariableBinding.Name = name.Item
+              Type = varType
+              Value = value }
 
-    VariableBinding(Node.wrapNodeWithTokenPosition name binding)
+        VariableBinding(Node.wrapNodeWithTokenPosition name binding)
 
 
-/// Create an AST node for a typed value passed to a function argument.
-let createTypedValue (variableType: GslVariableType) (value: AstNode): AstNode =
-    TypedValue(nodeWrapWithNodePosition value (variableType, value))
+    /// Create an AST node for a typed value passed to a function argument.
+    let typedValue (variableType: GslVariableType) (value: AstNode): AstNode =
+        TypedValue(Utils.nodeWrapWithNodePosition value (variableType, value))
 
-/// Create an AST node for a function declaration.
-let createFunctionDeclaration (name: PString) (args: string list) (bodyLines: AstNode list): AstNode =
-    let functionLocals =
-        FunctionLocals(Node.wrapNodeWithTokenPosition name { FunctionLocals.Names = args })
-    // tack the function local variables on the front of the block
-    let block =
-        Block(Node.wrapNode (functionLocals :: bodyLines))
+    /// Create an AST node for a function declaration.
+    let functionDefinition (name: PString) (args: string list) (bodyLines: AstNode list): AstNode =
+        let functionLocals =
+            FunctionLocals(Node.wrapNodeWithTokenPosition name { FunctionLocals.Names = args })
+        // tack the function local variables on the front of the block
+        let block =
+            Block(Node.wrapNode (functionLocals :: bodyLines))
 
-    let parseFunction =
-        { ParseFunction.Name = name.Item
-          ArgumentNames = args
-          Body = block }
+        let parseFunction =
+            { ParseFunction.Name = name.Item
+              ArgumentNames = args
+              Body = block }
 
-    FunctionDef(Node.wrapNodeWithTokenPosition name parseFunction)
+        FunctionDef(Node.wrapNodeWithTokenPosition name parseFunction)
 
-/// Create an AST node for a function call.
-let createFunctionCall (name: PString) (args: AstNode list): AstNode =
-    let functionCall =
-        { FunctionCall.Name = name.Item
-          Arguments = args }
+    /// Create an AST node for a function call.
+    let functionCall (name: PString) (args: AstNode list): AstNode =
+        let functionCall =
+            { FunctionCall.Name = name.Item
+              Arguments = args }
 
-    FunctionCall(Node.wrapNodeWithTokenPosition name functionCall)
+        FunctionCall(Node.wrapNodeWithTokenPosition name functionCall)
 
-/// Create a pragma from pieces.
-let createPragma (pname: PString) (arguments: AstNode list): AstNode =
-    let parsePragma =
-        { ParsePragma.Name = pname.Item
-          Values = arguments }
-    // Take position from the name.  Could try to be fancier here in the future.
-    ParsePragma(Node.wrapNodeWithTokenPosition pname parsePragma)
+    /// Create a pragma from pieces.
+    let pragma (pname: PString) (arguments: AstNode list): AstNode =
+        let parsePragma =
+            { ParsePragma.Name = pname.Item
+              Values = arguments }
+        // Take position from the name.  Could try to be fancier here in the future.
+        ParsePragma(Node.wrapNodeWithTokenPosition pname parsePragma)
 
 
 // ------ creating nodes for parts and assemblies ------
 
+module Parts =
+    let private stringToRelPosQualifier (input: string): RelPosQualifier =
+        match input.ToUpper() with
+        | "S" -> S
+        | "E" -> E
+        | "A" -> A
+        | "AS" -> AS
+        | "SA" -> SA
+        | "AE" -> AE
+        | "EA" -> EA
+        | x -> failwithf "%s is not a valid qualifier for a relative position." x
 
-let private stringToRelPosQualifier (input: string): RelPosQualifier =
-    match input.ToUpper() with
-    | "S" -> S
-    | "E" -> E
-    | "A" -> A
-    | "AS" -> AS
-    | "SA" -> SA
-    | "AE" -> AE
-    | "EA" -> EA
-    | x -> failwithf "%s is not a valid qualifier for a relative position." x
+    let relPosQualifierToString (rpq: RelPosQualifier): string =
+        match rpq with
+        | S -> "S"
+        | E -> "E"
+        | A -> "A"
+        | AS -> "AS"
+        | SA -> "SA"
+        | AE -> "AE"
+        | EA -> "EA"
 
-let relPosQualifierToString (rpq: RelPosQualifier): string =
-    match rpq with
-    | S -> "S"
-    | E -> "E"
-    | A -> "A"
-    | AS -> "AS"
-    | SA -> "SA"
-    | AE -> "AE"
-    | EA -> "EA"
-
-/// Encode the logic for parsing and computing relative positions in slices.
-/// Use the position from the number as the position of this token.
-let createParseRelPos (number: AstNode) (maybeQualifier: PString option) (position: RelPosPosition): AstNode =
-    let parseRelPos =
-        { ParseRelPos.Item = number
-          Qualifier = None
-          Position = position }
-
-    match maybeQualifier with
-    | None ->
-        // basic case, just given a number
-        ParseRelPos(nodeWrapWithNodePosition number parseRelPos)
-    | Some qualifier ->
-        // We've been passed a qualifying string.  Parse it as a valid union case.
-        let qualifier = stringToRelPosQualifier qualifier.Item
-
+    /// Encode the logic for parsing and computing relative positions in slices.
+    /// Use the position from the number as the position of this token.
+    let createParseRelPos (number: AstNode) (maybeQualifier: PString option) (position: RelPosPosition): AstNode =
         let parseRelPos =
-            { parseRelPos with
-                  Qualifier = Some qualifier }
+            { ParseRelPos.Item = number
+              Qualifier = None
+              Position = position }
 
-        ParseRelPos(nodeWrapWithNodePosition number parseRelPos)
+        match maybeQualifier with
+        | None ->
+            // basic case, just given a number
+            ParseRelPos(Utils.nodeWrapWithNodePosition number parseRelPos)
+        | Some qualifier ->
+            // We've been passed a qualifying string.  Parse it as a valid union case.
+            let qualifier = stringToRelPosQualifier qualifier.Item
 
-/// Create a parse slice AST node.
-let createParseSlice (leftRPInt: AstNode, leftRPQual: PString option)
-                     (rightRPInt: AstNode, rightRPQual: PString option)
-                     (lApprox: bool)
-                     (rApprox: bool)
-                     : AstNode =
-    let left =
-        createParseRelPos leftRPInt leftRPQual Left
+            let parseRelPos =
+                { parseRelPos with
+                      Qualifier = Some qualifier }
 
-    let right =
-        createParseRelPos rightRPInt rightRPQual Right
+            ParseRelPos(Utils.nodeWrapWithNodePosition number parseRelPos)
 
-    let pos = posBracket left right |> Option.toList
+    /// Create a parse slice AST node.
+    let createParseSlice (leftRPInt: AstNode, leftRPQual: PString option)
+                         (rightRPInt: AstNode, rightRPQual: PString option)
+                         (lApprox: bool)
+                         (rApprox: bool)
+                         : AstNode =
+        let left =
+            createParseRelPos leftRPInt leftRPQual Left
 
-    let parseSlice =
-        { ParseSlice.Left = left
-          Right = right
-          LeftApprox = lApprox
-          RightApprox = rApprox }
+        let right =
+            createParseRelPos rightRPInt rightRPQual Right
 
-    Slice
-        ({ Node.Value = parseSlice
-           Positions = pos })
+        let pos = SourcePositionBuilder.fromBracket left right |> Option.toList
+
+        let parseSlice =
+            { ParseSlice.Left = left
+              Right = right
+              LeftApprox = lApprox
+              RightApprox = rApprox }
+
+        Slice
+            ({ Node.Value = parseSlice
+               Positions = pos })
 
 
-/// Create a mutation AST node.
-let createMutation (value: PString) (mutationType: MutationType): AstNode =
-    let mutationTerm = value.Item
-    let from = mutationTerm.[1]
-    let tto = mutationTerm.[mutationTerm.Length - 1]
+    /// Create a mutation AST node.
+    let createMutation (value: PString) (mutationType: MutationType): AstNode =
+        let mutationTerm = value.Item
+        let from = mutationTerm.[1]
+        let tto = mutationTerm.[mutationTerm.Length - 1]
 
-    let position =
-        Convert.ToInt32(mutationTerm.[2..mutationTerm.Length - 2])
+        let position =
+            Convert.ToInt32(mutationTerm.[2..mutationTerm.Length - 2])
 
-    let mutation =
-        { Mutation.From = from
-          To = tto
-          Location = position
-          Type = mutationType }
+        let mutation =
+            { Mutation.From = from
+              To = tto
+              Location = position
+              Type = mutationType }
 
-    Mutation
-        ({ Value = mutation
-           Positions = [ value.Position ] })
+        Mutation
+            ({ Value = mutation
+               Positions = [ value.Position ] })
 
-/// Create a top-level part.
-let createPart (modifiers: AstNode list) (pragmas: AstNode list) (basePart: AstNode): AstNode =
-    Part
-        ({ Node.Value =
-               { ParsePart.BasePart = basePart
-                 Modifiers = modifiers
-                 Pragmas = pragmas
-                 IsForward = true }
-           Positions = basePart.positions })
-
-/// Create a top-level part with empty collections and default values from a base part.
-let createPartWithBase: AstNode -> AstNode = createPart [] []
-
-/// Create a top-level part given a gene ID.
-let createGenePart (gene: PString) (linker: Linker option) =
-    // The base part for this part will be a Gene AST node.
-    createPartWithBase
-        (Gene
-            ({ Node.Value =
-                   { ParseGene.Gene = gene.Item
-                     Linker = linker }
-               Positions = [ gene.Position ] }))
-
-/// Capture a list of parsed mods and stuff them into their associated part.
-let stuffModsIntoPart (astPart: AstNode) (modifiers: AstNode list): AstNode =
-    match astPart with
-    | Part partWrapper ->
-        let part = partWrapper.Value
-
-        let stuffedPart =
-            { part with
-                  Modifiers = part.Modifiers @ modifiers }
-
-        Part(nodeWrapWithNodePosition astPart stuffedPart)
-    | x -> failwithf "Mods may only be applied to Parts.  Tried to apply mods to %A." x
-
-/// Capture a list of parsed inline pragmas and stuff them into their associated part.
-let stuffPragmasIntoPart (astPart: AstNode) (prags: AstNode list): AstNode =
-    match astPart with
-    | Part partWrapper ->
-        let part = partWrapper.Value
-
-        let stuffedPart =
-            { part with
-                  Pragmas = part.Pragmas @ prags }
-
-        Part(nodeWrapWithNodePosition astPart stuffedPart)
-    | x -> failwithf "Inline pragmas may only be applied to Parts.  Tried to apply pragmas to %A." x
-
-/// Reverse the direction of a part.
-let revPart (astPart: AstNode): AstNode =
-    match astPart with
-    | Part partWrapper ->
+    /// Create a top-level part.
+    let createPart (modifiers: AstNode list) (pragmas: AstNode list) (basePart: AstNode): AstNode =
         Part
-            (nodeWrapWithNodePosition
-                astPart
-                 { partWrapper.Value with
-                       IsForward = false })
-    | x -> failwithf "Can only apply the ! operator to Parts.  Tried to reverse a %A." x
+            ({ Node.Value =
+                   { ParsePart.BasePart = basePart
+                     Modifiers = modifiers
+                     Pragmas = pragmas
+                     IsForward = true }
+               Positions = basePart.positions })
 
-/// Create a part whose base part is an assembly of the passed list of parts.
-let createAssemblyPart (parts: AstNode list): AstNode =
-    let pos = posFromList parts
+    /// Create a top-level part with empty collections and default values from a base part.
+    let createPartWithBase: AstNode -> AstNode = createPart [] []
 
-    let assembly =
-        Assembly
-            ({ Node.Value = parts
-               Positions = pos |> Option.toList })
+    /// Create a top-level part given a gene ID.
+    let createGenePart (gene: PString) (linker: Linker option) =
+        // The base part for this part will be a Gene AST node.
+        createPartWithBase
+            (Gene
+                ({ Node.Value =
+                       { ParseGene.Gene = gene.Item
+                         Linker = linker }
+                   Positions = [ gene.Position ] }))
 
-    createPart [] [] assembly
+    /// Capture a list of parsed mods and stuff them into their associated part.
+    let stuffModsIntoPart (astPart: AstNode) (modifiers: AstNode list): AstNode =
+        match astPart with
+        | Part partWrapper ->
+            let part = partWrapper.Value
+
+            let stuffedPart =
+                { part with
+                      Modifiers = part.Modifiers @ modifiers }
+
+            Part(Utils.nodeWrapWithNodePosition astPart stuffedPart)
+        | x -> failwithf "Mods may only be applied to Parts.  Tried to apply mods to %A." x
+
+    /// Capture a list of parsed inline pragmas and stuff them into their associated part.
+    let stuffPragmasIntoPart (astPart: AstNode) (prags: AstNode list): AstNode =
+        match astPart with
+        | Part partWrapper ->
+            let part = partWrapper.Value
+
+            let stuffedPart =
+                { part with
+                      Pragmas = part.Pragmas @ prags }
+
+            Part(Utils.nodeWrapWithNodePosition astPart stuffedPart)
+        | x -> failwithf "Inline pragmas may only be applied to Parts.  Tried to apply pragmas to %A." x
+
+    /// Reverse the direction of a part.
+    let revPart (astPart: AstNode): AstNode =
+        match astPart with
+        | Part partWrapper ->
+            Part
+                (Utils.nodeWrapWithNodePosition
+                    astPart
+                     { partWrapper.Value with
+                           IsForward = false })
+        | x -> failwithf "Can only apply the ! operator to Parts.  Tried to reverse a %A." x
+
+    /// Create a part whose base part is an assembly of the passed list of parts.
+    let createAssemblyPart (parts: AstNode list): AstNode =
+        let pos = SourcePositionBuilder.fromList parts
+
+        let assembly =
+            Assembly
+                ({ Node.Value = parts
+                   Positions = pos |> Option.toList })
+
+        createPart [] [] assembly
 
 // ------ creating level 2 GSL nodes ------
+module L2 =
+    let createL2IdNode (maybePrefix: Node<string> option) (id: Node<string>): Node<L2Id> =
+        let pos =
+            match maybePrefix with
+            | Some prefix ->
+                SourcePositionBuilder.fromBracket (String(prefix)) (String(id))
+                |> Option.toList // be lazy and wrap these as nodes to use existing function
+            | None -> id.Positions
 
-let createL2IdNode (maybePrefix: Node<string> option) (id: Node<string>): Node<L2Id> =
-    let pos =
-        match maybePrefix with
-        | Some prefix ->
-            posBracket (String(prefix)) (String(id))
-            |> Option.toList // be lazy and wrap these as nodes to use existing function
-        | None -> id.Positions
-
-    { Node.Value = { L2Id.Prefix = maybePrefix; Id = id }
-      Positions = pos }
-
-/// Create a level 2 id from optional prefix and id
-let createL2Id (prefix: Node<string> option) (id: Node<string>) = L2Id(createL2IdNode prefix id)
-
-/// Create a level 2 element from a promoter and target.
-/// Promoter and target should be L2 IDs.
-let createL2Element (promoter: AstNode) (target: AstNode): AstNode =
-    let pos =
-        posBracket promoter target |> Option.toList
-
-    L2Element
-        { Node.Value =
-               { L2Element.Promoter = promoter
-                 Target = target }
+        { Node.Value = { L2Id.Prefix = maybePrefix; Id = id }
           Positions = pos }
 
-/// Create a level 2 expression from optional locus and list of elements.
-let createL2Expression (maybeLocus: AstNode option) (parts: AstNode list): AstNode =
-    let pos =
-        match maybeLocus with
-        | Some locus -> posFromList (locus :: parts)
-        | None -> posFromList parts
+    /// Create a level 2 id from optional prefix and id
+    let createL2Id (prefix: Node<string> option) (id: Node<string>) = L2Id(createL2IdNode prefix id)
 
-    L2Expression
-        ({ Node.Value =
-               { L2Expression.Locus = maybeLocus
-                 Parts = parts }
-           Positions = pos |> Option.toList })
+    /// Create a level 2 element from a promoter and target.
+    /// Promoter and target should be L2 IDs.
+    let createL2Element (promoter: AstNode) (target: AstNode): AstNode =
+        let pos =
+            SourcePositionBuilder.fromBracket promoter target |> Option.toList
 
-// ------ creating Roughage AST node ------
+        L2Element
+            { Node.Value =
+                   { L2Element.Promoter = promoter
+                     Target = target }
+              Positions = pos }
 
-let createRoughagePart (dir: RoughagePartDirection) (promoter: Node<L2Id>) (target: Node<L2Id>): Node<RoughagePTPair> =
-    let elem =
-        { RoughagePTPair.Promoter = promoter
-          Target = target }
+    /// Create a level 2 expression from optional locus and list of elements.
+    let createL2Expression (maybeLocus: AstNode option) (parts: AstNode list): AstNode =
+        let pos =
+            match maybeLocus with
+            | Some locus -> SourcePositionBuilder.fromList (locus :: parts)
+            | None -> SourcePositionBuilder.fromList parts
 
-    let pos =
-        match dir with
-        | RoughageFwd -> posBracket (L2Id(promoter)) (L2Id(target))
-        | RoughageRev -> posBracket (L2Id(target)) (L2Id(promoter))
+        L2Expression
+            ({ Node.Value =
+                   { L2Expression.Locus = maybeLocus
+                     Parts = parts }
+               Positions = pos |> Option.toList })
 
-    { Node.Value = elem
-      Positions = pos |> Option.toList }
+    // ------ creating Roughage AST node ------
 
-let createRoughageElement (partFwd: Node<RoughagePTPair>)
-                          (partRev: Node<RoughagePTPair> option)
-                          (marker: Node<string> option)
-                          : Node<RoughageElement> =
-    let pos = partFwd.Positions
+    let createRoughagePart (dir: RoughagePartDirection) (promoter: Node<L2Id>) (target: Node<L2Id>): Node<RoughagePTPair> =
+        let elem =
+            { RoughagePTPair.Promoter = promoter
+              Target = target }
 
-    { Node.Value =
-          { RoughageElement.PromoterAndTarget1 = partFwd
-            PromoterAndTarget2 = partRev
-            Marker = marker }
-      Positions = pos }
+        let pos =
+            match dir with
+            | RoughageFwd -> SourcePositionBuilder.fromBracket (L2Id(promoter)) (L2Id(target))
+            | RoughageRev -> SourcePositionBuilder.fromBracket (L2Id(target)) (L2Id(promoter))
 
-let createRoughageLine (locus: Node<L2Id> option, marker: Node<string> option)
-                       (parts: Node<RoughageElement> list)
-                       : AstNode =
-    // be lazy and use the position of whatever the first part is
-    let pos =
-        match parts with
-        | [] -> []
-        | hd :: _ -> hd.Positions
+        { Node.Value = elem
+          Positions = pos |> Option.toList }
 
-    Roughage
-        ({ Node.Value =
-               { Roughage.Locus = locus
-                 Marker = marker
-                 Parts = parts }
-           Positions = pos })
+    let createRoughageElement (partFwd: Node<RoughagePTPair>)
+                              (partRev: Node<RoughagePTPair> option)
+                              (marker: Node<string> option)
+                              : Node<RoughageElement> =
+        let pos = partFwd.Positions
+
+        { Node.Value =
+              { RoughageElement.PromoterAndTarget1 = partFwd
+                PromoterAndTarget2 = partRev
+                Marker = marker }
+          Positions = pos }
+
+    let createRoughageLine (locus: Node<L2Id> option, marker: Node<string> option)
+                           (parts: Node<RoughageElement> list)
+                           : AstNode =
+        // be lazy and use the position of whatever the first part is
+        let pos =
+            match parts with
+            | [] -> []
+            | hd :: _ -> hd.Positions
+
+        Roughage
+            ({ Node.Value =
+                   { Roughage.Locus = locus
+                     Marker = marker
+                     Parts = parts }
+               Positions = pos })

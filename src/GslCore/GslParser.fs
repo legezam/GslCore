@@ -715,7 +715,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 94 "./GslParser.fsy"
-                                               (tokenToVariable _1 NotYetTyped) 
+                                               (Utils.tokenToVariable _1 NotYetTyped) 
                    )
 # 94 "./GslParser.fsy"
                  : 'gentype_PragmaValue));
@@ -761,7 +761,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 102 "./GslParser.fsy"
-                                                (createPragma _1 _2) 
+                                                (Create.pragma _1 _2) 
                    )
 # 102 "./GslParser.fsy"
                  : 'gentype_Pragma));
@@ -772,7 +772,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 103 "./GslParser.fsy"
-                                   (createPragma _1 []) 
+                                   (Create.pragma _1 []) 
                    )
 # 103 "./GslParser.fsy"
                  : 'gentype_Pragma));
@@ -830,7 +830,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 120 "./GslParser.fsy"
-                                                            createVariableBinding _2 NotYetTyped (tokenToVariable _4 NotYetTyped) 
+                                                            Create.variableBinding _2 NotYetTyped (Utils.tokenToVariable _4 NotYetTyped) 
                    )
 # 120 "./GslParser.fsy"
                  : 'gentype_TypedVariableDeclaration));
@@ -842,7 +842,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 121 "./GslParser.fsy"
-                                                                     createVariableBinding _2 IntType _4 
+                                                                     Create.variableBinding _2 IntType _4 
                    )
 # 121 "./GslParser.fsy"
                  : 'gentype_TypedVariableDeclaration));
@@ -854,7 +854,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 122 "./GslParser.fsy"
-                                                                     createVariableBinding _2 StringType _4 
+                                                                     Create.variableBinding _2 StringType _4 
                    )
 # 122 "./GslParser.fsy"
                  : 'gentype_TypedVariableDeclaration));
@@ -866,7 +866,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 123 "./GslParser.fsy"
-                                                                     createVariableBinding _2 FloatType _4 
+                                                                     Create.variableBinding _2 FloatType _4 
                    )
 # 123 "./GslParser.fsy"
                  : 'gentype_TypedVariableDeclaration));
@@ -878,7 +878,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 124 "./GslParser.fsy"
-                                                                     createVariableBinding _2 PartType _4 
+                                                                     Create.variableBinding _2 PartType _4 
                    )
 # 124 "./GslParser.fsy"
                  : 'gentype_TypedVariableDeclaration));
@@ -890,7 +890,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 125 "./GslParser.fsy"
-                                                                     createVariableBinding _2 PartType _4 
+                                                                     Create.variableBinding _2 PartType _4 
                    )
 # 125 "./GslParser.fsy"
                  : 'gentype_TypedVariableDeclaration));
@@ -926,7 +926,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 137 "./GslParser.fsy"
-                                                                                         createFunctionDeclaration _2 _4 _7 
+                                                                                         Create.functionDefinition _2 _4 _7 
                    )
 # 137 "./GslParser.fsy"
                  : 'gentype_FunctionDeclaration));
@@ -938,7 +938,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 138 "./GslParser.fsy"
-                                                                         createFunctionDeclaration _2 [] _6 
+                                                                         Create.functionDefinition _2 [] _6 
                    )
 # 138 "./GslParser.fsy"
                  : 'gentype_FunctionDeclaration));
@@ -949,7 +949,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 146 "./GslParser.fsy"
-                                        createTypedValue NotYetTyped (tokenToVariable _1 NotYetTyped) 
+                                        Create.typedValue NotYetTyped (Utils.tokenToVariable _1 NotYetTyped) 
                    )
 # 146 "./GslParser.fsy"
                  : 'gentype_TypedValue));
@@ -960,7 +960,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 147 "./GslParser.fsy"
-                                           createTypedValue IntType _1 
+                                           Create.typedValue IntType _1 
                    )
 # 147 "./GslParser.fsy"
                  : 'gentype_TypedValue));
@@ -971,7 +971,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 148 "./GslParser.fsy"
-                                           createTypedValue StringType _1 
+                                           Create.typedValue StringType _1 
                    )
 # 148 "./GslParser.fsy"
                  : 'gentype_TypedValue));
@@ -982,7 +982,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 149 "./GslParser.fsy"
-                                           createTypedValue FloatType _1 
+                                           Create.typedValue FloatType _1 
                    )
 # 149 "./GslParser.fsy"
                  : 'gentype_TypedValue));
@@ -993,7 +993,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 150 "./GslParser.fsy"
-                                           createTypedValue PartType _1 
+                                           Create.typedValue PartType _1 
                    )
 # 150 "./GslParser.fsy"
                  : 'gentype_TypedValue));
@@ -1004,7 +1004,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 151 "./GslParser.fsy"
-                                           createTypedValue PartType _1 
+                                           Create.typedValue PartType _1 
                    )
 # 151 "./GslParser.fsy"
                  : 'gentype_TypedValue));
@@ -1039,7 +1039,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 159 "./GslParser.fsy"
-                                                                        createFunctionCall _1 _3 
+                                                                        Create.functionCall _1 _3 
                    )
 # 159 "./GslParser.fsy"
                  : 'gentype_FunctionCall));
@@ -1050,7 +1050,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 160 "./GslParser.fsy"
-                                              createFunctionCall _1 [] 
+                                              Create.functionCall _1 [] 
                    )
 # 160 "./GslParser.fsy"
                  : 'gentype_FunctionCall));
@@ -1073,7 +1073,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 171 "./GslParser.fsy"
-                                           createFloat _1 _3 
+                                           Create.float _1 _3 
                    )
 # 171 "./GslParser.fsy"
                  : 'gentype_FloatLiteral));
@@ -1106,7 +1106,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 182 "./GslParser.fsy"
-                                                           (tokenToVariable _1 IntType) 
+                                                           (Utils.tokenToVariable _1 IntType) 
                    )
 # 182 "./GslParser.fsy"
                  : 'gentype_IntExp));
@@ -1128,7 +1128,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 184 "./GslParser.fsy"
-                                                           (negate _2) 
+                                                           (Create.negation _2) 
                    )
 # 184 "./GslParser.fsy"
                  : 'gentype_IntExp));
@@ -1140,7 +1140,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 185 "./GslParser.fsy"
-                                                         (createBinaryOp Multiply _1 _3) 
+                                                         (Create.binaryOperation Multiply _1 _3) 
                    )
 # 185 "./GslParser.fsy"
                  : 'gentype_IntExp));
@@ -1152,7 +1152,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 186 "./GslParser.fsy"
-                                                           (createBinaryOp Divide _1 _3) 
+                                                           (Create.binaryOperation Divide _1 _3) 
                    )
 # 186 "./GslParser.fsy"
                  : 'gentype_IntExp));
@@ -1164,7 +1164,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 187 "./GslParser.fsy"
-                                                         (createBinaryOp Add _1 _3) 
+                                                         (Create.binaryOperation Add _1 _3) 
                    )
 # 187 "./GslParser.fsy"
                  : 'gentype_IntExp));
@@ -1176,7 +1176,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 188 "./GslParser.fsy"
-                                                        (createBinaryOp Subtract _1 _3) 
+                                                        (Create.binaryOperation Subtract _1 _3) 
                    )
 # 188 "./GslParser.fsy"
                  : 'gentype_IntExp));
@@ -1188,7 +1188,7 @@ let _fsyacc_reductions ()  =    [|
                    (
 # 195 "./GslParser.fsy"
                                        match _1.Item.Split([| '-' |]) with
-                                       | [| a;b;c |] -> {Linker1 = a ; Linker2 = b; Orient = c}
+                                       | [| a;b;c |] -> { Linker.Linker1 = a ; Linker2 = b; Orient = c}
                                        | _ -> failwithf "bad linker format '%s'" (_1.Item)
                                      
                    )
@@ -1213,7 +1213,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 203 "./GslParser.fsy"
-                                                           createGenePart _3 (Some(_1)) 
+                                                           Parts.createGenePart _3 (Some(_1)) 
                    )
 # 203 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1224,7 +1224,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 205 "./GslParser.fsy"
-                                                           createGenePart _1 None 
+                                                           Parts.createGenePart _1 None 
                    )
 # 205 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1235,7 +1235,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 206 "./GslParser.fsy"
-                                                           createPartWithBase (Marker(Node.tokenAsNode _1)) 
+                                                           Parts.createPartWithBase (Marker(Node.tokenAsNode _1)) 
                    )
 # 206 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1246,7 +1246,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 208 "./GslParser.fsy"
-                                                           createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase _2)) 
+                                                           Parts.createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase _2)) 
                    )
 # 208 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1257,7 +1257,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 210 "./GslParser.fsy"
-                                                           createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase _3))
+                                                           Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase _3))
                    )
 # 210 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1268,7 +1268,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 212 "./GslParser.fsy"
-                                                           createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) _3 )) 
+                                                           Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) _3 )) 
                    )
 # 212 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1278,7 +1278,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 214 "./GslParser.fsy"
-                                                           createPartWithBase (InlineProtein(Node.wrapNode "*")) 
+                                                           Parts.createPartWithBase (InlineProtein(Node.wrapNode "*")) 
                    )
 # 214 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1289,7 +1289,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 215 "./GslParser.fsy"
-                                                           createPartWithBase (HetBlock(Node.tokenAsNode _1)) 
+                                                           Parts.createPartWithBase (HetBlock(Node.tokenAsNode _1)) 
                    )
 # 215 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1300,7 +1300,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 217 "./GslParser.fsy"
-                                                           createPartWithBase (tokenToVariable _1 PartType) 
+                                                           Parts.createPartWithBase (Utils.tokenToVariable _1 PartType) 
                    )
 # 217 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1311,7 +1311,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 219 "./GslParser.fsy"
-                                                           createPartWithBase (PartId(Node.tokenAsNode _2)) 
+                                                           Parts.createPartWithBase (PartId(Node.tokenAsNode _2)) 
                    )
 # 219 "./GslParser.fsy"
                  : 'gentype_Part));
@@ -1334,7 +1334,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 224 "./GslParser.fsy"
-                                           stuffModsIntoPart _1 _2 
+                                           Parts.stuffModsIntoPart _1 _2 
                    )
 # 224 "./GslParser.fsy"
                  : 'gentype_PartMaybeMods));
@@ -1346,7 +1346,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 229 "./GslParser.fsy"
-                                                               stuffPragmasIntoPart _1 _2 
+                                                               Parts.stuffPragmasIntoPart _1 _2 
                    )
 # 229 "./GslParser.fsy"
                  : 'gentype_PartMaybePragma));
@@ -1379,7 +1379,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 235 "./GslParser.fsy"
-                                                   revPart _2 
+                                                   Parts.revPart _2 
                    )
 # 235 "./GslParser.fsy"
                  : 'gentype_PartFwdRev));
@@ -1425,7 +1425,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 250 "./GslParser.fsy"
-                                                                                             createParseSlice _2 _4 false false 
+                                                                                             Parts.createParseSlice _2 _4 false false 
                    )
 # 250 "./GslParser.fsy"
                  : 'gentype_Slice));
@@ -1438,7 +1438,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 251 "./GslParser.fsy"
-                                                                                             createParseSlice _3 _5 true false 
+                                                                                             Parts.createParseSlice _3 _5 true false 
                    )
 # 251 "./GslParser.fsy"
                  : 'gentype_Slice));
@@ -1451,7 +1451,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 252 "./GslParser.fsy"
-                                                                                             createParseSlice _2 _5 false true 
+                                                                                             Parts.createParseSlice _2 _5 false true 
                    )
 # 252 "./GslParser.fsy"
                  : 'gentype_Slice));
@@ -1465,7 +1465,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 253 "./GslParser.fsy"
-                                                                                             createParseSlice _3 _6 true true 
+                                                                                             Parts.createParseSlice _3 _6 true true 
                    )
 # 253 "./GslParser.fsy"
                  : 'gentype_Slice));
@@ -1476,7 +1476,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 256 "./GslParser.fsy"
-                                            createMutation _1 NT 
+                                            Parts.createMutation _1 NT 
                    )
 # 256 "./GslParser.fsy"
                  : 'gentype_Mod));
@@ -1487,7 +1487,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 257 "./GslParser.fsy"
-                                            createMutation _1 AA 
+                                            Parts.createMutation _1 AA 
                    )
 # 257 "./GslParser.fsy"
                  : 'gentype_Mod));
@@ -1567,7 +1567,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 276 "./GslParser.fsy"
-                                           createAssemblyPart _1 
+                                           Parts.createAssemblyPart _1 
                    )
 # 276 "./GslParser.fsy"
                  : 'gentype_AssemblyPart));
@@ -1600,7 +1600,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 297 "./GslParser.fsy"
-                                           createL2Id None _1 
+                                           L2.createL2Id None _1 
                    )
 # 297 "./GslParser.fsy"
                  : 'gentype_L2Id));
@@ -1612,7 +1612,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 298 "./GslParser.fsy"
-                                                    createL2Id (Some(_1)) _3 
+                                                    L2.createL2Id (Some(_1)) _3 
                    )
 # 298 "./GslParser.fsy"
                  : 'gentype_L2Id));
@@ -1623,7 +1623,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 302 "./GslParser.fsy"
-                                      createL2Id None (Node.tokenAsNode _1) 
+                                      L2.createL2Id None (Node.tokenAsNode _1) 
                    )
 # 302 "./GslParser.fsy"
                  : 'gentype_L2Promoter));
@@ -1635,7 +1635,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 303 "./GslParser.fsy"
-                                                createL2Id (Some(Node.tokenAsNode _1)) (Node.tokenAsNode _3) 
+                                                L2.createL2Id (Some(Node.tokenAsNode _1)) (Node.tokenAsNode _3) 
                    )
 # 303 "./GslParser.fsy"
                  : 'gentype_L2Promoter));
@@ -1647,7 +1647,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 304 "./GslParser.fsy"
-                                                createL2Id (Some(Node.tokenAsNode _1)) (Node.tokenAsNode _3) 
+                                                L2.createL2Id (Some(Node.tokenAsNode _1)) (Node.tokenAsNode _3) 
                    )
 # 304 "./GslParser.fsy"
                  : 'gentype_L2Promoter));
@@ -1681,7 +1681,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 314 "./GslParser.fsy"
-                                                          createL2Element _1 _3 
+                                                          L2.createL2Element _1 _3 
                    )
 # 314 "./GslParser.fsy"
                  : 'gentype_L2ExpElement));
@@ -1716,7 +1716,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 323 "./GslParser.fsy"
-                                                  createL2Expression (Some(_1)) [] 
+                                                  L2.createL2Expression (Some(_1)) [] 
                    )
 # 323 "./GslParser.fsy"
                  : 'gentype_L2ExpLine));
@@ -1729,7 +1729,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 324 "./GslParser.fsy"
-                                                                 createL2Expression (Some(_1)) _3 
+                                                                 L2.createL2Expression (Some(_1)) _3 
                    )
 # 324 "./GslParser.fsy"
                  : 'gentype_L2ExpLine));
@@ -1740,7 +1740,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 325 "./GslParser.fsy"
-                                                    createL2Expression None _1 
+                                                    L2.createL2Expression None _1 
                    )
 # 325 "./GslParser.fsy"
                  : 'gentype_L2ExpLine));
@@ -1751,7 +1751,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 333 "./GslParser.fsy"
-                                 createL2IdNode None (Node.tokenAsNode _1) 
+                                 L2.createL2IdNode None (Node.tokenAsNode _1) 
                    )
 # 333 "./GslParser.fsy"
                  : 'gentype_RID));
@@ -1763,7 +1763,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 334 "./GslParser.fsy"
-                                       createL2IdNode (Some(Node.tokenAsNode _1)) (Node.tokenAsNode _3) 
+                                       L2.createL2IdNode (Some(Node.tokenAsNode _1)) (Node.tokenAsNode _3) 
                    )
 # 334 "./GslParser.fsy"
                  : 'gentype_RID));
@@ -1807,7 +1807,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 345 "./GslParser.fsy"
-                                               createRoughagePart RoughageFwd _1 _3 
+                                               L2.createRoughagePart RoughageFwd _1 _3 
                    )
 # 345 "./GslParser.fsy"
                  : 'gentype_RoughagePartFwd));
@@ -1819,7 +1819,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 348 "./GslParser.fsy"
-                                            createRoughagePart RoughageRev _3 _1 
+                                            L2.createRoughagePart RoughageRev _3 _1 
                    )
 # 348 "./GslParser.fsy"
                  : 'gentype_RoughagePartRev));
@@ -1831,7 +1831,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 353 "./GslParser.fsy"
-                                                                 createRoughageElement _1 None _2 
+                                                                 L2.createRoughageElement _1 None _2 
                    )
 # 353 "./GslParser.fsy"
                  : 'gentype_RoughageElement));
@@ -1844,7 +1844,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 355 "./GslParser.fsy"
-                                                                                        createRoughageElement _1 (Some(_3)) _4 
+                                                                                        L2.createRoughageElement _1 (Some(_3)) _4 
                    )
 # 355 "./GslParser.fsy"
                  : 'gentype_RoughageElement));
@@ -1901,7 +1901,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 367 "./GslParser.fsy"
-                                                  createRoughageLine _1 [] 
+                                                  L2.createRoughageLine _1 [] 
                    )
 # 367 "./GslParser.fsy"
                  : 'gentype_RoughageLine));
@@ -1913,7 +1913,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 368 "./GslParser.fsy"
-                                                                            createRoughageLine _1 _4 
+                                                                            L2.createRoughageLine _1 _4 
                    )
 # 368 "./GslParser.fsy"
                  : 'gentype_RoughageLine));
@@ -1924,7 +1924,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 369 "./GslParser.fsy"
-                                                  createRoughageLine (None, None) _1 
+                                                  L2.createRoughageLine (None, None) _1 
                    )
 # 369 "./GslParser.fsy"
                  : 'gentype_RoughageLine));

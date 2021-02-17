@@ -1117,7 +1117,7 @@ let private nameAssembly (node: AstNode): AstNode =
                  Part(replacePragmas assemblyWrapper mergedPragmas)
 
              let pragmaNode = Pragma(Node.wrapNode namePragma)
-             Block(nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ])
+             Block(Utils.nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ])
     | _ -> node
 
 
@@ -1171,7 +1171,7 @@ let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
         let pt = ptw.Value
         let promoter = L2Id(pt.Promoter)
         let target = L2Id(pt.Target)
-        createL2Element promoter target
+        L2.createL2Element promoter target
 
     // For roughage, if no marker is specified, it defaults to ura3
     let marker =
@@ -1199,7 +1199,7 @@ let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
         | Some (l) -> Some(L2Id(l))
         | None -> None
 
-    let l2Expression = createL2Expression l2Locus l2Elements
+    let l2Expression = L2.createL2Expression l2Locus l2Elements
 
     // wrap the marker pragma and the L2 line up in a block
     Block
