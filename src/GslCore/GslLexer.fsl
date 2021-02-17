@@ -32,8 +32,8 @@ let string = ['\"'][^ '\"']*['\"']  // Quoted strings
 
 // Each set of lexer rules also accepts a function that sets which tokenizer the running lexer is using.
 rule main setTokenizer = parse
-    | num { INT(tokenizeInt lexbuf) }
-    | linker '-' linker '-' ['0' '1'] { LINKER(tokenizeString lexbuf) }
+    | num { INT(Positioned.tokenizeInt lexbuf) }
+    | linker '-' linker '-' ['0' '1'] { LINKER(Positioned.tokenizeString lexbuf) }
     | "let" { LET } // let foo = bar  alias definition
     | "cut" { CUT } // cut <expression>  crisprs
     | "do" { DO } // start of a scoped block
@@ -41,11 +41,11 @@ rule main setTokenizer = parse
     | "for" { FOR } // for statement
     | "in" { IN } // part of for statement
     | "open" { OPEN } // open external file
-    | '&' ident { VARIABLE(tokenizeStringTrimFirstChar lexbuf) } // variable reference
-    | ident { ID(tokenizeString lexbuf) }
-    | '~' { TILDE(tokenizeUnit lexbuf) }
+    | '&' ident { VARIABLE(Positioned.tokenizeStringTrimFirstChar lexbuf) } // variable reference
+    | ident { ID(Positioned.tokenizeString lexbuf) }
+    | '~' { TILDE(Positioned.tokenizeUnit lexbuf) }
     | ':' { COLON }
-    | ';' { SEMICOLON(tokenizeUnit lexbuf) }
+    | ';' { SEMICOLON(Positioned.tokenizeUnit lexbuf) }
     | '[' { OPENSQBRACKET }
     | ']' { CLOSESQBRACKET }
     | '-' { HYPHEN }
@@ -62,11 +62,11 @@ rule main setTokenizer = parse
     | ')' { RPAREN }
     | "<@" { setTokenizer InlineRoughage; START_ROUGHAGE }
     | '{' { setTokenizer InlinePragma; LBRACE }
-	| string { STRING(tokenizeStringLiteral lexbuf) }
-    | pname { setTokenizer PragmaLine; PNAME(tokenizeStringTrimFirstChar lexbuf) } // #pname ...
-    | "###" { MARKER(tokenizeUnit lexbuf) }
-    | '$' aa num aa { AAMUTATION(tokenizeString lexbuf) }
-    | '*' dna intNum dna { DNAMUTATION(tokenizeString lexbuf) }
+	| string { STRING(Positioned.tokenizeStringLiteral lexbuf) }
+    | pname { setTokenizer PragmaLine; PNAME(Positioned.tokenizeStringTrimFirstChar lexbuf) } // #pname ...
+    | "###" { MARKER(Positioned.tokenizeUnit lexbuf) }
+    | '$' aa num aa { AAMUTATION(Positioned.tokenizeString lexbuf) }
+    | '*' dna intNum dna { DNAMUTATION(Positioned.tokenizeString lexbuf) }
 	| '^' { CARAT } // Needed for L2 syntax
     | '>' { GREATERTHAN } // For L2 syntax
     | "(*" { comment lexbuf; main setTokenizer lexbuf }
@@ -89,7 +89,7 @@ and comment = parse
 // token and then returns control to the main rule.
 and docstring buffer = parse
 	| newline {
-        let d = DOCSTRING({i = buffer.ToString(); pos = getPos lexbuf} ) in
+        let d = DOCSTRING({Item = buffer.ToString(); Position = SourcePosition.fromLexbuf lexbuf} ) in
             newline lexbuf; d}
 	| eof { EOF }
 	| _ { docstring (buffer.Append(lexeme lexbuf)) lexbuf }
@@ -106,8 +106,8 @@ and pragmaLine setTokenizer = parse
     | newline { newline lexbuf; setTokenizer Main; NEWLINE }
     | eof { EOF }
     | whitespace { pragmaLine setTokenizer lexbuf }
-    | pvalVariable { VARIABLE(tokenizeStringTrimFirstChar lexbuf) }
-    | pvalAllowSemicolons { PVALUE(tokenizeString lexbuf) }
+    | pvalVariable { VARIABLE(Positioned.tokenizeStringTrimFirstChar lexbuf) }
+    | pvalAllowSemicolons { PVALUE(Positioned.tokenizeString lexbuf) }
     | pname { failwithf "Encountered more than one pragma in a single pragma line: %s" (lexeme lexbuf) }
 
 /// Tokenizer for inline pragmas.
@@ -117,13 +117,13 @@ and inlinePragmaParts setTokenizer = parse
     | whitespace    { inlinePragmaParts setTokenizer lexbuf }
     | ';'           { inlinePragmaParts setTokenizer lexbuf }
     | '}'           { setTokenizer Main; RBRACE }
-    | pname         { PNAME(tokenizeStringTrimFirstChar lexbuf) }  // #foo
-    | pvalVariable  { VARIABLE(tokenizeStringTrimFirstChar lexbuf) }
-    | pval          { PVALUE(tokenizeString lexbuf) }
+    | pname         { PNAME(Positioned.tokenizeStringTrimFirstChar lexbuf) }  // #foo
+    | pvalVariable  { VARIABLE(Positioned.tokenizeStringTrimFirstChar lexbuf) }
+    | pval          { PVALUE(Positioned.tokenizeString lexbuf) }
     | _             { failwithf "Unexpected character char='%s' in inline pragma." (lexeme lexbuf) }
 
 and roughage setTokenizer = parse
-    | ident { ID(tokenizeString lexbuf) }
+    | ident { ID(Positioned.tokenizeString lexbuf) }
     | ':' { COLON }
     | '^' { CARAT }
     | '.' { DOT }

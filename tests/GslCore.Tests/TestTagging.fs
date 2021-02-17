@@ -132,7 +132,7 @@ uADH2; dADH2
         |> compileOne TestTagging.PragmaCache
         |> List.map (fun p ->
             let tagPragmas =
-                p.pragmas
+                p.Pragmas
                 |> List.choose (fun n ->
                     match n with
                     | Pragma (p) when p.Value.Name = TaggingPlugin.tagPragmaDef.Name -> Some p.Value

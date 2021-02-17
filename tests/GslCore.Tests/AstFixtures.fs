@@ -14,12 +14,12 @@ let bootstrapParseOnly source =
     | Ok (AstTreeHead (Block (b)), _) -> b.Value
 
 
-let wrapInt v = Int(nodeWrap v)
-let wrapFloat v = Float(nodeWrap v)
-let wrapString v = String(nodeWrap v)
+let wrapInt v = Int(Node.wrapNode v)
+let wrapFloat v = Float(Node.wrapNode v)
+let wrapString v = String(Node.wrapNode v)
 
 /// Wrap AST items as a block.
-let blockify items = Block(nodeWrap items)
+let blockify items = Block(Node.wrapNode items)
 
 /// Group AST items as a block, wrapped as a whole tree.
 let treeify items = AstTreeHead(blockify items)
@@ -32,7 +32,7 @@ let addPragsToPart prags a =
     | Part (pw) ->
         Part
             ({ pw with
-                   Value = { pw.Value with pragmas = prags } })
+                   Value = { pw.Value with Pragmas = prags } })
 
 let variableize name v =
     let t =
@@ -43,40 +43,40 @@ let variableize name v =
         | String (_) -> StringType
         | Part (_) -> PartType
 
-    VariableBinding(nodeWrap { name = name; varType = t; value = v })
+    VariableBinding(Node.wrapNode { Name = name; Type = t; Value = v })
 
 let functionalize name args bodyLines =
     let locals =
-        FunctionLocals(nodeWrap { names = args })
+        FunctionLocals(Node.wrapNode { Names = args })
 
     FunctionDef
-        (nodeWrap
-            { name = name
-              argNames = args
-              body = blockify (locals :: bodyLines) })
+        (Node.wrapNode
+            { Name = name
+              ArgumentNames = args
+              Body = blockify (locals :: bodyLines) })
 
-let emptyBlock = Block(nodeWrap [])
+let emptyBlock = Block(Node.wrapNode [])
 let fooEqual1 = variableize "foo" (wrapInt 1)
 
 let namePragmaFoo =
     ParsePragma
-        (nodeWrap
-            { name = "name"
-              values = [ String(nodeWrap "foo") ] })
+        (Node.wrapNode
+            { Name = "name"
+              Values = [ String(Node.wrapNode "foo") ] })
 
 
 let createGenePart name =
-    Gene(nodeWrap { gene = name; linker = None })
+    Gene(Node.wrapNode { Gene = name; Linker = None })
 // fixtures and helper functions for parts
 let fooGene = createGenePart "gFOO"
 
 let createPart mods prags basePart =
     Part
-        (nodeWrap
-            { basePart = basePart
-              mods = mods
-              pragmas = prags
-              fwd = true })
+        (Node.wrapNode
+            { BasePart = basePart
+              Modifiers = mods
+              Pragmas = prags
+              IsForward = true })
 
 let basePartWrap = createPart [] []
 
@@ -84,31 +84,31 @@ let fooGenePart = basePartWrap fooGene
 
 let relPosLeft =
     ParseRelPos
-        (nodeWrap
-            { i = Int(nodeWrap 20)
-              qualifier = None
-              position = Left })
+        (Node.wrapNode
+            { Item = Int(Node.wrapNode 20)
+              Qualifier = None
+              Position = Left })
 
 let relPosRight =
     ParseRelPos
-        (nodeWrap
-            { i = Int(nodeWrap 200)
-              qualifier = None
-              position = Right })
+        (Node.wrapNode
+            { Item = Int(Node.wrapNode 200)
+              Qualifier = None
+              Position = Right })
 
 let testSlice =
     Slice
-        (nodeWrap
-            { left = relPosLeft
-              right = relPosRight
-              lApprox = true
-              rApprox = true })
+        (Node.wrapNode
+            { Left = relPosLeft
+              Right = relPosRight
+              LeftApprox = true
+              RightApprox = true })
 
 let fooGeneWithSlice = createPart [ testSlice ] [] fooGene
 
 let fooGeneWithPragma = createPart [] [ namePragmaFoo ] fooGene
 
 let partVariable name =
-    basePartWrap (TypedVariable(nodeWrap (name, PartType)))
+    basePartWrap (TypedVariable(Node.wrapNode (name, PartType)))
 
-let typedValue t v = TypedValue(nodeWrap (t, v))
+let typedValue t v = TypedValue(Node.wrapNode (t, v))

@@ -28,7 +28,7 @@ let private warnOnPartThatIsLikelyVariable node =
 let private failOnPushAndPop node =
     match node with
     | ParsePragma (pp) ->
-        if pp.Value.name = "push" || pp.Value.name = "pop"
+        if pp.Value.Name = "push" || pp.Value.Name = "pop"
         then error
                  PragmaError
                  "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."

@@ -23,7 +23,7 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 
           yield! result
       | Part p ->
-          match p.Value.basePart with
+          match p.Value.BasePart with
           | Assembly a as x -> yield x
           | _ -> ()
       | Assembly a as x -> yield x

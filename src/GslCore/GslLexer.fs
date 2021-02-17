@@ -326,12 +326,12 @@ and main setTokenizer lexbuf =
   match _fslex_tables.Interpret(68,lexbuf) with
   | 0 -> ( 
 # 35 "./GslLexer.fsl"
-                           INT(tokenizeInt lexbuf) 
+                           INT(Positioned.tokenizeInt lexbuf) 
 # 330 "GslLexer.fs"
           )
   | 1 -> ( 
 # 36 "./GslLexer.fsl"
-                                                       LINKER(tokenizeString lexbuf) 
+                                                       LINKER(Positioned.tokenizeString lexbuf) 
 # 335 "GslLexer.fs"
           )
   | 2 -> ( 
@@ -371,17 +371,17 @@ and main setTokenizer lexbuf =
           )
   | 9 -> ( 
 # 44 "./GslLexer.fsl"
-                                 VARIABLE(tokenizeStringTrimFirstChar lexbuf) 
+                                 VARIABLE(Positioned.tokenizeStringTrimFirstChar lexbuf) 
 # 375 "GslLexer.fs"
           )
   | 10 -> ( 
 # 45 "./GslLexer.fsl"
-                             ID(tokenizeString lexbuf) 
+                             ID(Positioned.tokenizeString lexbuf) 
 # 380 "GslLexer.fs"
           )
   | 11 -> ( 
 # 46 "./GslLexer.fsl"
-                           TILDE(tokenizeUnit lexbuf) 
+                           TILDE(Positioned.tokenizeUnit lexbuf) 
 # 385 "GslLexer.fs"
           )
   | 12 -> ( 
@@ -391,7 +391,7 @@ and main setTokenizer lexbuf =
           )
   | 13 -> ( 
 # 48 "./GslLexer.fsl"
-                           SEMICOLON(tokenizeUnit lexbuf) 
+                           SEMICOLON(Positioned.tokenizeUnit lexbuf) 
 # 395 "GslLexer.fs"
           )
   | 14 -> ( 
@@ -476,27 +476,27 @@ and main setTokenizer lexbuf =
           )
   | 30 -> ( 
 # 65 "./GslLexer.fsl"
-                           STRING(tokenizeStringLiteral lexbuf) 
+                           STRING(Positioned.tokenizeStringLiteral lexbuf) 
 # 480 "GslLexer.fs"
           )
   | 31 -> ( 
 # 66 "./GslLexer.fsl"
-                             setTokenizer PragmaLine; PNAME(tokenizeStringTrimFirstChar lexbuf) 
+                             setTokenizer PragmaLine; PNAME(Positioned.tokenizeStringTrimFirstChar lexbuf) 
 # 485 "GslLexer.fs"
           )
   | 32 -> ( 
 # 67 "./GslLexer.fsl"
-                             MARKER(tokenizeUnit lexbuf) 
+                             MARKER(Positioned.tokenizeUnit lexbuf) 
 # 490 "GslLexer.fs"
           )
   | 33 -> ( 
 # 68 "./GslLexer.fsl"
-                                     AAMUTATION(tokenizeString lexbuf) 
+                                     AAMUTATION(Positioned.tokenizeString lexbuf) 
 # 495 "GslLexer.fs"
           )
   | 34 -> ( 
 # 69 "./GslLexer.fsl"
-                                          DNAMUTATION(tokenizeString lexbuf) 
+                                          DNAMUTATION(Positioned.tokenizeString lexbuf) 
 # 500 "GslLexer.fs"
           )
   | 35 -> ( 
@@ -580,7 +580,7 @@ and docstring buffer lexbuf =
   | 0 -> ( 
 # 91 "./GslLexer.fsl"
                            
-                       let d = DOCSTRING({i = buffer.ToString(); pos = getPos lexbuf} ) in
+                       let d = DOCSTRING({Item = buffer.ToString(); Position = SourcePosition.fromLexbuf lexbuf} ) in
                            newline lexbuf; d
 # 585 "GslLexer.fs"
           )
@@ -634,12 +634,12 @@ and pragmaLine setTokenizer lexbuf =
           )
   | 3 -> ( 
 # 109 "./GslLexer.fsl"
-                                    VARIABLE(tokenizeStringTrimFirstChar lexbuf) 
+                                    VARIABLE(Positioned.tokenizeStringTrimFirstChar lexbuf) 
 # 638 "GslLexer.fs"
           )
   | 4 -> ( 
 # 110 "./GslLexer.fsl"
-                                           PVALUE(tokenizeString lexbuf) 
+                                           PVALUE(Positioned.tokenizeString lexbuf) 
 # 643 "GslLexer.fs"
           )
   | 5 -> ( 
@@ -678,17 +678,17 @@ and inlinePragmaParts setTokenizer lexbuf =
           )
   | 5 -> ( 
 # 120 "./GslLexer.fsl"
-                                     PNAME(tokenizeStringTrimFirstChar lexbuf) 
+                                     PNAME(Positioned.tokenizeStringTrimFirstChar lexbuf) 
 # 682 "GslLexer.fs"
           )
   | 6 -> ( 
 # 121 "./GslLexer.fsl"
-                                     VARIABLE(tokenizeStringTrimFirstChar lexbuf) 
+                                     VARIABLE(Positioned.tokenizeStringTrimFirstChar lexbuf) 
 # 687 "GslLexer.fs"
           )
   | 7 -> ( 
 # 122 "./GslLexer.fsl"
-                                     PVALUE(tokenizeString lexbuf) 
+                                     PVALUE(Positioned.tokenizeString lexbuf) 
 # 692 "GslLexer.fs"
           )
   | 8 -> ( 
@@ -702,7 +702,7 @@ and roughage setTokenizer lexbuf =
   match _fslex_tables.Interpret(0,lexbuf) with
   | 0 -> ( 
 # 126 "./GslLexer.fsl"
-                             ID(tokenizeString lexbuf) 
+                             ID(Positioned.tokenizeString lexbuf) 
 # 706 "GslLexer.fs"
           )
   | 1 -> ( 

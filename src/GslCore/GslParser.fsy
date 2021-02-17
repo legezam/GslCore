@@ -60,11 +60,11 @@ let parse_error_rich = Some(AstErrorHandling.handleParseError)
 start: Final { AstTreeHead($1) }
 
 Final:
-    | CodeSection EOF   { Block(nodeWrap $1) } // Collection of assemblies
-    | EOF               { Block(nodeWrap []) } // Empty gsl file
+    | CodeSection EOF   { Block(Node.wrapNode $1) } // Collection of assemblies
+    | EOF               { Block(Node.wrapNode []) } // Empty gsl file
 
 ScopedBlock:
-    | DO CodeSection END                { Block(nodeWrap $2) }
+    | DO CodeSection END                { Block(Node.wrapNode $2) }
 
 CodeSection:
     | Line                              { match $1 with | Some(l) -> [l] | None -> [] }
@@ -74,9 +74,9 @@ CodeSection:
 Line:
 	| NEWLINE						 { None }
     | AssemblyPart                   { Some($1) }
-    | DOCSTRING			     	     { Some(Docstring(tokenAsNode $1)) }
+    | DOCSTRING			     	     { Some(Docstring(Node.tokenAsNode $1)) }
     | L2ExpLine       				 { Some($1) }
-    | START_ROUGHAGE RoughageLineList END_ROUGHAGE  { Some(Block(nodeWrap $2)) } // insert roughage sections as scoped blocks
+    | START_ROUGHAGE RoughageLineList END_ROUGHAGE  { Some(Block(Node.wrapNode $2)) } // insert roughage sections as scoped blocks
     | Pragma                         { Some($1) }
     | TypedVariableDeclaration       { Some($1) }
     | FunctionCall                   { Some($1) }
@@ -92,7 +92,7 @@ Line:
 
 PragmaValue:
     | VARIABLE          { (tokenToVariable $1 NotYetTyped) }
-    | PVALUE            { String(tokenAsNode $1) }
+    | PVALUE            { String(Node.tokenAsNode $1) }
 
 PragmaValues:
     | PragmaValue PragmaValues { $1::$2 }
@@ -130,8 +130,8 @@ TypedVariableDeclaration:
 
 // TODO: we should fix how we store function args to retain positions.
 FunctionDefArgs:
-    | ID { [ $1.i ] }
-    | ID COMMA FunctionDefArgs { $1.i::$3 }
+    | ID { [ $1.Item ] }
+    | ID COMMA FunctionDefArgs { $1.Item::$3 }
 
 FunctionDeclaration:
     | LET ID LPAREN FunctionDefArgs RPAREN EQUALS CodeSection END { createFunctionDeclaration $2 $4 $7 }
@@ -165,13 +165,13 @@ FunctionCall:
 
 // values written out in source
 IntLiteral:
-    | INT           { Int(tokenAsNode $1) }
+    | INT           { Int(Node.tokenAsNode $1) }
 
 FloatLiteral:
     | INT DOT INT   { createFloat $1 $3 } // float literal
 
 StringLiteral:
-    | STRING        { String(tokenAsNode $1) } // string literal
+    | STRING        { String(Node.tokenAsNode $1) } // string literal
 
 // ==================
 // integer expressions
@@ -192,9 +192,9 @@ IntExp:
 // ==================
 
 // FIXME: should push this to the AST
-Linker: LINKER  { match $1.i.Split([| '-' |]) with
+Linker: LINKER  { match $1.Item.Split([| '-' |]) with
                   | [| a;b;c |] -> {l1 = a ; l2 = b; orient = c}
-                  | _ -> failwithf "bad linker format '%s'" ($1.i)
+                  | _ -> failwithf "bad linker format '%s'" ($1.Item)
                 }
 
 Part:
@@ -203,20 +203,20 @@ Part:
     | Linker HYPHEN ID              { createGenePart $3 (Some($1)) }
     // gene part without a linker
     | ID                            { createGenePart $1 None }
-    | MARKER                        { createPartWithBase (Marker(tokenAsNode $1)) }
+    | MARKER                        { createPartWithBase (Marker(Node.tokenAsNode $1)) }
     // Inline DNA sequence  / gatca /
-    | SLASH ID SLASH                { createPartWithBase (InlineDna(tokenAsNodeAfter uppercase $2)) }
+    | SLASH ID SLASH                { createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase $2)) }
     // Inline amino acid sequence  / ACDEFGH etc /
-    | SLASH DOLLAR ID SLASH         { createPartWithBase (InlineProtein(tokenAsNodeAfter uppercase $3))}
+    | SLASH DOLLAR ID SLASH         { createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase $3))}
     // Inline amino acid sequence with stop / ACDEFGH* etc /
-    | SLASH DOLLAR ID STAR SLASH    { createPartWithBase (InlineProtein(tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) $3 )) }
+    | SLASH DOLLAR ID STAR SLASH    { createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) $3 )) }
     // Simple inline stop codon
-    | SLASH DOLLAR STAR SLASH       { createPartWithBase (InlineProtein(nodeWrap "*")) }
-    | TILDE                         { createPartWithBase (HetBlock(tokenAsNode $1)) }
+    | SLASH DOLLAR STAR SLASH       { createPartWithBase (InlineProtein(Node.wrapNode "*")) }
+    | TILDE                         { createPartWithBase (HetBlock(Node.tokenAsNode $1)) }
     // Part variable
     | VARIABLE                      { createPartWithBase (tokenToVariable $1 PartType) }
     // External part reference
-    | AT ID                         { createPartWithBase (PartId(tokenAsNode $2)) }
+    | AT ID                         { createPartWithBase (PartId(Node.tokenAsNode $2)) }
 
 // parts may have a trailing list of modifications
 PartMaybeMods:
@@ -256,7 +256,7 @@ Mod:
     | DNAMUTATION    { createMutation $1 NT }
     | AAMUTATION     { createMutation $1 AA }
     | Slice          { $1 }
-	| DOT ID         { DotMod(tokenAsNode $2) }
+	| DOT ID         { DotMod(Node.tokenAsNode $2) }
 
 ModList:
     | Mod                           { [ $1 ] }
@@ -283,8 +283,8 @@ AssemblyPart:
 
 // gene name, allow string literals or regular identifiers
 L2IdWrap:
-    | ID     	{ tokenAsNode $1 }
-    | STRING 	{ tokenAsNode $1 }
+    | ID     	{ Node.tokenAsNode $1 }
+    | STRING 	{ Node.tokenAsNode $1 }
 
 
 
@@ -299,9 +299,9 @@ L2Id:
 
 // We allow using regular level 1 parts/assemblies as the promoter as well as basic L2 descriptors.
 L2Promoter:
-  | STRING				 { createL2Id None (tokenAsNode $1) }
-  | STRING DOT STRING    { createL2Id (Some(tokenAsNode $1)) (tokenAsNode $3) }
-  | ID DOT ID            { createL2Id (Some(tokenAsNode $1)) (tokenAsNode $3) }
+  | STRING				 { createL2Id None (Node.tokenAsNode $1) }
+  | STRING DOT STRING    { createL2Id (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
+  | ID DOT ID            { createL2Id (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
   | CompletePart		 { $1 }
 
 
@@ -330,11 +330,11 @@ L2ExpLine:
 
 // gene name
 RID:
-    | ID  { createL2IdNode None (tokenAsNode $1) }
-    | ID DOT ID { createL2IdNode (Some(tokenAsNode $1)) (tokenAsNode $3) }
+    | ID  { createL2IdNode None (Node.tokenAsNode $1) }
+    | ID DOT ID { createL2IdNode (Some(Node.tokenAsNode $1)) (Node.tokenAsNode $3) }
 
 RoughageMarker:
-	| OPENSQBRACKET ID CLOSESQBRACKET { tokenAsNode $2 }
+	| OPENSQBRACKET ID CLOSESQBRACKET { Node.tokenAsNode $2 }
 
 //[mURA3]
 RoughageMarkerMaybe:

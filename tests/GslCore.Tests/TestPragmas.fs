@@ -73,7 +73,7 @@ type TestPragmasAST() =
     let checkPragmaIsBuilt node =
         match node with
         | Pragma (p) -> good
-        | ParsePragma (p) -> errorf Error "Pragma '%s' was not built." p.Value.name node
+        | ParsePragma (p) -> errorf Error "Pragma '%s' was not built." p.Value.Name node
         | _ -> good
 
     let pragmaBuildTest source =
@@ -184,19 +184,19 @@ gBAZ"""
         // we need to dive into the AST to check this
         let namePrag =
             Pragma
-                (nodeWrap
+                (Node.wrapNode
                     { Definition = BuiltIn.namePragmaDef
                       Arguments = [ "foobar" ] })
 
         let namePrag2 =
             Pragma
-                (nodeWrap
+                (Node.wrapNode
                     { Definition = BuiltIn.namePragmaDef
                       Arguments = [ "shouldOnlyBeOnInner" ] })
 
         let seedPrag =
             Pragma
-                (nodeWrap
+                (Node.wrapNode
                     { Definition =
                           PragmaBuilder.builtin.Pragmas.TryFind("seed")
                               .Value
@@ -204,7 +204,7 @@ gBAZ"""
 
         let seedPrag2 =
             Pragma
-                (nodeWrap
+                (Node.wrapNode
                     { Definition =
                           PragmaBuilder.builtin.Pragmas.TryFind("seed")
                               .Value

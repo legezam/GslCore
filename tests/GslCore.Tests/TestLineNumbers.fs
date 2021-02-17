@@ -24,7 +24,7 @@ type TestLineNumbers() =
 
               yield! result
           | Part p ->
-              match p.Value.basePart with
+              match p.Value.BasePart with
               | Assembly _ as x -> yield x
               | _ -> ()
           | Assembly _ as x -> yield x
@@ -36,8 +36,8 @@ type TestLineNumbers() =
         match pos with
         | None -> Assert.Fail("expected source position to be Some not None")
         | Some p ->
-            let startP = p.s
-            let endP = p.e
+            let startP = p.Start
+            let endP = p.End
             Assert.AreEqual(startLine, startP.Line)
             Assert.AreEqual(startCol, startP.Column)
             Assert.AreEqual(endLine, endP.Line)
@@ -146,7 +146,7 @@ knockout()"
                  [ for a in assemblies ->
                      String.Join
                          (";",
-                          [ for p in a.positions -> sprintf "%d,%d->%d,%d" p.s.Line p.s.Column p.e.Line p.e.Column ]) ])
+                          [ for p in a.positions -> sprintf "%d,%d->%d,%d" p.Start.Line p.Start.Column p.End.Line p.End.Column ]) ])
 
         let assembly3 = List.item 2 assemblies
         printfn "coordinates for triple nested example:%A" coordsFormatted

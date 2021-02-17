@@ -327,7 +327,7 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     match node with
     | L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
-        match e.Value.promoter with
+        match e.Value.Promoter with
         | AssemblyPart a -> error L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
             error (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node

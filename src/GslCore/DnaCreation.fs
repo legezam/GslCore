@@ -28,7 +28,7 @@ let validateMods errorRef (where: AstTypes.SourcePosition list) (mods: Mod list)
                     "slice left %A greater than right %A %O in %s"
                     s.left.Position
                     s.right.Position
-                    (AstTypes.formatSourcePositionList where)
+                    (AstTypes.SourcePosition.formatSourcePositionList where)
                     errorRef
         | _ -> () // No checks for now TODO
 

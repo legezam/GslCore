@@ -156,12 +156,12 @@ let expandMods (ml: Mod list) =
                 yield
                     sprintf
                         "%c%c%d%c"
-                        (match m.mType with
+                        (match m.Type with
                          | AA -> '$'
                          | NT -> '*')
-                        m.f
-                        m.loc
-                        m.t
+                        m.From
+                        m.Location
+                        m.To
             | SLICE (s) -> yield printSlice s
             | DOTMOD (d) -> yield sprintf ".%s" d
     }
@@ -180,7 +180,7 @@ let rec printPPP ppp =
             let lOut =
                 match gp.linker with
                 | None -> ""
-                | Some (l) -> sprintf "%s-%s-%s-" l.l1 l.l2 l.orient // Emit linker
+                | Some (l) -> sprintf "%s-%s-%s-" l.Linker1 l.Linker2 l.Orient // Emit linker
 
             let p = gp.part
 
@@ -211,14 +211,14 @@ let prettyPrintAssembly (assembly: Assembly) =
 // =====================
 
 let private sliceFromAstSlice (s: ParseSlice) =
-    match s.left, s.right with
+    match s.Left, s.Right with
     | RelPos (lw), RelPos (rw) ->
         ok
             (SLICE
                 ({ left = lw.Value
-                   lApprox = s.lApprox
+                   lApprox = s.LeftApprox
                    right = rw.Value
-                   rApprox = s.rApprox }))
+                   rApprox = s.RightApprox }))
     | x, y ->
         let contextStr =
             sprintf "legacy slice construction; found [%s:%s]" x.TypeName y.TypeName
@@ -236,26 +236,26 @@ let private convertMods mods =
     mods |> List.map astNodeToLegacyMod |> collect
 
 /// Convert an AST base part into a legacy Part.
-let private createLegacyPart part =
-    match part.Value.basePart with
+let private createLegacyPart (part: Node<ParsePart>): Result<Part, AstMessage> =
+    match part.Value.BasePart with
     | Gene (gw) ->
-        convertMods part.Value.mods
+        convertMods part.Value.Modifiers
         >>= (fun mods ->
             let genePart =
-                { gene = gw.Value.gene
+                { gene = gw.Value.Gene
                   mods = mods
                   where = gw.Positions }
 
             ok
                 (GENEPART
                     ({ part = genePart
-                       linker = gw.Value.linker })))
+                       linker = gw.Value.Linker })))
     | Marker _ -> ok MARKERPART
     | InlineDna (s) -> ok (INLINEDNA(Dna(s.Value, true, AllowAmbiguousBases)))
     | InlineProtein (s) -> ok (INLINEPROT s.Value)
     | HetBlock _ -> ok HETBLOCK
     | PartId (p) ->
-        convertMods part.Value.mods
+        convertMods part.Value.Modifiers
         >>= (fun mods -> ok (PARTID({ id = p.Value; mods = mods })))
     | x -> internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
@@ -267,7 +267,7 @@ let private createPPP part =
             ok
                 { part = legacyPart
                   pr = getPragmas p
-                  fwd = p.Value.fwd })
+                  fwd = p.Value.IsForward })
     | x -> internalTypeMismatch (Some "legacy part conversion") "Part" x
 
 /// For assembly conversion, we need to accumulate both a pragma environment and docstrings.
@@ -336,11 +336,11 @@ let convertAssembly (context: AssemblyConversionContext)
 let private buildL2Element node =
     match node with
     | L2Element (nw) ->
-        match nw.Value.promoter, nw.Value.target with
+        match nw.Value.Promoter, nw.Value.Target with
         | L2Id _, L2Id (tw)
         | Part _, L2Id (tw) ->
             ok
-                { promoter = nw.Value.promoter
+                { promoter = nw.Value.Promoter
                   target = tw.Value }
 
         | x, y ->
@@ -358,10 +358,10 @@ let private unpackLocus nodeopt =
 
 /// Build a concrete L2 expression from an AST node.
 let private buildL2Expression (ew: Node<L2Expression>) =
-    ew.Value.parts
+    ew.Value.Parts
     |> List.map buildL2Element
     |> collect
-    |> tupleResults (unpackLocus ew.Value.locus)
+    |> tupleResults (unpackLocus ew.Value.Locus)
     >>= (fun (locus, parts) -> ok { l2Locus = locus; parts = parts })
 
 /// Build a L2Line from an AST node and pragma environment.

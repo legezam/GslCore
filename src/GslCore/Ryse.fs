@@ -49,11 +49,11 @@ let extractLinker (s: string) =
     else failwithf "ERROR: unable to parse linker name '%s'" s
 
 let checkLinker (l: Linker) =
-    if not (Default.ValidLinkers.Contains(l.l1))
-    then failwithf "ERROR: linker %s not a legal linker" l.l1
+    if not (Default.ValidLinkers.Contains(l.Linker1))
+    then failwithf "ERROR: linker %s not a legal linker" l.Linker1
 
-    if not (Default.ValidLinkers.Contains(l.l2))
-    then failwithf "ERROR: linker %s not a legal linker" l.l2
+    if not (Default.ValidLinkers.Contains(l.Linker2))
+    then failwithf "ERROR: linker %s not a legal linker" l.Linker2
 
 
 /// Get auxillary cached information about key rabits for thumper rabits

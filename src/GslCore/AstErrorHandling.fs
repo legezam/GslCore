@@ -63,10 +63,10 @@ type AstMessage =
         | Some (p) -> // now we're cooking with gas
             // Accumulate lines in an error report.
             seq {
-                yield (sprintf "%s: %s\n%s" msgTypeName (p.Format()) msg.msg)
+                yield (sprintf "%s: %s\n%s" msgTypeName (p |> SourcePosition.format) msg.msg)
                 yield "================================================================="
 
-                yield! p.SourceContext(sourceCode)
+                yield! p |> SourcePosition.sourceContext sourceCode
                 if showStackTrace then yield msg.stackTrace.ToString()
             }
             |> String.concat "\n"
@@ -77,7 +77,7 @@ type AstMessage =
         // get the best position we can
         match msg.sourcePosition, msg.node.pos with
         | Some (p), _
-        | None, Some (p) -> sprintf "%s: %s\n%s" msgTypeName (p.Format()) msg.msg
+        | None, Some (p) -> sprintf "%s: %s\n%s" msgTypeName (p |> SourcePosition.format) msg.msg
         | _ -> // can't do much without a position now, can we.
             sprintf "%s: %s" msgTypeName msg.msg
 

@@ -174,12 +174,12 @@ type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
                 yield sprintf "%O during %s:" x.Kind phase
                 yield x.Message
             | hd :: tl ->
-                yield sprintf "%O during %s %s:" x.Kind phase (formatSourcePositionList (hd :: tl))
+                yield sprintf "%O during %s %s:" x.Kind phase (SourcePosition.formatSourcePositionList (hd :: tl))
                 yield x.Message
                 yield "================================================================="
 
                 match sourceCode with
-                | Some (source) -> yield! hd.SourceContext(source)
+                | Some source -> yield! hd |> SourcePosition.sourceContext source
                 | None -> ()
 
             if verbose then

@@ -128,47 +128,47 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m
     let dna =
         rabit.DnaElementSpecs.[0].DnaSequence.ToUpper()
     // Now split by type of mutation and check the original base/amino acid is legit
-    match m.mType with
+    match m.Type with
     | NT ->
-        if m.loc <= 0 || m.loc > dna.Length
-        then failwithf "ERROR: mutation position %d is outside range of rabit %s" m.loc g.id
+        if m.Location <= 0 || m.Location > dna.Length
+        then failwithf "ERROR: mutation position %d is outside range of rabit %s" m.Location g.id
 
-        if dna.[m.loc - 1] <> m.f
-        then failwithf "ERROR: existing base at position %d in rabit %s is %c not %c" m.loc g.id (dna.[m.loc - 1]) m.f
+        if dna.[m.Location - 1] <> m.From
+        then failwithf "ERROR: existing base at position %d in rabit %s is %c not %c" m.Location g.id (dna.[m.Location - 1]) m.From
 
         // Design for mutation
 
-        let lhs = m.loc - 1 // before the mutated base
-        let rhs = m.loc + 1 // after the mutated base
+        let lhs = m.Location - 1 // before the mutated base
+        let rhs = m.Location + 1 // after the mutated base
         let id = g.id
 
-        sprintf "@%s[1:%d] {#dnasrc %s}; /%c/ {#inline }; @%s[%d:-1E] {#dnasrc %s} " id lhs id m.t id rhs id
+        sprintf "@%s[1:%d] {#dnasrc %s}; /%c/ {#inline }; @%s[%d:-1E] {#dnasrc %s} " id lhs id m.To id rhs id
         |> GslSourceCode
     | AA ->
-        if m.loc <= 0 || m.loc > dna.Length / 3
-        then failwithf "ERROR: mutation position %d outside range of rabit %s amino acids" m.loc g.id
+        if m.Location <= 0 || m.Location > dna.Length / 3
+        then failwithf "ERROR: mutation position %d outside range of rabit %s amino acids" m.Location g.id
 
         let currentCodon =
-            (dna.[(m.loc - 1) * 3..(m.loc - 1) * 3 + 2])
+            (dna.[(m.Location - 1) * 3..(m.Location - 1) * 3 + 2])
                 .ToCharArray()
 
         // Ensure we are in the right place in the gene
-        if (codon2aa currentCodon <> m.f) && asAACheck then
+        if (codon2aa currentCodon <> m.From) && asAACheck then
             failwithf
                 "ERROR: for mutation %c%d%c , gene %s has amino acid %c (%s) in that position not %c"
-                m.f
-                m.loc
-                m.t
+                m.From
+                m.Location
+                m.To
                 g.id
                 (codon2aa currentCodon)
                 (utils.arr2seq currentCodon)
-                m.f
+                m.From
         else
             let id = g.id
-            let lhs = m.loc - 1
-            let rhs = m.loc + 1
+            let lhs = m.Location - 1
+            let rhs = m.Location + 1
 
-            sprintf "@%s[1:%da] {#dnasrc %s}; /$%c/ {#inline }; @%s[%da:-1E] {#dnasrc %s} " id lhs id m.t id rhs id
+            sprintf "@%s[1:%da] {#dnasrc %s}; /$%c/ {#inline }; @%s[%da:-1E] {#dnasrc %s} " id lhs id m.To id rhs id
             |> GslSourceCode
 
 
@@ -187,12 +187,12 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
 
     // b is the base before the mutation, so one base upstream of the promoter mutation
     // b is the basepair before the mutation relative to gene orientation
-    let b = (m.loc - 1) * 1<ZeroOffset>
+    let b = (m.Location - 1) * 1<ZeroOffset>
 
     let genomicCoord =
         (if f.fwd
-         then f.l - m.loc
-         else f.r - m.loc (* remember m.pos is negative *) )
+         then f.l - m.Location
+         else f.r - m.Location (* remember m.pos is negative *) )
         * 1<ZeroOffset>
 
     let existing =
@@ -200,7 +200,7 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
         |> GenomeDefinition.getDna (errorDesc, sprintf "%d" f.chr, genomicCoord, genomicCoord)
         |> DnaOps.revCompIf (not f.fwd)
 
-    if existing.[0] <> m.f then
+    if existing.[0] <> m.From then
         let diag =
             if f.fwd then
                 rg
@@ -211,7 +211,7 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
                     .RevComp()
 
         failwithf "ERROR: g%s promoter mutation at %d should be base %c a (in gene orientation) and is %c instead\n leading gene oriented seq=%O"
-            name m.loc m.f (existing.[0]) diag
+            name m.Location m.From (existing.[0]) diag
 
     // Ensure we capture promoter and stay far enough away from b
     let a = (b - 800<ZeroOffset>)
@@ -231,7 +231,7 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
         (ZeroOffset.toOne a)
         (ZeroOffset.toOne b)
         name
-        m.t  // replacement base
+        m.To  // replacement base
         gene
         (ZeroOffset.toOne (b + 2<ZeroOffset>))
         (ZeroOffset.toOne c)
@@ -243,7 +243,7 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
 let private classicCodingNT _ (* verbose*) g (_: sgd.Feature) (_: GenomeDefinition) (m: Mutation) =
     // Not going to implement this completely just yet - i.e no heterology block.
     // This has to be used as part of a larger design that ensures swapping
-    sprintf "%s[1S:%A];/%c/ {#inline };%s[%A:-1E] " g (m.loc - 1) m.t g (m.loc + 1)
+    sprintf "%s[1S:%A];/%c/ {#inline };%s[%A:-1E] " g (m.Location - 1) m.To g (m.Location + 1)
     |> GslSourceCode
 
 
@@ -263,7 +263,7 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
        >= dp.OrfDna.Length + 3 (* include stop codon *)  then
         failwithf
             "ERROR: attempting to mutate amino acid position %d which is outside ORF length %d bases"
-            dp.Mutation.loc
+            dp.Mutation.Location
             dp.OrfDna.Length
 
     let currentCodon = dp.OrfDna.[x1..x2]
@@ -284,9 +284,9 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
             || (dp.MutOff < 1000<ZeroOffset>
                 && dp.Length - dp.MutOff > 2500<ZeroOffset>))) then
         let mutSeq =
-            selectMutCodonRight dp.CodonLookup minFreq currentCodon dp.Mutation.t
+            selectMutCodonRight dp.CodonLookup minFreq currentCodon dp.Mutation.To
 
-        assert ((DnaOps.translate mutSeq).[0] = dp.Mutation.t)
+        assert ((DnaOps.translate mutSeq).[0] = dp.Mutation.To)
         // 5' end design, need to rewrite promoter and put in marker
         //                                   b
         // a......-1; marker ; a...ATG.......Mutation ; HB ...  HB + 700
@@ -309,9 +309,9 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
             (dp.MutOff + 703<ZeroOffset> |> ZeroOffset.toOne)
     else
         let mutSeq =
-            selectMutCodonLeft dp.CodonLookup minFreq currentCodon dp.Mutation.t
+            selectMutCodonLeft dp.CodonLookup minFreq currentCodon dp.Mutation.To
 
-        assert ((DnaOps.translate mutSeq).[0] = dp.Mutation.t)
+        assert ((DnaOps.translate mutSeq).[0] = dp.Mutation.To)
 
         //  a            b                       c
         //  US700.......Mutation; HB ; dnaToDS200 ; marker ; 800bp downstream including 200bp repeat
@@ -367,9 +367,9 @@ let expandAS (providers: AlleleSwapProvider list)
 
     let errorDesc = name
 
-    match m.mType with
+    match m.Type with
     | NT ->
-        match m.loc with
+        match m.Location with
         | x when x = 0 -> failwithf "ERROR: illegal mutation offset zero for %s:%A\n" g m
         | x when x < 0 -> classicPromoterNT g name f rg m // Point mutation in promoter
         | x when x > 0 && x < f.r - f.l + 1 -> classicCodingNT verbose g f rg m // Point mutation in coding part of gene
@@ -379,7 +379,7 @@ let expandAS (providers: AlleleSwapProvider list)
 
         // Gen length of ORF
         let len = (f.r - f.l + 1) * 1<ZeroOffset>
-        let b = (m.loc - 1) * 3<ZeroOffset> // zero based coordinates, location of mutant codon
+        let b = (m.Location - 1) * 3<ZeroOffset> // zero based coordinates, location of mutant codon
 
         // Extend ORF to include stop codon so we can mutate that if needed
         let l', r' =
@@ -406,24 +406,24 @@ let expandAS (providers: AlleleSwapProvider list)
         if x2 >= orf.Length + 3 then // Include stop codon
             failwithf
                 "ERROR: attempting to mutate amino acid position %d which is outside ORF length %d bases"
-                m.loc
+                m.Location
                 orf.Length
 
         let currentCodon = orf.[x1..x2]
 
         // Ensure we are in the right place in the gene
-        if (codon2aa currentCodon.arr <> m.f) && asAACheck then
+        if (codon2aa currentCodon.arr <> m.From) && asAACheck then
             printfn "ORF: %O" orf
 
             failwithf
                 "ERROR: for mutation %c%d%c , gene %s has amino acid %c (%O) in that position not %c"
-                m.f
-                m.loc
-                m.t
+                m.From
+                m.Location
+                m.To
                 g
                 (codon2aa currentCodon.arr)
                 currentCodon
-                m.f
+                m.From
 
         let designParams =
             { IsVerbose = verbose
