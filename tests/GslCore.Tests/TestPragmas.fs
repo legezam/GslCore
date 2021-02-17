@@ -73,7 +73,7 @@ type TestPragmasAST() =
     let checkPragmaIsBuilt node =
         match node with
         | Pragma (p) -> good
-        | ParsePragma (p) -> AstMessage.errorf Error "Pragma '%s' was not built." p.Value.Name node
+        | ParsePragma (p) -> AstMessage.createErrorf Error "Pragma '%s' was not built." p.Value.Name node
         | _ -> good
 
     let pragmaBuildTest source =

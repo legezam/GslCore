@@ -83,7 +83,7 @@ let compile op source = lexparse source >>= op
 let failIfBad sourceCode r =
     let printMsg (m: AstMessage) =
         match sourceCode with
-        | Some (s) -> m.Longform(false, s)
+        | Some (s) -> m |> AstMessage.getLongForm (false, s)
         | None -> m.Summary
 
     match r with
@@ -135,8 +135,8 @@ let checkMessages (expectedTypes: AstMessageType list) (textSnippets: string opt
 
     Seq.zip3 msgs expectedTypes textSnips
     |> Seq.iter (fun (msg, ft, ts) ->
-        Assert.AreEqual(ft, msg.msgType)
-        Assert.That(msg.msg.Contains(ts), sprintf "Didn't find '%s' in '%s'" ts msg.msg))
+        Assert.AreEqual(ft, msg.Type)
+        Assert.That(msg.Message.Contains(ts), sprintf "Didn't find '%s' in '%s'" ts msg.Message))
 
     msgs
 

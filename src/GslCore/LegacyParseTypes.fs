@@ -314,7 +314,7 @@ let convertAssembly (context: AssemblyConversionContext)
 
     
     DesignParams.fromPragmas DesignParams.identity assemblyPragmas
-    |> mapMessages (fun message -> AstMessage.errorMessage PragmaError message (Part(partWrapper)))
+    |> mapMessages (fun message -> AstMessage.createErrorWithStackTrace PragmaError message (Part(partWrapper)))
     |> tupleResults (aplw.Value |> List.map createPPP |> collect)
     >>= fun (parts, designParams) ->
             ok

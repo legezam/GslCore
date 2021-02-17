@@ -213,7 +213,7 @@ let handleCompileResult (result, input: GslSourceCode, s) =
     | Bad (errors) ->
         // convert messages into strings for printing
         let msgs =
-            [ for msg in GslParseErrorContext.deduplicateMessages errors -> msg.Longform(s.Options.Verbose, input) ]
+            [ for msg in GslParseErrorContext.deduplicateMessages errors -> msg |> AstMessage.getLongForm (s.Options.Verbose, input) ]
 
         Exit(1, Some(msgs |> String.concat "\n\n"))
 

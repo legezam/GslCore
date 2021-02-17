@@ -66,7 +66,7 @@ let bootstrapError expectedType note tree =
     let msg =
         sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
 
-    AstMessage.error (BootstrapError(Some(tree))) msg tree
+    AstMessage.createError (BootstrapError(Some(tree))) msg tree
 
 /// Bootstrapped expansion phases don't have meaningful source positions as a result of expansion.
 /// Instead, replace all of the positions with one provided from the external context to at least
@@ -115,7 +115,7 @@ let private replaceSourcePositions pos =
 
 /// If any messages emanated from a bootstrapped parsing, replace their positions with the input position.
 let private replaceMessagePositions pos =
-    mapMessages (fun (msg: AstMessage) -> { msg with sourcePosition = pos })
+    mapMessages (fun (msg: AstMessage) -> { msg with SourcePosition = pos })
 
 ///<summary>
 /// Later phases of the compiler currently output literal source code which is parsed again.
@@ -136,7 +136,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
 
     lexAndParse false source
     |> addContextIfError
-        (AstMessage.errorMessage
+        (AstMessage.createErrorWithStackTrace
             (InternalError(ParserError))
              contextMsg
              (String
@@ -328,9 +328,9 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     | L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
         match e.Value.Promoter with
-        | AssemblyPart a -> AstMessage.error L2ExpansionError "Unsupported use of an Assembly." node
+        | AssemblyPart a -> AstMessage.createError L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
-            AstMessage.error (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
+            AstMessage.createError (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
         | _ -> good
     | _ -> good
 
@@ -1077,7 +1077,7 @@ let phase2 oneShot
     let rec doPhase2 passNumber (tree: AstTreeHead) =
         match maxPasses with
         | Some (limit) when passNumber > limit -> // if we're past a limit passed in, fail.
-            AstMessage.errorf (InternalError(Error)) "Compiler phase 2 hit recursion limit of %d." limit tree.wrappedNode
+            AstMessage.createErrorf (InternalError(Error)) "Compiler phase 2 hit recursion limit of %d." limit tree.wrappedNode
         | _ -> // otherwise, run the expansion step
             match expansionNeeded tree with
             | Some (mode) -> runPhase2 mode tree >>= doPhase2 (passNumber + 1)

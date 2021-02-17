@@ -169,11 +169,11 @@ let private parseExceptionToError (errNode: AstNode) exn =
             | None -> msg
 
         Some
-            ({ msg = fullMsg
-               sourcePosition = errNode.pos
-               node = errNode
-               msgType = ParserError
-               stackTrace = Some(StackTrace(exn)) })
+            ({ Message = fullMsg
+               SourcePosition = errNode.pos
+               Node = errNode
+               Type = ParserError
+               StackTrace = Some(StackTrace(exn)) })
     | _ -> None
 
 let lexAndParse verbose (source: GslSourceCode) =

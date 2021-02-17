@@ -53,7 +53,7 @@ type TestValidation() =
         let failure =
             assertValidationFail ParserError (Some errorText) checkParseError tree
 
-        Assert.AreEqual(err, failure.node)
+        Assert.AreEqual(err, failure.Node)
 
     [<Test>]
     member x.NoModsAllowed() =

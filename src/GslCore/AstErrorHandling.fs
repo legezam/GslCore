@@ -41,120 +41,134 @@ type AstMessageType =
 
 /// Describe a warning or error encountered during Ast manipulations.
 type AstMessage =
-    { msg: string
-      sourcePosition: SourcePosition option
-      node: AstNode
-      msgType: AstMessageType
-      stackTrace: StackTrace option }
-    /// Pretty-print an AST message including context in source code.
-    member msg.Longform(showStackTrace, sourceCode: GslSourceCode) =
-
-        let msgTypeName = Utils.getUnionCaseName msg.msgType
-        // get the best position we can
-        let pos =
-            match msg.sourcePosition, msg.node.pos with
-            | Some (p), _
-            | None, Some (p) -> Some(p)
-            | _ -> None
-
-        match pos with
-        | None -> // can't do much without a position now, can we.
-            sprintf "%s: %s" msgTypeName msg.msg
-        | Some (p) -> // now we're cooking with gas
-            // Accumulate lines in an error report.
-            seq {
-                yield (sprintf "%s: %s\n%s" msgTypeName (p |> SourcePosition.format) msg.msg)
-                yield "================================================================="
-
-                yield! p |> SourcePosition.sourceContext sourceCode
-                if showStackTrace then yield msg.stackTrace.ToString()
-            }
-            |> String.concat "\n"
+    { Message: string
+      SourcePosition: SourcePosition option
+      Node: AstNode
+      Type: AstMessageType
+      StackTrace: StackTrace option }
+    override this.ToString() = this.Summary
 
     /// Pretty-print a short summart of an AST message.
-    member msg.Summary =
-        let msgTypeName = Utils.getUnionCaseName msg.msgType
+    member this.Summary: string =
+        let messageTypeName = Utils.getUnionCaseName this.Type
         // get the best position we can
-        match msg.sourcePosition, msg.node.pos with
-        | Some (p), _
-        | None, Some (p) -> sprintf "%s: %s\n%s" msgTypeName (p |> SourcePosition.format) msg.msg
+        match this.SourcePosition, this.Node.pos with
+        | Some position, _
+        | None, Some position -> sprintf "%s: %s\n%s" messageTypeName (position |> SourcePosition.format) this.Message
         | _ -> // can't do much without a position now, can we.
-            sprintf "%s: %s" msgTypeName msg.msg
+            sprintf "%s: %s" messageTypeName this.Message
 
-    override msg.ToString() = msg.Summary
+
 
 // =======================
 // helper functions for creating warnings and errors
 // =======================
 module AstMessage =
     /// Delegate position to a passed node.
-    let createMessage stackTrace msgType msg (node: AstNode) =
-        { msg = msg
-          sourcePosition = node.pos
-          node = node
-          msgType = msgType
-          stackTrace = stackTrace }
+    let create (stackTrace: StackTrace option) (msgType: AstMessageType) (msg: string) (node: AstNode): AstMessage =
+        { AstMessage.Message = msg
+          SourcePosition = node.pos
+          Node = node
+          Type = msgType
+          StackTrace = stackTrace }
 
     /// Create a message with no stack trace, of Warning type.
-    let warningMessage = createMessage None Warning
+    let createWarning = create None Warning
 
     /// Create a message that collects a stack trace, with unspecified type.
-    let errorMessage = createMessage (Some(StackTrace()))
+    let createErrorWithStackTrace = create (Some(StackTrace()))
 
     // ------ creating error results ------
 
     ///Create a error result from a string and a node.
-    let error msgType msg node = Bad([ errorMessage msgType msg node ])
+    let createError msgType msg node =
+        Bad [ createErrorWithStackTrace msgType msg node ]
 
     ///Create a error result from a format string, single value, and node.
-    let errorf msgType msgfmt fmtVal node =
-        error msgType (sprintf msgfmt fmtVal) node
+    let createErrorf msgType msgfmt fmtVal node =
+        createError msgType (sprintf msgfmt fmtVal) node
 
 
-    let private optionalContextStr s =
-        match s with
-        | Some (s) -> sprintf " in %s" s
+    let private optionalContextStr: string option -> string =
+        function
+        | Some s -> sprintf " in %s" s
         | None -> ""
 
     ///Create an error representing a type mismatch resulting from a bugged GSL program.
-    let variableTypeMismatch varName declaredType expectedType (node: AstNode) =
-        error
-            TypeError
-            (sprintf
+    let variableTypeMismatch (variableName: string)
+                             (declaredType: 'a)
+                             (expectedType: 'b)
+                             (node: AstNode)
+                             : Result<'c, AstMessage> =
+        let message =
+            sprintf
                 "The variable %s has been inferred to have the type %O, but is required to have the type %O in this context."
-                 varName
-                 declaredType
-                 expectedType)
-            node
+                variableName
+                declaredType
+                expectedType
+
+        createError TypeError message node
 
     ///<summary>
     ///Create an internal error representing a type mismatch.
     ///This is a common pattern when unpacking AST entities, and implies
     ///a bug in compiler logic rather than an error in parsed source code.
     ///</summary>
-    let internalTypeMismatch contextStr expectedType (actualNode: AstNode) =
-        error
-            (InternalError(TypeError))
-            (sprintf "Expected a '%s'%s, but got a '%s'" expectedType (optionalContextStr contextStr) (actualNode.TypeName))
-            actualNode
+    let internalTypeMismatch (maybeContext: string option)
+                             (expectedType: string)
+                             (actualNode: AstNode)
+                             : Result<'a, AstMessage> =
+        let message =
+            sprintf
+                "Expected a '%s'%s, but got a '%s'"
+                expectedType
+                (optionalContextStr maybeContext)
+                (actualNode.TypeName)
+
+        createError (InternalError(TypeError)) message actualNode
 
     ///Create an internal error if we encounter a pragma that hasn't been built.
-    let unbuiltPragmaError contextStr name node =
-        error
-            (InternalError(PragmaError))
-            (sprintf "Found an unbuilt pragma%s: '%s'" (optionalContextStr contextStr) name)
-            node
+    let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): Result<'a, AstMessage> =
+        let message =
+            sprintf "Found an unbuilt pragma%s: '%s'" (optionalContextStr context) name
+
+        createError (InternalError(PragmaError)) message node
 
     /// Convert an exception into an error message.
     /// Provide an AST node for context.
-    let exceptionToError msgType (astNodeContext: AstNode) (exc: System.Exception) =
+    let exceptionToError (msgType: AstMessageType) (astNodeContext: AstNode) (exc: System.Exception): AstMessage =
         let msg = exc.Message
 
-        { msg = msg
-          sourcePosition = astNodeContext.pos
-          node = astNodeContext
-          msgType = msgType
-          stackTrace = Some(StackTrace(exc)) }
+        { AstMessage.Message = msg
+          SourcePosition = astNodeContext.pos
+          Node = astNodeContext
+          Type = msgType
+          StackTrace = Some(StackTrace(exc)) }
+
+    /// Pretty-print an AST message including context in source code.
+    let getLongForm (showStackTrace: bool, sourceCode: GslSourceCode) (this: AstMessage): string =
+
+        let msgTypeName = Utils.getUnionCaseName this.Type
+        // get the best position we can
+        let pos =
+            match this.SourcePosition, this.Node.pos with
+            | Some (p), _
+            | None, Some (p) -> Some(p)
+            | _ -> None
+
+        match pos with
+        | None -> // can't do much without a position now, can we.
+            sprintf "%s: %s" msgTypeName this.Message
+        | Some (p) -> // now we're cooking with gas
+            // Accumulate lines in an error report.
+            seq {
+                yield (sprintf "%s: %s\n%s" msgTypeName (p |> SourcePosition.format) this.Message)
+                yield "================================================================="
+
+                yield! p |> SourcePosition.sourceContext sourceCode
+                if showStackTrace then yield this.StackTrace.ToString()
+            }
+            |> String.concat "\n"
 
 type GslParseErrorContext =
     { stateStack: int list
@@ -172,7 +186,7 @@ module GslParseErrorContext =
     /// Customized handler for errors that occur during parsing.
     /// Mostly here to eliminate the polymorphism on token type to
     /// allow us to pass the parse error context up stack.
-    let handleParseError (context: ParseErrorContext<'tok>) =
+    let handleParseError (context: ParseErrorContext<'tok>): 'a =
         let newContext =
             { stateStack = context.StateStack
               parseState = context.ParseState
@@ -188,19 +202,19 @@ module GslParseErrorContext =
     /// Perform some selective deduplication of warnings.
     /// For now we just deduplicate DeprecationWarnings to only present them once.
     ///</summary>
-    let deduplicateMessages msgs =
+    let deduplicateMessages (msgs: AstMessage list): AstMessage list =
         let depWarnings, others =
             msgs
             |> List.partition (fun msg ->
-                match msg.msgType with
+                match msg.Type with
                 | DeprecationWarning -> true
                 | _ -> false)
 
         let dedupedDepWarnings =
             depWarnings
-            |> List.distinctBy (fun dw -> dw.msg)
+            |> List.distinctBy (fun dw -> dw.Message)
             |> List.map (fun dw ->
                 { dw with
-                      msg = sprintf "%s\nThis message will appear only once per file." dw.msg })
+                      Message = sprintf "%s\nThis message will appear only once per file." dw.Message })
 
         dedupedDepWarnings @ others
