@@ -22,8 +22,8 @@ let getPragmasStrict (part: Node<ParsePart>): Result<PragmaCollection, AstMessag
     let getBuiltPragma (node: AstNode) =
         match node with
         | Pragma pragmaWrapper -> ok (pragmaWrapper.Value)
-        | ParsePragma parsePragmaWrapper -> unbuiltPragmaError None parsePragmaWrapper.Value.Name node
-        | x -> internalTypeMismatch None "Pragma" x
+        | ParsePragma parsePragmaWrapper -> AstMessage.unbuiltPragmaError None parsePragmaWrapper.Value.Name node
+        | x -> AstMessage.internalTypeMismatch None "Pragma" x
 
     part.Value.Pragmas
     |> List.map getBuiltPragma
@@ -85,7 +85,7 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
             ok newPart
         else
             let warning =
-                warningMessage
+                AstMessage.warningMessage
                     (sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", "))
                     (Part(parsePart))
 
@@ -98,7 +98,7 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
 /// Return an error if this node is a parse error.
 let checkParseError node =
     match node with
-    | ParseError (ew) -> error ParserError ew.Value node
+    | ParseError (ew) -> AstMessage.error ParserError ew.Value node
     | _ -> good
 
 // ===============
@@ -115,7 +115,7 @@ let validatePart op node =
 let private validBasePartPP pp =
     match pp.BasePart with
     | ValidBasePart _ -> good
-    | x -> errorf (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
+    | x -> AstMessage.errorf (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
 
 let validBasePart = validatePart validBasePartPP
 
@@ -125,7 +125,7 @@ let private checkModsPP pp =
         match pp.BasePart with
         | Gene _ -> good
         | PartId _ -> good
-        | x -> errorf PartError "Can only apply part mods to Gene or PartId, not %s" x.TypeName x
+        | x -> AstMessage.errorf PartError "Can only apply part mods to Gene or PartId, not %s" x.TypeName x
     else
         good
 
@@ -151,7 +151,7 @@ let private updateRecursiveCheckState mode (s: string list) node =
 let private checkRecursiveCall (s: string list) node =
     match node with
     | FunctionCall (fc) when s |> List.contains fc.Value.Name ->
-        errorf
+        AstMessage.errorf
             RecursiveFunctionCall
             "Found a recursive call to '%s'. GSL does not support recursive functions."
             fc.Value.Name
@@ -223,12 +223,12 @@ let private typeCheck varName node targetType boundValueType boundValue =
         | Some (elidedType) when elidedType = targetType -> // elides to correct type
             ok boundValue
         | Some (elidedType) -> // elides to incorrect type
-            variableTypeMismatch varName elidedType targetType node
+            AstMessage.variableTypeMismatch varName elidedType targetType node
         | None -> // whatever this thing is, it shouldn't be inside a variable
-            internalTypeMismatch (Some("variable type checking")) (targetType.ToString()) boundValue
+            AstMessage.internalTypeMismatch (Some("variable type checking")) (targetType.ToString()) boundValue
     else
         // type mismatch
-        variableTypeMismatch varName boundValueType targetType node
+        AstMessage.variableTypeMismatch varName boundValueType targetType node
 
 
 /// Resolve a typed variable to a variable declaration.
@@ -253,14 +253,14 @@ let rec private resolveVariableRecursive mode (s: VariableBindings) targetType (
         match mode with
         | AllowUnresolvedFunctionLocals -> ok node
         | Strict ->
-            errorf
+            AstMessage.errorf
                 (InternalError(UnresolvedVariable))
                 "A variable resolved to a function local during strict variable resolution: %s"
                 varName
                 node
     | None ->
         // unresolved variable!
-        error UnresolvedVariable varName node
+        AstMessage.error UnresolvedVariable varName node
 
 ///Given resolution state and an AST node, possibly resolve a reference.
 let private resolveVariable mode (s: VariableBindings) (n: AstNode) =
@@ -326,7 +326,7 @@ let private checkArgs fd (fc: FunctionCall) fcNode =
     let neededArgs, passedArgs = fd.ArgumentNames.Length, fc.Arguments.Length
     // make sure we have the right number of arguments
     if passedArgs <> neededArgs
-    then error
+    then AstMessage.error
              TypeError
              (sprintf "Function '%s' expects %d arguments but received %d." fc.Name neededArgs passedArgs)
              fcNode
@@ -349,7 +349,7 @@ let private localVarFromTypedValueAndName (vb: VariableBindings) (name, node) =
                              Type = varType
                              Value = newVal }
                        Positions = tvw.Positions })))
-    | x -> internalTypeMismatch (Some "function call") "typed value" x
+    | x -> AstMessage.internalTypeMismatch (Some "function call") "typed value" x
 
 
 /// Inline the passed function args in place of the FunctionLocals placeholder.
@@ -370,8 +370,8 @@ let private inlinePassedArgs (vb: VariableBindings) (fd, fc: FunctionCall) =
             // if unpacking and conversion succeeded, make a new block with the
             // variable declarations followed by the rest of the block
             >>= (fun vbs -> ok (Block({ bw with Value = vbs @ tl })))
-        | _ -> error (InternalError(TypeError)) "No function locals node found in function defintion block." fd.Body
-    | x -> internalTypeMismatch (Some "function body") "Block" x
+        | _ -> AstMessage.error (InternalError(TypeError)) "No function locals node found in function defintion block." fd.Body
+    | x -> AstMessage.internalTypeMismatch (Some "function body") "Block" x
 
 /// Replace a function call with the contents of a function definition.
 let private inlineFunctionCall (s: FunctionInliningState) (node: AstNode) =
@@ -393,7 +393,7 @@ let private inlineFunctionCall (s: FunctionInliningState) (node: AstNode) =
             >>= map Serial TopDown addPositions
             |> lift (fun treeHead -> treeHead.wrappedNode)
 
-        | None -> error UnresolvedFunction fc.Name node
+        | None -> AstMessage.error UnresolvedFunction fc.Name node
     | _ -> ok node
 
 let inlineFunctionCalls =
@@ -405,7 +405,7 @@ let inlineFunctionCalls =
 
 /// Create an error message for a variable that isn't numeric.
 let private numericVariableTypeError t node =
-    error TypeError (sprintf "Expecting a numeric variable type, but found %O." t) node
+    AstMessage.error TypeError (sprintf "Expecting a numeric variable type, but found %O." t) node
 
 
 /// Reducde a fully specified binary expression into a single node.
@@ -438,11 +438,11 @@ let private reduceMathExpression node =
         | AllowedInMathExpression _, AllowedInMathExpression _ -> ok node
         // One node is disallowed in a math expression, oh my.
         | AllowedInMathExpression _, x
-        | x, AllowedInMathExpression _ -> error TypeError (binOpErrMsg x) x
+        | x, AllowedInMathExpression _ -> AstMessage.error TypeError (binOpErrMsg x) x
         // Neither node is allowed here.  Wow, we sure screwed up somewhere.
         | x, y ->
-            error TypeError (binOpErrMsg x) x
-            |> mergeMessages [ errorMessage TypeError (binOpErrMsg y) y ]
+            AstMessage.error TypeError (binOpErrMsg x) x
+            |> mergeMessages [ AstMessage.errorMessage TypeError (binOpErrMsg y) y ]
     | Negation ({ Value = inner; Positions = pos }) ->
         match inner with
         | Int ({ Value = i; Positions = _ }) ->
@@ -456,7 +456,7 @@ let private reduceMathExpression node =
         | FloatVariable _ -> ok node
         // Non-numeric variable.  We're in trouble.
         | OtherVariable t -> numericVariableTypeError t inner
-        | NotAVariable -> error TypeError (negationErrMsg inner) inner
+        | NotAVariable -> AstMessage.error TypeError (negationErrMsg inner) inner
     | _ -> ok node
 
 let reduceMathExpressions = map Serial BottomUp reduceMathExpression
@@ -480,7 +480,7 @@ let private buildRelativePosition node =
         // make sure we have a real value to work with
         match prp.Item with
         | Int ({ Value = i; Positions = _ }) -> ok i
-        | x -> internalTypeMismatch (Some "relative position building") "Int" x
+        | x -> AstMessage.internalTypeMismatch (Some "relative position building") "Int" x
         >>= (fun i ->
             match prp.Qualifier with
             | None -> buildNode (i * 1<OneOffset>) FivePrime
@@ -493,7 +493,7 @@ let private buildRelativePosition node =
                 | SA, Left ->
                     if i > 0
                     then buildNode (i * 3<OneOffset> - 2<OneOffset>) FivePrime
-                    else errorf ValueError "Cannot begin with a negative amino acid offset: %d" i prp.Item
+                    else AstMessage.errorf ValueError "Cannot begin with a negative amino acid offset: %d" i prp.Item
                 | AE, Left
                 | EA, Left ->
                     let ai =
@@ -505,7 +505,7 @@ let private buildRelativePosition node =
                 | SA, Right ->
                     if i > 0
                     then buildNode (i * 3<OneOffset>) FivePrime
-                    else errorf ValueError "Cannot offset negative amino acids from start: %d" i prp.Item
+                    else AstMessage.errorf ValueError "Cannot offset negative amino acids from start: %d" i prp.Item
                 | AE, Right
                 | EA, Right ->
                     let ai =
@@ -554,7 +554,7 @@ let private compilePragma (legalCapas: Capabilities)
               |> Map.tryFind pragma.Name with
         | Some depreciation -> // deprecated pragma, issue a warning and replace it
             let warningMsg =
-                createMessage None DeprecationWarning depreciation.WarningMessage node
+                AstMessage.createMessage None DeprecationWarning depreciation.WarningMessage node
 
             let replacedPragma = depreciation.Replace pragma
             warn warningMsg replacedPragma
@@ -576,9 +576,9 @@ let private compilePragma (legalCapas: Capabilities)
                 let msg =
                     sprintf "#%s is used at %s, but is restricted to %s." pragma.Name usedIn allowedScope
 
-                error PragmaError msg node
+                AstMessage.error PragmaError msg node
             | None -> ok pragma
-        | [] -> error (InternalError(PragmaError)) "Pragma scope context is empty." node
+        | [] -> AstMessage.error (InternalError(PragmaError)) "Pragma scope context is empty." node
 
     // check if this pragma is a capability declaration.
     // if so, validate it.
@@ -597,7 +597,7 @@ let private compilePragma (legalCapas: Capabilities)
                 let msg =
                     sprintf "Undeclared capability: %s.  Declared capabilities are %s" pragma.Name goodCapas
 
-                error PragmaError msg node
+                AstMessage.error PragmaError msg node
             else
                 ok pragma
         else
@@ -609,8 +609,8 @@ let private compilePragma (legalCapas: Capabilities)
         | Int intWrapper -> ok (intWrapper.Value.ToString())
         | Float floatWrapper -> ok (floatWrapper.Value.ToString())
         | TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
-            errorf (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name astNode
-        | x -> internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
+            AstMessage.errorf (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name astNode
+        | x -> AstMessage.internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
 
     match node with
     | ParsePragma pragmaWrapper ->
@@ -618,7 +618,7 @@ let private compilePragma (legalCapas: Capabilities)
         /// Building pragmas returns strings at the moment.
         /// Wrap them in an AST message.
         // TODO: fix this sad state of affairs once the big changes have landed in default.
-        let wrapPragmaErrorString s = errorMessage PragmaError s node
+        let wrapPragmaErrorString s = AstMessage.errorMessage PragmaError s node
 
         pragma.Values
         |> List.map checkPragmaArg
@@ -691,7 +691,7 @@ let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): Result<
     let shiftedParts, trailingFuse = parts |> List.fold shiftOne ([], false)
 
     if trailingFuse
-    then error PragmaError "Found a trailing #fuse in an assembly that needs to flip." (Part(List.head shiftedParts))
+    then AstMessage.error PragmaError "Found a trailing #fuse in an assembly that needs to flip." (Part(List.head shiftedParts))
     else ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
@@ -880,7 +880,7 @@ let private collidingPragmaError (existing: Pragma) incoming node =
             (formatPragma incoming)
             (formatPragma existing)
 
-    error PragmaError msg node
+    AstMessage.error PragmaError msg node
 
 /// Check incoming pragmas for collisions with another pragma collection.
 let private checkPragmaCollisions (incoming: PragmaCollection)
@@ -991,13 +991,13 @@ let private checkGeneName (rgs: GenomeDefinitions) (library: Map<string, Dna>) a
         let partPragmas = getPragmas pp
 
         GenomeDefinitions.getReferenceGenome rgs [ partPragmas; assemblyPragmas ]
-        |> mapMessages (fun s -> errorMessage RefGenomeError s node)
+        |> mapMessages (fun s -> AstMessage.errorMessage RefGenomeError s node)
         >>= (fun reference ->
             if reference |> GenomeDefinition.isValidFeature geneName
                || library.ContainsKey(geneName) then
                 good
             else
-                errorf PartError "Unknown gene: '%s'." geneName (pp.Value.BasePart))
+                AstMessage.errorf PartError "Unknown gene: '%s'." geneName (pp.Value.BasePart))
     | _ -> good
 
 /// Check all the gene names in the context of a single assembly.
@@ -1058,7 +1058,7 @@ let private collectWarning (node: AstNode): Result<AstNode, AstMessage> =
     match node with
     | Pragma pragma when pragma.Value |> Pragma.isWarning ->
         let msg = pragma.Value.Arguments |> String.concat " "
-        let warnMsg = warningMessage msg node
+        let warnMsg = AstMessage.warningMessage msg node
         warn warnMsg node // add a warning into the message stream
     | _ -> ok node
 
@@ -1150,7 +1150,7 @@ let private validateRoughageLine (rw: Node<Roughage>) =
     let node = Roughage(rw)
 
     if not hasLocus
-    then errorf ValueError "Roughage construct has indeterminate locus: %s" (decompile node) node
+    then AstMessage.errorf ValueError "Roughage construct has indeterminate locus: %s" (decompile node) node
     else ok rw
 
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.

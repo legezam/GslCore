@@ -66,7 +66,7 @@ let bootstrapError expectedType note tree =
     let msg =
         sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
 
-    error (BootstrapError(Some(tree))) msg tree
+    AstMessage.error (BootstrapError(Some(tree))) msg tree
 
 /// Bootstrapped expansion phases don't have meaningful source positions as a result of expansion.
 /// Instead, replace all of the positions with one provided from the external context to at least
@@ -136,7 +136,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
 
     lexAndParse false source
     |> addContextIfError
-        (errorMessage
+        (AstMessage.errorMessage
             (InternalError(ParserError))
              contextMsg
              (String
@@ -206,7 +206,7 @@ let bootstrapExpandLegacyAssembly errorMsgType
     /// Perform the expansion operation, capturing any exception as an error.
     let expandCaptureException =
         expansionFunction
-        |> captureException (exceptionToError errorMsgType node)
+        |> captureException (AstMessage.exceptionToError errorMsgType node)
 
     match node with
     | AssemblyPart (apUnpack) ->
@@ -328,9 +328,9 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     | L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
         match e.Value.Promoter with
-        | AssemblyPart a -> error L2ExpansionError "Unsupported use of an Assembly." node
+        | AssemblyPart a -> AstMessage.error L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
-            error (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
+            AstMessage.error (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
         | _ -> good
     | _ -> good
 
@@ -341,7 +341,7 @@ let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider 
         /// Perform the expansion operation, capturing any exception as an error.
         let expandCaptureException =
             expandL2Expression providers rgs
-            |> captureException (exceptionToError L2ExpansionError node)
+            |> captureException (AstMessage.exceptionToError L2ExpansionError node)
 
         match node with
         | L2Expression (l2e) ->
@@ -1077,7 +1077,7 @@ let phase2 oneShot
     let rec doPhase2 passNumber (tree: AstTreeHead) =
         match maxPasses with
         | Some (limit) when passNumber > limit -> // if we're past a limit passed in, fail.
-            errorf (InternalError(Error)) "Compiler phase 2 hit recursion limit of %d." limit tree.wrappedNode
+            AstMessage.errorf (InternalError(Error)) "Compiler phase 2 hit recursion limit of %d." limit tree.wrappedNode
         | _ -> // otherwise, run the expansion step
             match expansionNeeded tree with
             | Some (mode) -> runPhase2 mode tree >>= doPhase2 (passNumber + 1)

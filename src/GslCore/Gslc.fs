@@ -203,7 +203,7 @@ let handleCompileResult (result, input: GslSourceCode, s) =
     match result with
     | Ok ((assemblies, tree: AstTreeHead), warnings) ->
         // print any warnings from compilation
-        for w in deduplicateMessages warnings do
+        for w in GslParseErrorContext.deduplicateMessages warnings do
             printfn "%s\n" w.Summary
         // if we just want one expansion step, reprint expanded source and done
         if not s.Options.Iter || s.Options.OnlyPhase1
@@ -213,7 +213,7 @@ let handleCompileResult (result, input: GslSourceCode, s) =
     | Bad (errors) ->
         // convert messages into strings for printing
         let msgs =
-            [ for msg in deduplicateMessages errors -> msg.Longform(s.Options.Verbose, input) ]
+            [ for msg in GslParseErrorContext.deduplicateMessages errors -> msg.Longform(s.Options.Verbose, input) ]
 
         Exit(1, Some(msgs |> String.concat "\n\n"))
 

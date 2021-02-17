@@ -223,14 +223,14 @@ let private sliceFromAstSlice (s: ParseSlice) =
         let contextStr =
             sprintf "legacy slice construction; found [%s:%s]" x.TypeName y.TypeName
 
-        internalTypeMismatch (Some(contextStr)) "RelPos" x
+        AstMessage.internalTypeMismatch (Some(contextStr)) "RelPos" x
 
 let private astNodeToLegacyMod node =
     match node with
     | Slice (sw) -> sliceFromAstSlice sw.Value
     | Mutation (mw) -> ok (MUTATION(mw.Value))
     | DotMod (dm) -> ok (DOTMOD(dm.Value))
-    | _ -> internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
+    | _ -> AstMessage.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
 
 let private convertMods mods =
     mods |> List.map astNodeToLegacyMod |> collect
@@ -257,7 +257,7 @@ let private createLegacyPart (part: Node<ParsePart>): Result<Part, AstMessage> =
     | PartId (p) ->
         convertMods part.Value.Modifiers
         >>= (fun mods -> ok (PARTID({ id = p.Value; mods = mods })))
-    | x -> internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
+    | x -> AstMessage.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
 let private createPPP part =
     match part with
@@ -268,7 +268,7 @@ let private createPPP part =
                 { part = legacyPart
                   pr = getPragmas p
                   fwd = p.Value.IsForward })
-    | x -> internalTypeMismatch (Some "legacy part conversion") "Part" x
+    | x -> AstMessage.internalTypeMismatch (Some "legacy part conversion") "Part" x
 
 /// For assembly conversion, we need to accumulate both a pragma environment and docstrings.
 /// Combine these two accumulation functions and state datastructures.
@@ -314,7 +314,7 @@ let convertAssembly (context: AssemblyConversionContext)
 
     
     DesignParams.fromPragmas DesignParams.identity assemblyPragmas
-    |> mapMessages (fun message -> errorMessage PragmaError message (Part(partWrapper)))
+    |> mapMessages (fun message -> AstMessage.errorMessage PragmaError message (Part(partWrapper)))
     |> tupleResults (aplw.Value |> List.map createPPP |> collect)
     >>= fun (parts, designParams) ->
             ok
@@ -347,13 +347,13 @@ let private buildL2Element node =
             let contextStr =
                 sprintf "L2 element construction; found [%s>%s]" x.TypeName y.TypeName
 
-            internalTypeMismatch (Some(contextStr)) "L2Id" node
-    | x -> internalTypeMismatch (Some("L2 element construction")) "L2Id" x
+            AstMessage.internalTypeMismatch (Some(contextStr)) "L2Id" node
+    | x -> AstMessage.internalTypeMismatch (Some("L2 element construction")) "L2Id" x
 
 let private unpackLocus nodeopt =
     match nodeopt with
     | Some (L2Id (lw)) -> ok (Some(lw.Value))
-    | Some (x) -> internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
+    | Some (x) -> AstMessage.internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
     | None -> ok None
 
 /// Build a concrete L2 expression from an AST node.

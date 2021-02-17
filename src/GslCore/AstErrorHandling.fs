@@ -1,4 +1,4 @@
-﻿module GslCore.AstErrorHandling
+﻿namespace GslCore.AstErrorHandling
 
 open GslCore.AstTypes
 open Amyris.ErrorHandling
@@ -86,75 +86,75 @@ type AstMessage =
 // =======================
 // helper functions for creating warnings and errors
 // =======================
+module AstMessage =
+    /// Delegate position to a passed node.
+    let createMessage stackTrace msgType msg (node: AstNode) =
+        { msg = msg
+          sourcePosition = node.pos
+          node = node
+          msgType = msgType
+          stackTrace = stackTrace }
 
-/// Delegate position to a passed node.
-let createMessage stackTrace msgType msg (node: AstNode) =
-    { msg = msg
-      sourcePosition = node.pos
-      node = node
-      msgType = msgType
-      stackTrace = stackTrace }
+    /// Create a message with no stack trace, of Warning type.
+    let warningMessage = createMessage None Warning
 
-/// Create a message with no stack trace, of Warning type.
-let warningMessage = createMessage None Warning
+    /// Create a message that collects a stack trace, with unspecified type.
+    let errorMessage = createMessage (Some(StackTrace()))
 
-/// Create a message that collects a stack trace, with unspecified type.
-let errorMessage = createMessage (Some(StackTrace()))
+    // ------ creating error results ------
 
-// ------ creating error results ------
+    ///Create a error result from a string and a node.
+    let error msgType msg node = Bad([ errorMessage msgType msg node ])
 
-///Create a error result from a string and a node.
-let error msgType msg node = Bad([ errorMessage msgType msg node ])
-
-///Create a error result from a format string, single value, and node.
-let errorf msgType msgfmt fmtVal node =
-    error msgType (sprintf msgfmt fmtVal) node
+    ///Create a error result from a format string, single value, and node.
+    let errorf msgType msgfmt fmtVal node =
+        error msgType (sprintf msgfmt fmtVal) node
 
 
-let private optionalContextStr s =
-    match s with
-    | Some (s) -> sprintf " in %s" s
-    | None -> ""
+    let private optionalContextStr s =
+        match s with
+        | Some (s) -> sprintf " in %s" s
+        | None -> ""
 
-///Create an error representing a type mismatch resulting from a bugged GSL program.
-let variableTypeMismatch varName declaredType expectedType (node: AstNode) =
-    error
-        TypeError
-        (sprintf
-            "The variable %s has been inferred to have the type %O, but is required to have the type %O in this context."
-             varName
-             declaredType
-             expectedType)
-        node
+    ///Create an error representing a type mismatch resulting from a bugged GSL program.
+    let variableTypeMismatch varName declaredType expectedType (node: AstNode) =
+        error
+            TypeError
+            (sprintf
+                "The variable %s has been inferred to have the type %O, but is required to have the type %O in this context."
+                 varName
+                 declaredType
+                 expectedType)
+            node
 
-///<summary>
-///Create an internal error representing a type mismatch.
-///This is a common pattern when unpacking AST entities, and implies
-///a bug in compiler logic rather than an error in parsed source code.
-///</summary>
-let internalTypeMismatch contextStr expectedType (actualNode: AstNode) =
-    error
-        (InternalError(TypeError))
-        (sprintf "Expected a '%s'%s, but got a '%s'" expectedType (optionalContextStr contextStr) (actualNode.TypeName))
-        actualNode
+    ///<summary>
+    ///Create an internal error representing a type mismatch.
+    ///This is a common pattern when unpacking AST entities, and implies
+    ///a bug in compiler logic rather than an error in parsed source code.
+    ///</summary>
+    let internalTypeMismatch contextStr expectedType (actualNode: AstNode) =
+        error
+            (InternalError(TypeError))
+            (sprintf "Expected a '%s'%s, but got a '%s'" expectedType (optionalContextStr contextStr) (actualNode.TypeName))
+            actualNode
 
-///Create an internal error if we encounter a pragma that hasn't been built.
-let unbuiltPragmaError contextStr name node =
-    error
-        (InternalError(PragmaError))
-        (sprintf "Found an unbuilt pragma%s: '%s'" (optionalContextStr contextStr) name)
-        node
+    ///Create an internal error if we encounter a pragma that hasn't been built.
+    let unbuiltPragmaError contextStr name node =
+        error
+            (InternalError(PragmaError))
+            (sprintf "Found an unbuilt pragma%s: '%s'" (optionalContextStr contextStr) name)
+            node
 
-/// Convert an exception into an error message.
-/// Provide an AST node for context.
-let exceptionToError msgType (astNodeContext: AstNode) (exc: System.Exception) =
-    let msg = exc.Message
+    /// Convert an exception into an error message.
+    /// Provide an AST node for context.
+    let exceptionToError msgType (astNodeContext: AstNode) (exc: System.Exception) =
+        let msg = exc.Message
 
-    { msg = msg
-      sourcePosition = astNodeContext.pos
-      node = astNodeContext
-      msgType = msgType
-      stackTrace = Some(StackTrace(exc)) }
+        { msg = msg
+          sourcePosition = astNodeContext.pos
+          node = astNodeContext
+          msgType = msgType
+          stackTrace = Some(StackTrace(exc)) }
 
 type GslParseErrorContext =
     { stateStack: int list
@@ -167,38 +167,40 @@ type GslParseErrorContext =
 
 exception GslParseError of GslParseErrorContext
 
-/// Customized handler for errors that occur during parsing.
-/// Mostly here to eliminate the polymorphism on token type to
-/// allow us to pass the parse error context up stack.
-let handleParseError (context: ParseErrorContext<'tok>) =
-    let newContext =
-        { stateStack = context.StateStack
-          parseState = context.ParseState
-          reduceTokens = context.ReduceTokens
-          currentToken = context.CurrentToken |> Option.map box
-          reducibleProductions = context.ReducibleProductions
-          shiftableTokens = context.ShiftTokens
-          message = context.Message }
+module GslParseErrorContext =
 
-    raise (GslParseError(newContext))
+    /// Customized handler for errors that occur during parsing.
+    /// Mostly here to eliminate the polymorphism on token type to
+    /// allow us to pass the parse error context up stack.
+    let handleParseError (context: ParseErrorContext<'tok>) =
+        let newContext =
+            { stateStack = context.StateStack
+              parseState = context.ParseState
+              reduceTokens = context.ReduceTokens
+              currentToken = context.CurrentToken |> Option.map box
+              reducibleProductions = context.ReducibleProductions
+              shiftableTokens = context.ShiftTokens
+              message = context.Message }
 
-///<summary>
-/// Perform some selective deduplication of warnings.
-/// For now we just deduplicate DeprecationWarnings to only present them once.
-///</summary>
-let deduplicateMessages msgs =
-    let depWarnings, others =
-        msgs
-        |> List.partition (fun msg ->
-            match msg.msgType with
-            | DeprecationWarning -> true
-            | _ -> false)
+        raise (GslParseError(newContext))
 
-    let dedupedDepWarnings =
-        depWarnings
-        |> List.distinctBy (fun dw -> dw.msg)
-        |> List.map (fun dw ->
-            { dw with
-                  msg = sprintf "%s\nThis message will appear only once per file." dw.msg })
+    ///<summary>
+    /// Perform some selective deduplication of warnings.
+    /// For now we just deduplicate DeprecationWarnings to only present them once.
+    ///</summary>
+    let deduplicateMessages msgs =
+        let depWarnings, others =
+            msgs
+            |> List.partition (fun msg ->
+                match msg.msgType with
+                | DeprecationWarning -> true
+                | _ -> false)
 
-    dedupedDepWarnings @ others
+        let dedupedDepWarnings =
+            depWarnings
+            |> List.distinctBy (fun dw -> dw.msg)
+            |> List.map (fun dw ->
+                { dw with
+                      msg = sprintf "%s\nThis message will appear only once per file." dw.msg })
+
+        dedupedDepWarnings @ others

@@ -73,7 +73,7 @@ type TestPragmasAST() =
     let checkPragmaIsBuilt node =
         match node with
         | Pragma (p) -> good
-        | ParsePragma (p) -> errorf Error "Pragma '%s' was not built." p.Value.Name node
+        | ParsePragma (p) -> AstMessage.errorf Error "Pragma '%s' was not built." p.Value.Name node
         | _ -> good
 
     let pragmaBuildTest source =
@@ -154,7 +154,7 @@ bar("qux")
            ]
         // test the deprecation warning deduplication mechanism
         |> snd
-        |> deduplicateMessages
+        |> GslParseErrorContext.deduplicateMessages
         |> (fun msgs -> Ok((), msgs))
         |> assertWarn DeprecationWarning (Some("appear only once per file"))
         |> ignore

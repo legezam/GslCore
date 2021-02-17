@@ -184,7 +184,7 @@ let lexAndParse verbose (source: GslSourceCode) =
 
         match parseExceptionToError errNode exn with
         | Some (msg) -> msg
-        | None -> exceptionToError ParserError errNode exn
+        | None -> AstMessage.exceptionToError ParserError errNode exn
 
     let doLexParseCaptureException =
         doLexParse verbose

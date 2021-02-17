@@ -21,7 +21,7 @@ let private warnOnPartThatIsLikelyVariable node =
                 sprintf "The syntax for using a variable has changed to &myVar from @myVar.\n@%s looks like it should probably be &%s."
                     pw.Value pw.Value
 
-            let warnMsg = warningMessage msgText node
+            let warnMsg = AstMessage.warningMessage msgText node
             warn warnMsg ()
     | _ -> good
 
@@ -29,7 +29,7 @@ let private failOnPushAndPop node =
     match node with
     | ParsePragma (pp) ->
         if pp.Value.Name = "push" || pp.Value.Name = "pop"
-        then error
+        then AstMessage.error
                  PragmaError
                  "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
                  node
