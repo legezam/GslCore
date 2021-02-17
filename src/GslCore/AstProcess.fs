@@ -7,9 +7,10 @@ open Amyris.Dna
 open GslCore.AstTypes
 open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
-open GslCore.RefGenome
+
 open GslCore.Constants
 open GslCore.Pragma
+open GslCore.Reference
 
 // ==========================
 // Helper functions to ease working with pragmas and parts.
@@ -983,16 +984,16 @@ let updateDocstringEnvironment =
 
 /// If a node is a part with a gene, validate the name of that gene.
 /// Uses the pragmas of the enclosing part and the outer assembly context.
-let private checkGeneName (rgs: GenomeDefs) (library: Map<string, Dna>) assemblyPragmas node =
+let private checkGeneName (rgs: GenomeDefinitions) (library: Map<string, Dna>) assemblyPragmas node =
     match node with
     | GenePart (pp, gp) ->
         let geneName = gp.Value.gene.[1..].ToUpper()
         let partPragmas = getPragmas pp
 
-        getRGNew rgs [ partPragmas; assemblyPragmas ]
+        GenomeDefinitions.getReferenceGenome rgs [ partPragmas; assemblyPragmas ]
         |> mapMessages (fun s -> errorMessage RefGenomeError s node)
-        >>= (fun rg ->
-            if rg.IsValid(geneName)
+        >>= (fun reference ->
+            if reference |> GenomeDefinition.isValidFeature geneName
                || library.ContainsKey(geneName) then
                 good
             else
@@ -1000,7 +1001,7 @@ let private checkGeneName (rgs: GenomeDefs) (library: Map<string, Dna>) assembly
     | _ -> good
 
 /// Check all the gene names in the context of a single assembly.
-let private checkGeneNamesInAssembly (rgs: GenomeDefs) library node =
+let private checkGeneNamesInAssembly (rgs: GenomeDefinitions) library node =
     match node with
     | AssemblyPart (pw, aw) ->
         let assemblyPrags = getPragmas pw

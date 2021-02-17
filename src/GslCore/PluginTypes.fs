@@ -9,10 +9,10 @@ open GslCore.Constants
 open GslCore.LegacyParseTypes
 open GslCore.Pragma
 open GslCore.AstTypes
-open GslCore.RefGenome
 open Amyris.Bio.IO.CodonUsage
 open GslCore
 open Amyris.Dna
+open GslCore.Reference
 
 /// Interface specification for plugins that want to inject command line arguments and
 /// be configured from the command line.
@@ -32,7 +32,7 @@ type IConfigurable<'T> =
 type CodonOptTask =
     { IsVerbose: bool
       SeedOverride: int option
-      RefGenome: GenomeDef
+      RefGenome: GenomeDefinition
       AminoAcidSequence: string }
 
 type ICodonProvider =
@@ -52,7 +52,7 @@ type ICodonProvider =
     abstract DoCodonOpt: CodonOptTask -> Dna
 
     ///Provide a codon usage lookup table for the given ref genome.
-    abstract GetCodonLookupTable: GenomeDef -> CodonLookup
+    abstract GetCodonLookupTable: GenomeDefinition -> CodonLookup
 
 
 /// Helpful wrapper type for handing around GSLC's static assets and caches.
@@ -60,7 +60,7 @@ type GlobalAssets =
     { SequenceLibrary: SequenceLibrary
       CodonProvider: ICodonProvider
       PragmaBuilder: PragmaBuilder
-      ReferenceGenomes: Map<string, GenomeDef> }
+      ReferenceGenomes: GenomeDefinitions }
 // =========================
 // plugin behavior defintion for allele swaps
 // =========================
@@ -82,7 +82,7 @@ type AlleleSwapDesignParams =
       CodonLookup: CodonLookup
       Gene: string
       Name: string
-      ReferenceGenome: GenomeDef
+      ReferenceGenome: GenomeDefinition
       Feature: sgd.Feature
       Mutation: Mutation
       Length: int<ZeroOffset>
@@ -128,7 +128,7 @@ type IMarkerProvider =
 type L2JobAccept = Capabilities -> float<PluginScore> option
 
 type L2DesignParams =
-    { ReferenceGenomes: GenomeDefs
+    { ReferenceGenomes: GenomeDefinitions
       IsMegastitch: bool
       ReferenceGenome: string
       Line: BuiltL2Expression

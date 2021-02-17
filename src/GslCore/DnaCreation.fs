@@ -4,13 +4,13 @@ open System
 
 open GslCore.Constants
 open GslCore.LegacyParseTypes
-open GslCore.RefGenome
 open GslCore.Pragma
 open GslCore.CommonTypes
 open GslCore.ApplySlices
 open Amyris.Bio
 open Amyris.ErrorHandling
 open Amyris.Dna
+open GslCore.Reference
 open GslCore.Ryse
 open GslCore.PluginTypes
 
@@ -58,14 +58,14 @@ let adjustToPhysical (feat: sgd.Feature) (f: RelPos) =
 /// these are relative to the gene, not the genome for now.  We transform
 /// to genomic coordinates below.
 /// Transform all non gXXX forms of gene into gXX forms.
-let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: StandardSlice) =
+let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDefinition) (gPart: StandardSlice) =
     match gPart with
     | PROMOTER ->
         { left =
               { Position =
                     match pragmas
                           |> PragmaCollection.tryFind BuiltIn.promLenPragmaDef with
-                    | None -> -gd.getPromLen ()
+                    | None -> -(gd |> GenomeDefinition.getPromLen)
                     | Some p -> p.Arguments.[0] |> int |> (*) -1<OneOffset>
                 RelativeTo = FivePrime }
           lApprox = true
@@ -75,7 +75,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
                 RelativeTo = FivePrime } }
     | UPSTREAM ->
         { left =
-              { Position = -gd.getFlank ()
+              { Position = -(gd |> GenomeDefinition.getFlank)
                 RelativeTo = FivePrime }
           lApprox = true
           rApprox = false
@@ -92,7 +92,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
               { Position =
                     match pragmas
                           |> PragmaCollection.tryFind BuiltIn.termLenPragmaDef with
-                    | None -> gd.getTermLen ()
+                    | None -> gd |> GenomeDefinition.getTermLen
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
     | DOWNSTREAM ->
@@ -102,7 +102,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
           lApprox = false
           rApprox = true
           right =
-              { Position = gd.getFlank ()
+              { Position = gd |> GenomeDefinition.getFlank
                 RelativeTo = ThreePrime } }
     | FUSABLEORF ->
         { left =
@@ -141,7 +141,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDef) (gPart: Stan
               { Position =
                     match pragmas
                           |> PragmaCollection.tryFind BuiltIn.termLenMrnaPragmaDef with
-                    | None -> gd.getTermLenMRNA ()
+                    | None -> gd |> GenomeDefinition.getTermLenMRNA
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
 
@@ -184,16 +184,16 @@ let lookupGenePart errorDescription prefix (modList: Mod list) =
 
 /// Get the reference genome for a given assembly and set of pragmas.
 /// Exception on error.
-let getRG (a: Assembly) (rgs: GenomeDefs) (pr: PragmaCollection) =
+let getRG (a: Assembly) (rgs: GenomeDefinitions) (pr: PragmaCollection) =
     // Prefer reference genome from passed-in pragmas over assembly.
     let prags = [ pr; a.pragmas ]
 
-    match getRGNew rgs prags with
+    match GenomeDefinitions.getReferenceGenome rgs prags with
     | Ok (g, _) -> g
-    | Bad (msgs) -> failwith msgs.[0]
+    | Bad msgs -> failwith msgs.[0]
 
 /// Take a genepart and slices and get the actual DNA sequence.
-let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDef) (gp: GenePartWithLinker) =
+let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDefinition) (gp: GenePartWithLinker) =
 
     if verbose
     then printf "realizeSequence:  fetch fwd=%s %s\n" (if fwd then "y" else "n") gp.part.gene
@@ -206,7 +206,7 @@ let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDef) (gp:
         lookupGenePart errorDesc (gp.part.gene.[0]) (gp.part.mods)
 
     // Lookup gene location
-    let feat = rg.get (gp.part.gene.[1..])
+    let feat = rg |> GenomeDefinition.getFeature gp.part.gene.[1..]
 
     // Come up with an initial slice based on the gene prefix type
     let s = translateGenePrefix pragmas rg genePart
@@ -227,7 +227,8 @@ let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDef) (gp:
     let left', right' =
         if feat.fwd then left, right else right, left
 
-    rg.Dna(errorDesc, sprintf "%d" feat.chr, left', right')
+    rg
+    |> GenomeDefinition.getDna (errorDesc, sprintf "%d" feat.chr, left', right')
     |> DnaOps.revCompIf (not feat.fwd)
     |> DnaOps.revCompIf (not fwd)
 
@@ -275,7 +276,7 @@ let expandInlineDna dnaSource (ppp: PPP) (dnaFwd: Dna) =
       annotations = [] }
 
 let expandGenePart verbose
-                   (rgs: GenomeDefs)
+                   (rgs: GenomeDefinitions)
                    (library: SequenceLibrary)
                    (a: Assembly)
                    specifiedDnaSource
@@ -299,7 +300,7 @@ let expandGenePart verbose
     let g = gp.part.gene.[1..].ToUpper()
     let rg' = getRG a rgs ppp.pr
 
-    if not (rg'.IsValid(g)) then
+    if not (rg' |> GenomeDefinition.isValidFeature g) then
         // Not a genomic reference but might still be in our library
         if library.ContainsKey(g) then
             // Yes! =- make up a little island of sequence for it
@@ -383,7 +384,7 @@ let expandGenePart verbose
         // Lookup gene location
         let rg' = getRG a rgs ppp.pr
 
-        let feat = rg'.get (g)
+        let feat = rg' |> GenomeDefinition.getFeature g
 
         let breed1 =
             match genePart with
@@ -489,7 +490,8 @@ let expandGenePart verbose
         then printf "gettingdna for %s fwd=%s\n" feat.gene (if ppp.fwd then "y" else "n")
 
         let dna =
-            rg'.Dna(errorDesc, sprintf "%d" feat.chr, left', right')
+            rg'
+            |> GenomeDefinition.getDna (errorDesc, sprintf "%d" feat.chr, left', right')
             |> DnaOps.revCompIf (not feat.fwd)
             // One potential final flip if user wants DNA backwards
             |> DnaOps.revCompIf (not ppp.fwd)
@@ -602,7 +604,7 @@ let private determineTopology (pragmas: PragmaCollection): Topology =
 /// Raises an exception on error.
 let expandAssembly (verbose: bool)
                    (markerProviders: IMarkerProvider list)
-                   (rgs: GenomeDefs)
+                   (rgs: GenomeDefinitions)
                    (library: SequenceLibrary)
                    (index: int)
                    (a: Assembly)

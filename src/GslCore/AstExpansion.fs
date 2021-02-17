@@ -9,7 +9,6 @@ open GslCore.AstProcess
 open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
 open Amyris.ErrorHandling
-open GslCore.RefGenome
 open GslCore.LegacyParseTypes
 open Amyris.Dna
 open GslCore.DnaCreation
@@ -18,6 +17,7 @@ open GslCore.AlleleSwaps
 open Amyris.Bio.utils
 open GslCore.ApplySlices
 open GslCore.CommonTypes
+open GslCore.Reference
 open GslCore.ResolveExtPart
 open GslCore.LexAndParse
 open GslCore.PluginTypes
@@ -236,7 +236,7 @@ let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
 // ==========================
 
 /// Core expansion of a single L2 expression line.
-let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefs) (construct: L2Line): GslSourceCode =
+let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefinitions) (construct: L2Line): GslSourceCode =
     let line = construct.l2Design
     let pragmas = construct.pragmas
     let capabilities = construct.capabilities
@@ -335,7 +335,7 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     | _ -> good
 
 /// Expand all level 2 expressions.
-let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider list) (rgs: GenomeDefs) tree =
+let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider list) (rgs: GenomeDefinitions) tree =
 
     let bootstrapExpandL2Expression pragmaContext node =
         /// Perform the expansion operation, capturing any exception as an error.
@@ -433,7 +433,7 @@ let modIsMutation m =
 /// Note that mutations can expand to more than a single line of GSL, so bootstrap these as a block.
 let private expandMut verbose
                       (providers: AlleleSwapProvider list)
-                      (rgs: GenomeDefs)
+                      (rgs: GenomeDefinitions)
                       (codonProvider: ICodonProvider)
                       (assembly: Assembly)
                       =
@@ -510,7 +510,7 @@ let private expandMut verbose
                          | CTERM -> "Cterm"
                          | NONETERM -> "No end preference")
 
-                if not (rg'.IsValid(gp.part.gene.[1..]))
+                if not (rg' |> GenomeDefinition.isValidFeature gp.part.gene.[1..])
                 then failwithf "Undefined gene '%s' %O\n" (gp.part.gene.[1..]) (gp.part.where)
 
                 let asAACheck =
@@ -569,7 +569,7 @@ let expandMutations verbose
                     legalCapas
                     (pragmaCache: PragmaBuilder)
                     (providers: AlleleSwapProvider list)
-                    (rgs: GenomeDefs)
+                    (rgs: GenomeDefinitions)
                     codonProvider
                     (tree: AstTreeHead)
                     =
@@ -590,7 +590,7 @@ let expandMutations verbose
 // ====================
 
 /// Take inline protein sequences and expand them out to DNA sequences
-let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: ICodonProvider) (assembly: Assembly) =
+let private expandProtein verbose (rgs: GenomeDefinitions) (unconfiguredCodonProvider: ICodonProvider) (assembly: Assembly) =
 
     let rewritePPP (codonProvider: ICodonProvider) (refGenome: string) (p: PPP) =
         match p.part with
@@ -606,7 +606,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
                 | Some (rg) -> rg
                 | None -> refGenome
 
-            match rgs.TryFind refGenome' with
+            match rgs |> GenomeDefinitions.get |> Map.tryFind refGenome' with
             | None -> failwithf "Unable to load refgenome %s to determine environment" refGenome'
             | Some (genomeDef) ->
                 // Check to see if there is a local #seed parameter and extract it else
@@ -630,7 +630,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
                 { p with part = INLINEDNA(result) }
         | _ -> p
 
-    let refGenome = chooseRefGenome (assembly.pragmas)
+    let refGenome = GenomeDefinitions.chooseReferenceGenome assembly.pragmas
 
     let configuredCodonProvider =
         unconfiguredCodonProvider.Setup(assembly.pragmas)
@@ -643,7 +643,7 @@ let private expandProtein verbose (rgs: GenomeDefs) (unconfiguredCodonProvider: 
     |> prettyPrintAssembly
 
 /// Expand all inline protein sequences in an AST.
-let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefs) codonProvider tree =
+let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefinitions) codonProvider tree =
 
     let mode = if doParallel then Parallel else Serial
 
@@ -664,7 +664,7 @@ let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaBuild
 
 
 /// Expand heterology blocks.
-let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (assemblyIn: Assembly) =
+let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProvider) (assemblyIn: Assembly) =
 
     let modIsNotSlice m =
         match m with
@@ -696,7 +696,9 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
 
     let rec scan (a: Assembly) (res: (Part * PragmaCollection * bool) list) (p: (Part * PragmaCollection * bool) list) =
         // Need to select a codon usage table
-        let rg = rgs.[chooseRefGenome (a.pragmas)]
+        let referenceGenome = GenomeDefinitions.chooseReferenceGenome a.pragmas
+        let references = rgs |> GenomeDefinitions.get
+        let rg = references.[referenceGenome]
         let codonUsage = codonProvider.GetCodonLookupTable(rg)
 
         match p with
@@ -1029,7 +1031,7 @@ let private expandHB verbose (rgs: GenomeDefs) (codonProvider: ICodonProvider) (
     else newSource
 
 /// Expand all heterology blocks in an AST.
-let expandHetBlocks verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefs) codonProvider tree =
+let expandHetBlocks verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefinitions) codonProvider tree =
 
     let assemblyExpansion = expandHB verbose rgs codonProvider
 

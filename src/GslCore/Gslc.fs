@@ -5,6 +5,7 @@ open System
 open System.Text
 open System.Reflection
 open GslCore.Pragma
+open GslCore.Reference
 open Microsoft.FSharp.Core.Printf
 
 open GslCore.CommonTypes
@@ -112,10 +113,9 @@ let maybeDumpLoci (s: ConfigurationState) =
         if not (Directory.Exists(p)) then
             Exit(1, Some(sprintf "ERROR: unable to find genome reference dir %s\n" p))
         else
-            let gd =
-                new RefGenome.GenomeDef(s.Options.LibDir, ref)
+            let gd = GenomeDefinition.createEager s.Options.LibDir ref
 
-            for f in gd.GetAllFeats() do
+            for f in gd |> GenomeDefinition.getAllFeatures do
                 printfn "%s\t%s\t%s" f.sysName f.gene f.description
 
             Continue(s)

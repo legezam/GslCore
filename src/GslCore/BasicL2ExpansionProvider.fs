@@ -12,6 +12,7 @@ open GslCore.AstProcess
 open GslCore.Constants
 open System
 open GslCore.PluginTypes
+open GslCore.Reference
 
 /// Take a list of expression elements and organize them in a balanced
 /// way - e.g. splitting between two halves of a megastitch
@@ -110,7 +111,8 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
     let partsA, partsB = balance otherExp
     /// the flank length
-    let flank = args.ReferenceGenomes.[args.ReferenceGenome].getFlank()
+    let reference = args.ReferenceGenomes |> GenomeDefinitions.get
+    let flank = reference.[args.ReferenceGenome] |> GenomeDefinition.getFlank
 
     let out =
         seq {

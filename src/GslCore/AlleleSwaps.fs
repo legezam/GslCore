@@ -11,7 +11,7 @@ open GslCore.DesignParams
 open GslCore.AstTypes
 open GslCore.Pragma
 open GslCore.LegacyParseTypes
-open GslCore.RefGenome
+open GslCore.Reference
 open IO.CodonUsage
 open biolib
 open primercore
@@ -115,7 +115,7 @@ let selectMutCodonLeft = selectMutCodonBase diffLeft
 let selectMutCodonRight = selectMutCodonBase diffRight
 
 /// expand a simple mutation inline with a part
-let expandSimpleMut (asAACheck: bool) (_: GenomeDef) (g: PartIdLegacy) (m: Mutation): GslSourceCode =
+let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m: Mutation): GslSourceCode =
 
     // Get part sequence
     if not (g.id.StartsWith("R"))
@@ -177,7 +177,7 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDef) (g: PartIdLegacy) (m: Mutat
 /// and use a heterology block downstream to prevent crossovers that eliminate the mutation
 /// a         b            a         b          b+2                 c
 /// promoterRep ; marker ; promoterRep(mutation)promoter ...ATG..... HB ....
-let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDef) (m: Mutation) =
+let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) (m: Mutation) =
     // TODO - this design isn't compatible with the thumper workflow, as it involves a 4 piece rabit
 
     // m.pos is the zero based version of the offset from the 'A' in the start codon
@@ -196,16 +196,18 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDef) (m: Mut
         * 1<ZeroOffset>
 
     let existing =
-        rg.Dna(errorDesc, sprintf "%d" f.chr, genomicCoord, genomicCoord)
+        rg
+        |> GenomeDefinition.getDna (errorDesc, sprintf "%d" f.chr, genomicCoord, genomicCoord)
         |> DnaOps.revCompIf (not f.fwd)
 
     if existing.[0] <> m.f then
         let diag =
             if f.fwd then
-                rg.Dna(errorDesc, sprintf "%d" f.chr, genomicCoord, (f.l + 2) * 1<ZeroOffset>)
-            else
                 rg
-                    .Dna(errorDesc, sprintf "%d" f.chr, (f.r - 2) * 1<ZeroOffset>, genomicCoord)
+                |> GenomeDefinition.getDna (errorDesc, sprintf "%d" f.chr, genomicCoord, (f.l + 2) * 1<ZeroOffset>)
+            else
+                (rg
+                 |> GenomeDefinition.getDna (errorDesc, sprintf "%d" f.chr, (f.r - 2) * 1<ZeroOffset>, genomicCoord))
                     .RevComp()
 
         failwithf "ERROR: g%s promoter mutation at %d should be base %c a (in gene orientation) and is %c instead\n leading gene oriented seq=%O"
@@ -238,7 +240,7 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDef) (m: Mut
         (ZeroOffset.toOne (c + 1000<ZeroOffset>))
     |> GslSourceCode
 
-let private classicCodingNT _ (* verbose*) g (_: sgd.Feature) (_: GenomeDef) (m: Mutation) =
+let private classicCodingNT _ (* verbose*) g (_: sgd.Feature) (_: GenomeDefinition) (m: Mutation) =
     // Not going to implement this completely just yet - i.e no heterology block.
     // This has to be used as part of a larger design that ensures swapping
     sprintf "%s[1S:%A];/%c/ {#inline };%s[%A:-1E] " g (m.loc - 1) m.t g (m.loc + 1)
@@ -257,7 +259,8 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
     let x1 = ZeroOffset.toInt dp.MutOff
     let x2 = (ZeroOffset.toInt dp.MutOff) + 2
 
-    if x2 >= dp.OrfDna.Length + 3 (* include stop codon *)  then
+    if x2
+       >= dp.OrfDna.Length + 3 (* include stop codon *)  then
         failwithf
             "ERROR: attempting to mutate amino acid position %d which is outside ORF length %d bases"
             dp.Mutation.loc
@@ -345,7 +348,7 @@ let expandAS (providers: AlleleSwapProvider list)
              (asAACheck: bool)
              (name: string)
              (verbose: bool)
-             (rg: GenomeDef)
+             (rg: GenomeDefinition)
              (codonLookup: CodonLookup)
              (g: string)
              (m: Mutation)
@@ -359,7 +362,9 @@ let expandAS (providers: AlleleSwapProvider list)
     then printf "Processing mutation gene:%s %A\n" g m
 
     // remove prefix of gene name and retrieve feature description
-    let f = rg.get (g.[1..])
+    let f =
+        rg |> GenomeDefinition.getFeature (g.[1..])
+
     let errorDesc = name
 
     match m.mType with
@@ -381,12 +386,14 @@ let expandAS (providers: AlleleSwapProvider list)
             if f.fwd then f.l, f.r + 3 else f.l - 3, f.r
 
         let orf =
-            rg.Dna(errorDesc, sprintf "%d" f.chr, l' * 1<ZeroOffset>, r' * 1<ZeroOffset>)
+            rg
+            |> GenomeDefinition.getDna (errorDesc, sprintf "%d" f.chr, l' * 1<ZeroOffset>, r' * 1<ZeroOffset>)
             |> DnaOps.revCompIf (not f.fwd)
 
         /// Orf sequence plus "orfPlusMargin"
         let orfPlus =
-            rg.Dna
+            rg
+            |> GenomeDefinition.getDna
                 (errorDesc,
                  sprintf "%d" f.chr,
                  ((l' - orfPlusMargin) |> max 0) * 1<ZeroOffset>,
@@ -715,6 +722,7 @@ let private generateHBCore (cl: CodonLookup)
 
         if localVerbose
         then printf "finalScore=%f finalPrimerLen=%d\n" finalScore finalPrimer
+
         alt.[..finalPrimer - 1]
 
 /// Create a heterology block, removing part of the right hand (down) slice

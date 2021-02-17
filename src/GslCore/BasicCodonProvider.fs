@@ -2,6 +2,7 @@
 
 open System
 open Amyris.Bio.utils
+open GslCore.Reference
 open MathNet.Numerics.Random
 open System.Collections.Generic
 open System.IO
@@ -10,7 +11,6 @@ open Amyris.Bio.biolib
 open Amyris.Bio.IO.CodonUsage
 open Amyris.Bio.SuffixTree
 open Amyris.Dna
-open GslCore.RefGenome
 open GslCore.PluginTypes
 (*
 
@@ -422,9 +422,9 @@ type CodonTableCache(libRoot: string) =
         let semaphore = "sequential access!"
         do ()
 
-        member x.Get(gd: GenomeDef) =
+        member x.Get(gd: GenomeDefinition) =
             lock semaphore (fun () ->
-                let genome = gd.Name
+                let genome = gd |> GenomeDefinition.getName
 
                 if cache.ContainsKey(genome) then
                     cache.[genome]
@@ -435,7 +435,7 @@ type CodonTableCache(libRoot: string) =
 
                     let data =
                         { freq = table
-                          codonAvoid = gd.GetCodonAvoid() }
+                          codonAvoid = gd |> GenomeDefinition.getCodonAvoid }
 
                     cache.[genome] <- data
                     data)

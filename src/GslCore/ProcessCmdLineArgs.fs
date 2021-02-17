@@ -6,8 +6,8 @@ open GslCore.CommonTypes
 open Amyris.Bio.utils
 open System.IO
 open GslCore.Pragma
-open GslCore.RefGenome
 open Amyris.Dna
+open GslCore.Reference
 
 let getArgAndAliases (a: CmdLineArgSpec) =
     seq {
@@ -135,7 +135,7 @@ let enumerateLibs (opts: ParsedOptions) =
     |> List.ofSeq
 
 /// Load static assets and initialize global caches.
-let loadGlobalAssets (opts: ParsedOptions) =
+let loadGlobalAssets (opts: ParsedOptions): Map<string, Dna> * GenomeDefinitions =
     let lib = opj opts.LibDir "lib.fa"
 
     // Crude sequence library for misc pieces
@@ -161,16 +161,20 @@ let loadGlobalAssets (opts: ParsedOptions) =
                 if not (Directory.Exists(p))
                 then failwithf "ERROR: unable to find genome reference dir %s\n" p
 
-                if File.Exists(opj p (sprintf "%s.fsa" s))
-                then yield (s, new GenomeDef(opts.LibDir, s))
+                if File.Exists(opj p (sprintf "%s.fsa" s)) then
+                    let definition =
+                        GenomeDefinition.createEager opts.LibDir s
+
+                    yield (s, definition)
         }
         |> Map.ofSeq
+
 
     // Debugging - dump list of available genomes
     if opts.Verbose
     then printf "loadedgenomes %A\n" (rgs |> Seq.map (fun kv -> kv.Key) |> List.ofSeq)
 
-    library, rgs
+    library, rgs |> GenomeDefinitions.create
 
 /// Parse a command line arguments.  Return the parsed options and the list of
 /// input files.
@@ -202,8 +206,8 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         updatedPlugins
         |> List.map (fun p -> p.ProvidesPragmas)
         |> List.concat
-        |> PragmaBuilder.createWithBuiltinPragmas    
-    
+        |> PragmaBuilder.createWithBuiltinPragmas
+
     // Load static assets and initialize caches.
     let ga =
         if loadGA then
@@ -217,7 +221,7 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
             { SequenceLibrary = Map.empty
               CodonProvider = codonProvider
               PragmaBuilder = pragmaCache
-              ReferenceGenomes = Map.empty }
+              ReferenceGenomes = GenomeDefinitions.empty }
 
     { Options = parsedOptions
       Files = files

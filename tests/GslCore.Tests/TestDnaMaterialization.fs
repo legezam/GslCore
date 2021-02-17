@@ -3,6 +3,7 @@
 open System.IO
 open GslCore
 open GslCore.Pragma
+open GslCore.Reference
 open NUnit.Framework
 open Amyris.Bio.biolib
 open GslCore.LegacyParseTypes
@@ -11,7 +12,6 @@ open GslCore.Pragma
 open Amyris.ErrorHandling
 open GslCore.Constants
 open GslCore.DesignParams
-open GslCore.RefGenome
 open GslCore.AssemblyTestSupport
 
 /// One part design request and test expectation w.r.t reference
@@ -63,11 +63,10 @@ type DnaMaterialization() =
           where = [] }
 
     // general retrieval parameters that are gene agnostic
-    let gd =
-        GenomeDef(testLibDir, "TestGenome2")
+    let gd = GenomeDefinition.createEager testLibDir "TestGenome2"
 
     let verbose = false
-    let rgs: GenomeDefs = [ ("TestGenome2", gd) ] |> Map.ofList
+    let rgs: GenomeDefinitions = [ ("TestGenome2", gd) ] |> Map.ofList |> GenomeDefinitions.create
     let library: SequenceLibrary = Map.empty
     let a: Assembly = emptyAssembly
     let dnaSource = "TestGenome2"

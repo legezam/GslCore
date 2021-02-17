@@ -33,7 +33,8 @@
     <Compile Include="Pragma\PragmaDeprecation.fs" />
     <Compile Include="DesignParams.fs" />
     <Compile Include="Uri.fs" />
-    <Compile Include="RefGenome.fs" />
+    <Compile Include="Reference\GenomeDefinition.fs" />
+    <Compile Include="Reference\GenomeDefinitions.fs" />
     <Compile Include="AstTypes.fs" />
     <Compile Include="AstErrorHandling.fs" />
     <Compile Include="AstAlgorithms.fs" />

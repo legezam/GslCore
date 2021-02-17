@@ -2,6 +2,7 @@
 
 open System.Collections
 open GslCore
+open GslCore.Reference
 open GslCore.Tests
 open GslCore.LegacyParseTypes
 open NUnit.Framework
@@ -299,7 +300,7 @@ uADH2; dADH2
 
     static member dummyContext =
         { ATContext.GlobalAssets =
-              { GlobalAssets.ReferenceGenomes = Map.empty
+              { GlobalAssets.ReferenceGenomes = GenomeDefinitions.empty
                 SequenceLibrary = Map.empty
                 PragmaBuilder = TestTagging.PragmaCache
                 CodonProvider =

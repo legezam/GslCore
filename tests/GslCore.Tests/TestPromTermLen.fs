@@ -1,6 +1,7 @@
 ﻿module GslCore.TestPromTermLen
 /// Test #promoterlen #terminatorlen work
 
+open GslCore.Reference
 open NUnit.Framework
 open GslCore.LegacyParseTypes
 open GslCore.Constants
@@ -26,15 +27,18 @@ type TestPromTermLen() =
         then failwithf "%s: expected= %d and actual=%d not equal" context expected actual
 
     let checkOneGenome pragmas name promLen termLen termLenMRNA =
-        use gd =
-            new RefGenome.GenomeDef(testLibDir, name)
+        let gd = GenomeDefinition.createLazy testLibDir name
 
-
-        printfn "XXX envlookup=%d" (gd.EnvLenLookup "termlen" 666)
-        printfn "XXX name=%s termlen=%d" name (gd.getTermLen ())
-        gd.Load()
-        printfn "XXX envlookup=%d" (gd.EnvLenLookup "termlen" 666)
-        printfn "XXX name=%s termlen=%d" name (gd.getTermLen ())
+        
+        let (envLookup, gd) = gd |> GenomeDefinition.envLenLookupLazy "termlen" 666
+        printfn "XXX envlookup=%d" envLookup
+        let (lookupTermLen, gd) = gd |> GenomeDefinition.getTermLenLazy
+        printfn "XXX name=%s termlen=%d" name lookupTermLen
+        let gd = gd |> GenomeDefinition.load
+        let (envLookup, gd) = gd |> GenomeDefinition.envLenLookupLazy "termlen" 666
+        printfn "XXX envlookup=%d" envLookup
+        let (lookupTermLen, gd) = gd |> GenomeDefinition.getTermLenLazy
+        printfn "XXX name=%s termlen=%d" name lookupTermLen
 
         let part =
             DnaCreation.translateGenePrefix pragmas gd TERMINATOR
@@ -42,8 +46,7 @@ type TestPromTermLen() =
         same
             "terminator length test"
             termLen
-            ((part.right.Position - part.left.Position + 1<OneOffset>)
-             / 1<OneOffset>) // +1 since ends are inclusive
+            ((part.right.Position - part.left.Position + 1<OneOffset>) / 1<OneOffset>) // +1 since ends are inclusive
 
         let part =
             DnaCreation.translateGenePrefix pragmas gd PROMOTER
@@ -75,11 +78,7 @@ type TestPromTermLen() =
 
     [<Test>]
     member __.TestGenomesLoadable() =
-        use gd =
-            new RefGenome.GenomeDef(testLibDir, "TestGenome")
-
-        gd.Load()
-        ()
+        GenomeDefinition.createEager testLibDir "TestGenome" |> ignore
 
     [<Test>]
     member __.TestPragmasExist() =
