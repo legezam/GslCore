@@ -3,14 +3,14 @@ module GslCore.AstFixtures
 
 open Amyris.ErrorHandling
 open GslCore.AstTypes
-open GslCore.LexAndParse
+open GslCore.Ast
 open GslCore.Constants
 
 
 /// Parse text and return the contents of the top-level block.
 /// Raise an exception if this fails.
 let bootstrapParseOnly source =
-    match lexAndParse true (GslSourceCode(source)) with
+    match LexAndParse.lexAndParse true (GslSourceCode(source)) with
     | Ok (AstTreeHead (Block (b)), _) -> b.Value
 
 

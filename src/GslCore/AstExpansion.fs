@@ -19,7 +19,7 @@ open GslCore.ApplySlices
 open GslCore.CommonTypes
 open GslCore.Reference
 open GslCore.ResolveExtPart
-open GslCore.LexAndParse
+open GslCore.Ast
 open GslCore.PluginTypes
 
 // ==================
@@ -134,7 +134,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
     let contextMsg =
         sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
 
-    lexAndParse false source
+    LexAndParse.lexAndParse false source
     |> addContextIfError
         (AstMessage.createErrorWithStackTrace
             (InternalError(ParserError))

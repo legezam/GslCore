@@ -10,7 +10,7 @@ open Microsoft.FSharp.Core.Printf
 
 open GslCore.CommonTypes
 open GslCore.CommandConfig
-open GslCore.LexAndParse
+open GslCore.Ast
 open GslCore.GslcProcess // Top-level compiler operations
 open GslCore.AstAlgorithms
 open Amyris.ErrorHandling
@@ -135,7 +135,7 @@ let maybeJustDoLexing (s: ConfigurationState) =
     // If selected, perform lexing and quit.
     if s.Options.LexOnly then
         let inputText = File.ReadAllText s.InputFile
-        lexTest s.Options.Verbose inputText
+        LexAndParse.lexTest s.Options.Verbose inputText
         Exit(0, None)
     else
         Continue(s)

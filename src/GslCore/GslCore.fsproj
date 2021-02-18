@@ -14,12 +14,7 @@
   -->
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <FsYacc Include=".\GslParser.fsy">
-      <OtherFlags>--module GslCore.GslParser -o GslParser.fs</OtherFlags>
-    </FsYacc>
-    <FsLex Include=".\GslLexer.fsl">
-      <OtherFlags>--unicode -o GslLexer.fs</OtherFlags>
-    </FsLex>
+
     <Compile Include="Constants.fs" />
     <Compile Include="Markers.fs" />
     <Compile Include="Utils.fs" />
@@ -35,23 +30,32 @@
     <Compile Include="Uri.fs" />
     <Compile Include="Reference\GenomeDefinition.fs" />
     <Compile Include="Reference\GenomeDefinitions.fs" />
-    <Compile Include="AstTypes\Lex.fs" />
-    <Compile Include="AstTypes\SourcePosition.fs" />
-    <Compile Include="AstTypes\Positioned.fs" />
-    <Compile Include="AstTypes\Node.fs" />
-    <Compile Include="AstTypes\AstTypes.fs" />
-    <Compile Include="AstTypes\ActivePatterns.fs" />
-    <Compile Include="AstTypes\SourcePositionBuilder.fs" />
-    <Compile Include="AstTypes\Utils.fs" />
-    <Compile Include="AstTypes\Create.fs" />
-    <Compile Include="AstTypes\Parts.fs" />
-    <Compile Include="AstTypes\L2.fs" />
-    <Compile Include="AstErrorHandling.fs" />
-    <Compile Include="AstAlgorithms.fs" />
-    <Compile Include="AstLinting.fs" />
-    <Compile Include="AstProcess.fs" />
-    <Compile Include="GslParser.fs" />
-    <Compile Include="GslLexer.fs" />
+    <Compile Include="Ast\Types\Lex.fs" />
+    <Compile Include="Ast\Types\SourcePosition.fs" />
+    <Compile Include="Ast\Types\Positioned.fs" />
+    <Compile Include="Ast\Types\Node.fs" />
+    <Compile Include="Ast\Types\AstTypes.fs" />
+    <Compile Include="Ast\Types\ActivePatterns.fs" />
+    <Compile Include="Ast\Types\SourcePositionBuilder.fs" />
+    <Compile Include="Ast\Types\Utils.fs" />
+    <Compile Include="Ast\Types\Create.fs" />
+    <Compile Include="Ast\Types\Parts.fs" />
+    <Compile Include="Ast\Types\L2.fs" />
+    <Compile Include="Ast\ErrorHandling.fs" />
+    <Compile Include="Ast\Algorithms.fs" />
+    <Compile Include="Ast\Linting.fs" />
+    <Compile Include="Ast\Process.fs" />
+    <FsYacc Include=".\Ast\GslParser.fsy">
+      <OtherFlags>--module GslCore.Ast.GslParser -o Ast/GslParser.fs</OtherFlags>
+    </FsYacc>
+    <FsLex Include=".\Ast\GslLexer.fsl">
+      <OtherFlags>--unicode -o Ast/GslLexer.fs</OtherFlags>
+    </FsLex>    
+<!--    <None Include="Ast\GslParser.fsy" />-->
+<!--    <None Include="Ast\GslLexer.fsl" />-->
+    <Compile Include="Ast\GslParser.fs" />
+    <Compile Include="Ast\GslLexer.fs" />
+    <Compile Include="Ast\LexAndParse.fs" />
     <Compile Include="LegacyParseTypes.fs" />
     <Compile Include="CommonTypes.fs" />
     <Compile Include="CommandConfig.fs" />
@@ -78,7 +82,6 @@
     <Compile Include="CoreOutputProviders.fs" />
     <Compile Include="JsonAssembly.fs" />
     <Compile Include="ProcessCmdLineArgs.fs" />
-    <Compile Include="LexAndParse.fs" />
     <Compile Include="AstExpansion.fs" />
     <Compile Include="TaggingProvider.fs" />
     <Compile Include="GslcProcess.fs" />

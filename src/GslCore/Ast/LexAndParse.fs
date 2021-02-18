@@ -1,9 +1,9 @@
 ﻿/// Entry points for lexing and parsing.
-module GslCore.LexAndParse
+module GslCore.Ast.LexAndParse
 
 open GslCore.Constants
-open GslParser
-open GslLexer
+open GslCore.Ast.GslParser
+open GslCore.Ast.GslLexer
 open FSharp.Text.Lexing
 open Amyris.ErrorHandling
 open GslCore.AstTypes
@@ -57,7 +57,7 @@ let lexTest verbose inputText =
 let private doLexParse verbose inBuffer =
     if verbose then printfn "Starting tree parse...\n"
     let tokenizer = createGslTokenizer verbose
-    let t = GslParser.start tokenizer inBuffer
+    let t = start tokenizer inBuffer
     if verbose then printfn "Parsed tree!"
     t
 

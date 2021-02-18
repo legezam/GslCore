@@ -8,11 +8,11 @@ open GslCore.AstTypes
 open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
 open GslCore.AstFixtures
-open GslCore.LexAndParse
+open GslCore.Ast
 open GslCore.Constants
 
 /// Lex and parse, in verbose mode.
-let lexparse = lexAndParse true
+let lexparse = LexAndParse.lexAndParse true
 
 
 /// Assert that two trees are equal.  If they aren't, pretty print them.

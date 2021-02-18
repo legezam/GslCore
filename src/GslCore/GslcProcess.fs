@@ -11,7 +11,7 @@ open GslCore.Pragma
 open GslCore.PrimerCreation
 open GslCore.ProcessCmdLineArgs
 open GslCore.PluginTypes
-open GslCore.LexAndParse
+open GslCore.Ast
 open Amyris.ErrorHandling
 
 /// Run GSLC on string input.
@@ -52,7 +52,7 @@ let rec processGSL (s: ConfigurationState) gslText =
 
     /// Main compiler pipeline.
     let phase1Result =
-        lexAndParse verbose gslText
+        LexAndParse.lexAndParse verbose gslText
         >>= phase1 legalCapas pragmaCache
 
     if opts.OnlyPhase1 then
