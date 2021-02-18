@@ -2,7 +2,7 @@
 
 open System.IO
 open System
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Constants
 open Amyris.Bio.utils
 open GslCore

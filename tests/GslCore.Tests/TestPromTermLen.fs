@@ -5,7 +5,7 @@ open GslCore.Reference
 open NUnit.Framework
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Constants
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.ErrorHandling
 

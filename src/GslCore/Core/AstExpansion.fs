@@ -15,8 +15,8 @@ open GslCore.DnaCreation
 open GslCore.Pragma
 open GslCore.AlleleSwaps
 open Amyris.Bio.utils
-open GslCore.ApplySlices
-open GslCore.CommonTypes
+open GslCore.Core
+open GslCore.Core.Types
 open GslCore.Reference
 open GslCore.ResolveExtPart
 open GslCore.Ast
@@ -737,7 +737,7 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
             then failwithf "Heterology block must be adjacent to g part, %s not allowed" gp.part.gene
 
             let s = translateGenePrefix a.pragmas rg' GENE // Start with standard slice
-            let startSlice = applySlices verbose gp.part.mods s // Apply modifiers
+            let startSlice = ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
 
             let newSlice =
                 { startSlice with
@@ -805,7 +805,7 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
                     gp.part.gene.[0]
 
             let s = translateGenePrefix a.pragmas rg'' GENE // Start with standard slice
-            let startSlice = applySlices verbose gp.part.mods s // Apply modifiers
+            let startSlice = ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
 
             let newSlice =
                 { startSlice with
@@ -868,7 +868,7 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
 
             // now build up the slice again and apply from scratch to the gene
             let s = translateGenePrefix a.pragmas rg' GENE // Start with standard slice
-            let startSlice = applySlices verbose gp.part.mods s // Apply modifiers
+            let startSlice = ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
 
             // modify slice to take into account the bit we chopped off
             let newSlice =

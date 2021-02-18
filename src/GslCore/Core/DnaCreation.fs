@@ -5,8 +5,8 @@ open System
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Pragma
-open GslCore.CommonTypes
-open GslCore.ApplySlices
+open GslCore.Core.Types
+open GslCore.Core
 open Amyris.Bio
 open Amyris.ErrorHandling
 open Amyris.Dna
@@ -149,13 +149,13 @@ let translateGenePrefix (pragmas: PragmaCollection) (gd: GenomeDefinition) (gPar
 /// Translate gene part label.  Raises an exception for errors.
 let lookupGenePart errorDescription prefix (modList: Mod list) =
     let sliceType =
-        match charToSliceType prefix with
+        match StandardSlice.charToSliceType prefix with
         | Some (t) -> t
         | None ->
             failwithf
                 "unknown gene prefix '%c' should be one of %s in %s"
                 prefix
-                (sliceTypeChars.ToString())
+                (StandardSlice.sliceTypeChars.ToString())
                 errorDescription
 
     let dotModList =
@@ -211,7 +211,7 @@ let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDefinitio
     // Come up with an initial slice based on the gene prefix type
     let s = translateGenePrefix pragmas rg genePart
 
-    let finalSlice = applySlices verbose gp.part.mods s
+    let finalSlice = ApplySlices.applySlices verbose gp.part.mods s
     let left = adjustToPhysical feat finalSlice.left
     let right = adjustToPhysical feat finalSlice.right
 
@@ -319,7 +319,7 @@ let expandGenePart verbose
 
             // Get standard slice range for a gene
             let s = translateGenePrefix a.pragmas rg' GENE
-            let finalSlice = applySlices verbose gp.part.mods s
+            let finalSlice = ApplySlices.applySlices verbose gp.part.mods s
 
             // Ban approx slices to stay sane for now
             if finalSlice.lApprox || finalSlice.rApprox
@@ -337,7 +337,7 @@ let expandGenePart verbose
                 |> DnaOps.revCompIf (not ppp.fwd)
 
             let orfAnnotation =
-                orfAnnotationFromSlice finalSlice finalDNA.Length ppp.fwd sliceContext
+                OrfAnnotation.orfAnnotationFromSlice finalSlice finalDNA.Length ppp.fwd sliceContext
 
             let name1 =
                 if gp.part.mods.Length = 0 then gp.part.gene else (gp.part.gene + (printSlice finalSlice))
@@ -416,7 +416,7 @@ let expandGenePart verbose
         if verbose then printf "log: processing %A\n" a
 
         // finalSlice is the consolidated gene relative coordinate of desired piece
-        let finalSlice = applySlices verbose gp.part.mods s
+        let finalSlice = ApplySlices.applySlices verbose gp.part.mods s
 
         // Gene relative coordinates for the gene slice we want
         let finalSliceWithApprox =
@@ -550,7 +550,7 @@ let expandGenePart verbose
             | x -> x
 
         let orfAnnotation =
-            orfAnnotationFromSlice finalSlice feat.Length ppp.fwd Genomic
+            OrfAnnotation.orfAnnotationFromSlice finalSlice feat.Length ppp.fwd Genomic
 
         // Note regarding orientation: We are currently building a single piece
         // of final DNA left to right. There is no consideration for stitch
@@ -675,10 +675,10 @@ let expandAssembly (verbose: bool)
                 //
                 if ppp.pr
                    |> PragmaCollection.contains BuiltIn.fusePragmaDef then
-                    yield fusionSliceConstant
+                    yield DnaAssembly.fusionSliceConstant
         }
         |> List.ofSeq
-        |> recalcOffset
+        |> DNASlice.recalcOffset
 
     let materializedParts = expandPPPList a.parts
 

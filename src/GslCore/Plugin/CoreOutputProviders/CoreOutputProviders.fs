@@ -6,7 +6,7 @@ open GslCore.CloneManager
 open GslCore.Ape
 open GslCore.Snapgene
 open GslCore.DumpFlat
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open System.IO
 
 // =============================

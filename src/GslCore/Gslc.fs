@@ -8,7 +8,7 @@ open GslCore.Pragma
 open GslCore.Reference
 open Microsoft.FSharp.Core.Printf
 
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.CommandConfig
 open GslCore.Ast
 open GslCore.GslcProcess // Top-level compiler operations

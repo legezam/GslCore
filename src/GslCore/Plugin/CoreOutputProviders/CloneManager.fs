@@ -1,7 +1,7 @@
 ﻿module GslCore.CloneManager
 
 open System.IO
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Amyris.Bio.utils
 open GslCore
 open GslCore.Constants

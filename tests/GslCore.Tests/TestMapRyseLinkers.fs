@@ -4,7 +4,7 @@ open System
 open GslCore
 open GslCore.Ast.LegacyParseTypes
 open NUnit.Framework
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.AssemblyTestSupport
 open GslCore.Pragma
 open Amyris.ErrorHandling

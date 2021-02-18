@@ -2,7 +2,7 @@
 
 open GslCore.CommandConfig
 open GslCore.PluginTypes
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Amyris.Bio.utils
 open System.IO
 open GslCore.Pragma

@@ -6,7 +6,7 @@ open GslCore.AstAssertions
 open GslCore.AstExpansion
 open GslCore.Constants
 open Amyris.ErrorHandling
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.Dna
 

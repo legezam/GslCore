@@ -4,7 +4,7 @@ open System
 open NUnit.Framework
 
 open GslCore.Constants
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Amyris.Dna
 open GslCore.Pragma
 
@@ -103,8 +103,8 @@ type TestSeamlessPrimers() =
     let checkSliceTypes (exp: SliceType list) (actual: SliceType list) =
         if exp <> actual then
             printfn "ERROR: matching slice types in seamless check"
-            printfn "Expected: %s" (String.Join(",", exp |> List.map (formatST)))
-            printfn "Actual  : %s" (String.Join(",", actual |> List.map (formatST)))
+            printfn "Expected: %s" (String.Join(",", exp |> List.map (SliceType.formatST)))
+            printfn "Actual  : %s" (String.Join(",", actual |> List.map (SliceType.formatST)))
 
         Assert.AreEqual(exp, actual)
 

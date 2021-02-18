@@ -16,6 +16,8 @@
     <Compile Include="AssemblyInfo.fs" />
 
     <Compile Include="Constants.fs" />
+
+    <Compile Include="Uri.fs" />
     <Compile Include="Markers.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="PcrParamParse.fs" />
@@ -27,7 +29,6 @@
     <Compile Include="Pragma\PragmaCollection.fs" />
     <Compile Include="Pragma\PragmaDeprecation.fs" />
     <Compile Include="DesignParams.fs" />
-    <Compile Include="Uri.fs" />
     <Compile Include="Reference\GenomeDefinition.fs" />
     <Compile Include="Reference\GenomeDefinitions.fs" />
     <Compile Include="Ast\Types\Lex.fs" />
@@ -57,7 +58,7 @@
     <Compile Include="Ast\GslLexer.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
     <Compile Include="Ast\LegacyParseTypes.fs" />
-    <Compile Include="Core\CommonTypes.fs" />
+    <Compile Include="Core\Types.fs" />
     <Compile Include="Core\ApplySlices.fs" />
     <Compile Include="Core\SbolExample.fs" />
     <Compile Include="Core\RycodExample.fs" />

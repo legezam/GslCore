@@ -2,7 +2,7 @@
 module GslCore.SeamlessPlugin
 
 open System
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.CommandConfig
 open GslCore.PluginTypes
 open GslCore.Constants
@@ -40,7 +40,7 @@ let mt =
 let mtRev = { mt with sourceFwd = false }
 
 let dumpSliceLayout (slices: DNASlice list) =
-    String.Join(";", slices |> List.map (fun s -> formatST s.sliceType))
+    String.Join(";", slices |> List.map (fun s -> SliceType.formatST s.sliceType))
 
 /// Insert FUSE directives and MT linkers to get a seamless design from later primergen
 let procInsertFuse verbose (l: DNASlice list) =
@@ -83,7 +83,7 @@ let procInsertFuse verbose (l: DNASlice list) =
             if verbose
             then printfn "placeFuseForSeamless: .. general case gets fuse"
 
-            procInsertFuseInternal tl (fusionSliceConstant :: hd :: res)
+            procInsertFuseInternal tl (DnaAssembly.fusionSliceConstant :: hd :: res)
 
         | hd :: tl -> procInsertFuseInternal tl (hd :: res)
 

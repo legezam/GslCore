@@ -3,7 +3,7 @@
 open NUnit.Framework
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Constants
-open GslCore.CommonTypes
+open GslCore.Core.Types
 
 [<TestFixture>]
 type TestOrfAnnotation() =
@@ -52,7 +52,7 @@ type TestOrfAnnotation() =
         let featLen = 100
 
         let orfAnnotationFwd =
-            orfAnnotationFromSlice basicOrfSlice featLen true Genomic
+            OrfAnnotation.orfAnnotationFromSlice basicOrfSlice featLen true Genomic
 
         Assert.AreEqual(0<ZeroOffset>, orfAnnotationFwd.Left)
         Assert.AreEqual(99<ZeroOffset>, orfAnnotationFwd.Right)
@@ -60,7 +60,7 @@ type TestOrfAnnotation() =
         Assert.That(orfAnnotationFwd.IsForward)
 
         let orfAnnotationRev =
-            orfAnnotationFromSlice basicOrfSlice featLen false Genomic
+            OrfAnnotation.orfAnnotationFromSlice basicOrfSlice featLen false Genomic
 
         Assert.AreEqual(0<ZeroOffset>, orfAnnotationRev.Left)
         Assert.AreEqual(99<ZeroOffset>, orfAnnotationRev.Right)

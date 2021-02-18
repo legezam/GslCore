@@ -4,9 +4,6 @@ open Amyris.Dna
 open Amyris.ErrorHandling
 open GslCore.Uri
 
-// NOTE: see helper functions below.  Dammit SBOL, why did you decide to wrap
-// every XML tag inside another XML tag...
-
 type SBOLProvider =
     FSharp.Data.XmlProvider<"""
 <gbom:gbom xmlns:gbom="http://www.amyris.com/xmlns/gbom/v0.2.0" xmlns:sbol="http://sbols.org/v2#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:prov="http://www.w3.org/ns/prov#">

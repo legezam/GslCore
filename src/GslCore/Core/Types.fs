@@ -1,4 +1,4 @@
-﻿module GslCore.CommonTypes
+﻿namespace GslCore.Core.Types
 
 open System
 open GslCore.Pragma
@@ -65,20 +65,21 @@ type StandardSlice =
     | DOWNSTREAM
     | MRNA (* ORF + term *)
 
-let sliceTypeChars =
-    [ 'p', 'u', 't', 'd', 'o', 'f', 'g', 'm' ]
+module StandardSlice =
+    let sliceTypeChars =
+        [ 'p', 'u', 't', 'd', 'o', 'f', 'g', 'm' ]
 
-let charToSliceType c =
-    match Char.ToLower c with
-    | 'p' -> Some(PROMOTER)
-    | 'u' -> Some(UPSTREAM)
-    | 't' -> Some(TERMINATOR)
-    | 'd' -> Some(DOWNSTREAM)
-    | 'o' -> Some(ORF)
-    | 'f' -> Some(FUSABLEORF)
-    | 'g' -> Some(GENE)
-    | 'm' -> Some(MRNA)
-    | _ -> None
+    let charToSliceType c =
+        match Char.ToLower c with
+        | 'p' -> Some(PROMOTER)
+        | 'u' -> Some(UPSTREAM)
+        | 't' -> Some(TERMINATOR)
+        | 'd' -> Some(DOWNSTREAM)
+        | 'o' -> Some(ORF)
+        | 'f' -> Some(FUSABLEORF)
+        | 'g' -> Some(GENE)
+        | 'm' -> Some(MRNA)
+        | _ -> None
 
 type SliceType =
     | REGULAR
@@ -87,13 +88,14 @@ type SliceType =
     | INLINEST
     | FUSIONST
 
-let formatST (s: SliceType) =
-    match s with
-    | REGULAR -> "REG"
-    | MARKER -> "MARKER"
-    | LINKER -> "LINKER"
-    | INLINEST -> "INLINE"
-    | FUSIONST -> "FUSION"
+module SliceType =
+    let formatST (s: SliceType) =
+        match s with
+        | REGULAR -> "REG"
+        | MARKER -> "MARKER"
+        | LINKER -> "LINKER"
+        | INLINEST -> "INLINE"
+        | FUSIONST -> "FUSION"
 
 /// Due to slices or other considerations, Orfs may not exactly align with the codon sequence.
 /// Indicate which position in the first codon is represented by the first base in the orf.
@@ -102,16 +104,17 @@ type OrfOffset =
     | One
     | Two
 
-/// Given a slice offset from the start of a gene's ORF, determine what offset the first allele
-/// in the resulting sequence will have.
-let orfOffsetFromAlleleOffset (offset: int<ZeroOffset>) =
-    match (offset / 1<ZeroOffset>) % 3 with
-    | 0 -> Zero
-    | 1
-    | -2 -> One
-    | 2
-    | -1 -> Two
-    | _ -> Zero // this case is unreachable
+module OrfOffset =
+    /// Given a slice offset from the start of a gene's ORF, determine what offset the first allele
+    /// in the resulting sequence will have.
+    let orfOffsetFromAlleleOffset (offset: int<ZeroOffset>) =
+        match (offset / 1<ZeroOffset>) % 3 with
+        | 0 -> Zero
+        | 1
+        | -2 -> One
+        | 2
+        | -1 -> Two
+        | _ -> Zero // this case is unreachable
 
 /// Slice annotation for indicating the presence of an ORF in a slice.
 type OrfAnnotation =
@@ -153,48 +156,49 @@ type OrfAnnotation =
             codonOffsets
             |> Seq.map (fun offset -> (firstCodon - offset) * 1<ZeroOffset>)
 
-/// Create an ORF annotation from a slice on gene-relative coordiantes.
-let orfAnnotationFromSlice (slice: Slice) (orfLen: int) fwd context =
-    let sliceStart, sliceEnd =
-        getBoundsFromSlice slice orfLen context
-        |> returnOrFail
-        |> (fun (l, r) -> OneOffset.toZero l, OneOffset.toZero r)
+module OrfAnnotation =
+    /// Create an ORF annotation from a slice on gene-relative coordiantes.
+    let orfAnnotationFromSlice (slice: Slice) (orfLen: int) fwd context =
+        let sliceStart, sliceEnd =
+            getBoundsFromSlice slice orfLen context
+            |> returnOrFail
+            |> (fun (l, r) -> OneOffset.toZero l, OneOffset.toZero r)
 
-    // compute the actual length of the slice
-    let sliceLen = ZeroOffset.toInt (sliceEnd - sliceStart) + 1
+        // compute the actual length of the slice
+        let sliceLen = ZeroOffset.toInt (sliceEnd - sliceStart) + 1
 
-    // based on the gene-relative slice coordinates, determine the frame offset of this ORF.
-    let frameOffset = orfOffsetFromAlleleOffset sliceStart
+        // based on the gene-relative slice coordinates, determine the frame offset of this ORF.
+        let frameOffset = OrfOffset.orfOffsetFromAlleleOffset sliceStart
 
-    // if left is less than 0, then the ORF starts at a positive offset
-    // these coordinates are now relative to the materialized DNA slice
-    let orfStart = -1 * sliceStart // slice coordinates are relative to ORF start at 5' end
+        // if left is less than 0, then the ORF starts at a positive offset
+        // these coordinates are now relative to the materialized DNA slice
+        let orfStart = -1 * sliceStart // slice coordinates are relative to ORF start at 5' end
 
-    let orfEnd =
-        orfStart + orfLen * 1<ZeroOffset> - 1<ZeroOffset>
+        let orfEnd =
+            orfStart + orfLen * 1<ZeroOffset> - 1<ZeroOffset>
 
-    // if the part is reversed, the start and end need to be flipped to be relative to
-    // the opposite ends
-    let left, right =
-        if fwd then
-            orfStart, orfEnd
-        else
-            (orfLen * 1<ZeroOffset>) - orfEnd - 1<ZeroOffset>,
-            (orfLen * 1<ZeroOffset>)
-            - orfStart
-            - 1<ZeroOffset>
+        // if the part is reversed, the start and end need to be flipped to be relative to
+        // the opposite ends
+        let left, right =
+            if fwd then
+                orfStart, orfEnd
+            else
+                (orfLen * 1<ZeroOffset>) - orfEnd - 1<ZeroOffset>,
+                (orfLen * 1<ZeroOffset>)
+                - orfStart
+                - 1<ZeroOffset>
 
-    // the slice may be smaller than the ORF in either direction, so make sure left and right
-    // are constrained to the interval defined by the length of the slice
-    let constrain index =
-        index
-        |> max 0<ZeroOffset>
-        |> min (sliceLen * 1<ZeroOffset> - 1<ZeroOffset>)
+        // the slice may be smaller than the ORF in either direction, so make sure left and right
+        // are constrained to the interval defined by the length of the slice
+        let constrain index =
+            index
+            |> max 0<ZeroOffset>
+            |> min (sliceLen * 1<ZeroOffset> - 1<ZeroOffset>)
 
-    { Left = constrain left
-      Right = constrain right
-      FrameOffset = frameOffset
-      IsForward = fwd }
+        { Left = constrain left
+          Right = constrain right
+          FrameOffset = frameOffset
+          IsForward = fwd }
 
 /// Extensible type to add useful annotations to slices.
 type SliceAnnotation = Orf of OrfAnnotation
@@ -229,23 +233,24 @@ type DNASlice =
     override this.ToString() =
         sprintf "{ %s - %A - %A }" this.description this.sliceType this.breed
 
-/// Recalculate the offsets of pieces in a list of pieces after new pieces are added in
-let recalcOffset (pieces: DNASlice list) =
-    let lengths =
-        pieces
-        |> List.map (fun p -> p.dna.Length * 1<ZeroOffset>)
+module DNASlice =
+    /// Recalculate the offsets of pieces in a list of pieces after new pieces are added in
+    let recalcOffset (pieces: DNASlice list) =
+        let lengths =
+            pieces
+            |> List.map (fun p -> p.dna.Length * 1<ZeroOffset>)
 
-    let _, offsets' =
-        lengths
-        |> List.fold (fun (o, r) l -> (o + l, o :: r)) (0 * 1<ZeroOffset>, [])
+        let _, offsets' =
+            lengths
+            |> List.fold (fun (o, r) l -> (o + l, o :: r)) (0 * 1<ZeroOffset>, [])
 
-    let offsets = List.rev offsets'
+        let offsets = List.rev offsets'
 
-    List.zip pieces offsets
-    |> List.map (fun (p, o) ->
-        { p with
-              destFr = o
-              destTo = o + (p.dna.Length - 1) * 1<ZeroOffset> })
+        List.zip pieces offsets
+        |> List.map (fun (p, o) ->
+            { p with
+                  destFr = o
+                  destTo = o + (p.dna.Length - 1) * 1<ZeroOffset> })
 
 type DnaAssembly =
     { id: int option
@@ -267,31 +272,32 @@ type DnaAssembly =
     interface ISourcePosition with
         member x.OptionalSourcePosition = x.materializedFrom.sourcePosition
 
-/// DNASlice default for a fusion slidetype
-let fusionSliceConstant =
-    { id = None
-      extId = None
-      sliceName = "fusion"
-      uri = None // TODO: uri for fusion parts?
-      dna = Dna("")
-      sourceChr = ""
-      sourceFr = 0<ZeroOffset>
-      sourceTo = 0<ZeroOffset>
-      sourceFwd = true
-      template = None
-      amplified = false
-      sourceFrApprox = false
-      sourceToApprox = false
-      destFr = 0<ZeroOffset>
-      destTo = 0<ZeroOffset>
-      destFwd = true
-      description = "::"
-      dnaSource = ""
-      sliceType = FUSIONST
-      pragmas = PragmaCollection.empty
-      breed = B_VIRTUAL
-      materializedFrom = None // TODO: should we mark this as associated with this ppp?
-      annotations = [] }
+module DnaAssembly =
+    /// DNASlice default for a fusion slidetype
+    let fusionSliceConstant =
+        { id = None
+          extId = None
+          sliceName = "fusion"
+          uri = None // TODO: uri for fusion parts?
+          dna = Dna("")
+          sourceChr = ""
+          sourceFr = 0<ZeroOffset>
+          sourceTo = 0<ZeroOffset>
+          sourceFwd = true
+          template = None
+          amplified = false
+          sourceFrApprox = false
+          sourceToApprox = false
+          destFr = 0<ZeroOffset>
+          destTo = 0<ZeroOffset>
+          destFwd = true
+          description = "::"
+          dnaSource = ""
+          sliceType = FUSIONST
+          pragmas = PragmaCollection.empty
+          breed = B_VIRTUAL
+          materializedFrom = None // TODO: should we mark this as associated with this ppp?
+          annotations = [] }
 
 /// Model a primer which diverges and has body/tail parts.
 /// The body part anneals to the intended amplification target and the tail

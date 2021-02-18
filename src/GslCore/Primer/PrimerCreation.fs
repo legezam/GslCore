@@ -1,6 +1,6 @@
 ﻿module GslCore.PrimerCreation
 /// Support routines for primer design scenarios and primer generation for stitches
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open System
 open GslCore.Constants // primer parameters
 open Amyris.Bio.primercore
@@ -2451,7 +2451,7 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
 
     let newTree =
         List.zip linkedTree newSlices
-        |> List.map (fun (a, b) -> { a with dnaParts = recalcOffset b })
+        |> List.map (fun (a, b) -> { a with dnaParts = DNASlice.recalcOffset b })
     //let oldTree = linkedTree |> List.map (fun a -> a.dnaParts)
 
     // Validate primer annotation and primers are legit

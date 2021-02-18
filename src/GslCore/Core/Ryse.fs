@@ -10,7 +10,7 @@ open Amyris.Dna
 open GslCore.Constants
 open GslCore.Uri
 open GslCore.Pragma
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.SbolExample
 open GslCore.AstTypes
 
@@ -595,7 +595,7 @@ let mapRyseLinkers (opts: ParsedOptions)
             | [] -> failwith noLinkersLeftMsg
             | linkerName :: lt ->
                 let linker = prepLinker linkerName
-                printVerbose (sprintf "Assigning linker %s to %s/%s" linkerName hd.description (formatST hd.sliceType))
+                printVerbose (sprintf "Assigning linker %s to %s/%s" linkerName hd.description (SliceType.formatST hd.sliceType))
 
                 // DETECT MARKER, transition to phase II
                 if hd.sliceType = MARKER then
@@ -650,7 +650,7 @@ let mapRyseLinkers (opts: ParsedOptions)
               dnaParts =
                   assign allLinkers1 true aIn.dnaParts allLinkers1 []
                   |> List.rev
-                  |> recalcOffset }
+                  |> DNASlice.recalcOffset }
 
 
     printVerbose "DONE:  mapRyseLinkers"

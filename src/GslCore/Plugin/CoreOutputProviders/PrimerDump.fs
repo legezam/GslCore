@@ -2,7 +2,7 @@
 module GslCore.PrimerDump
 
 open System.IO
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open System
 open GslCore
 

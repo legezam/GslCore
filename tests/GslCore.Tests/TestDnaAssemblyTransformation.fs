@@ -6,7 +6,7 @@ open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.GslcProcess
 open GslCore.Ast.LegacyParseTypes
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.Dna
 open GslCore.Constants

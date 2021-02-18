@@ -1,4 +1,4 @@
-﻿module GslCore.Markers
+﻿namespace GslCore
 
 open Amyris.Bio.utils
 open System.IO

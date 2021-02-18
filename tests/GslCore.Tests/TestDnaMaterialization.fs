@@ -7,7 +7,7 @@ open GslCore.Reference
 open NUnit.Framework
 open Amyris.Bio.biolib
 open GslCore.Ast.LegacyParseTypes
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.ErrorHandling
 open GslCore.Constants

@@ -1,4 +1,4 @@
-﻿module GslCore.ApplySlices
+﻿module GslCore.Core.ApplySlices
 
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Constants

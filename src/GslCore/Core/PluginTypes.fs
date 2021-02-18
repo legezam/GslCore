@@ -2,7 +2,7 @@
 module GslCore.PluginTypes
 
 open Amyris.ErrorHandling
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.CommandConfig
 open Amyris.Bio
 open GslCore.Constants

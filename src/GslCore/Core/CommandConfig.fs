@@ -2,7 +2,7 @@
 module GslCore.CommandConfig
 
 open System
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Amyris.Bio.utils
 
 let informalVersion =

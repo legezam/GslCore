@@ -1,10 +1,10 @@
 ﻿module GslCore.ResolveExtPart
 
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Pragma
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Ryse
-open GslCore.ApplySlices
+open GslCore.Core
 open GslCore.Constants
 open Amyris.Dna
 open Amyris.ErrorHandling
@@ -125,7 +125,7 @@ let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId:
 
                     // Apply the slice(s) to get a final coordinate range
                     let finalSlice =
-                        applySlices verbose partId.mods startSlice
+                        ApplySlices.applySlices verbose partId.mods startSlice
 
                     // Find the left and right hand ends of the slice
                     let x, y =
@@ -257,7 +257,7 @@ let getExtPartSlice (verbose: bool) (partId: PartIdLegacy) =
 
     // Apply the slice(s) to get a final coordinate range
     let finalSlice =
-        applySlices verbose partId.mods startSlice
+        ApplySlices.applySlices verbose partId.mods startSlice
 
     finalSlice
 

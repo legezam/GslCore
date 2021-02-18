@@ -11,7 +11,7 @@ open GslCore.AstTypes
 open GslCore.AstAssertions
 open GslCore.AstExpansion
 open GslCore.PluginTypes
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.Constants
 open GslCore.BasicCodonProvider
 open GslCore.Pragma

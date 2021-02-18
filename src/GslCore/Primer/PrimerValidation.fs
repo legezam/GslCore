@@ -1,6 +1,6 @@
 ﻿module GslCore.PrimerValidation
 
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Amyris.Bio.utils
 open Amyris.Dna
 

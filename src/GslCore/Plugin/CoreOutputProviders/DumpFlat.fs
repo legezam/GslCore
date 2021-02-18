@@ -5,7 +5,7 @@ open System
 open System.IO
 open Amyris.Bio.utils
 open GslCore
-open GslCore.CommonTypes
+open GslCore.Core.Types
 
 /// Text representation of the assemblies to stdout
 /// dumpFlat file format
@@ -79,7 +79,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
             | None -> ()
 
             sprintf "DE %s" p.description |> w
-            sprintf "ST %s" (formatST p.sliceType) |> w
+            sprintf "ST %s" (SliceType.formatST p.sliceType) |> w
             sprintf "PA %s" aId |> w
             sprintf "DS %s" p.dnaSource |> w
             sprintf "CH %s" p.sourceChr |> w

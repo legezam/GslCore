@@ -5,7 +5,7 @@ open GslCore
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.GslcProcess
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open GslCore.AssemblyTestSupport
 open GslCore.DesignParams
 

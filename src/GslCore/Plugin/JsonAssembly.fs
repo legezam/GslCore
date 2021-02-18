@@ -2,7 +2,7 @@
 
 open System.IO
 open System
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Newtonsoft.Json
 open GslCore.PluginTypes
 open GslCore.CoreOutputProviders

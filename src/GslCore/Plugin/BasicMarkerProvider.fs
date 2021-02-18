@@ -2,7 +2,7 @@
 
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
-open GslCore.CommonTypes
+open GslCore.Core.Types
 open Amyris.Dna
 open GslCore.PluginTypes
 open GslCore.DnaCreation
