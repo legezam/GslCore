@@ -43,9 +43,6 @@
     <Compile Include="Ast\Types\Parts.fs" />
     <Compile Include="Ast\Types\L2.fs" />
     <Compile Include="Ast\ErrorHandling.fs" />
-    <Compile Include="Ast\Algorithms.fs" />
-    <Compile Include="Ast\Linting.fs" />
-    <Compile Include="Ast\Process.fs" />
     <FsYacc Include=".\Ast\GslParser.fsy">
       <OtherFlags>--module GslCore.Ast.GslParser -o Ast/GslParser.fs</OtherFlags>
     </FsYacc>
@@ -56,6 +53,19 @@
 <!--    <None Include="Ast\GslLexer.fsl" />-->
     <Compile Include="Ast\GslParser.fs" />
     <Compile Include="Ast\GslLexer.fs" />
+    <Compile Include="Ast\Algorithms.fs" />
+    <Compile Include="Ast\Linting.fs" />
+    <Compile Include="Ast\Process\ParsePart.fs" />
+    <Compile Include="Ast\Process\Validation.fs" />
+    <Compile Include="Ast\Process\VariableResolution.fs" />
+    <Compile Include="Ast\Process\Inlining.fs" />
+    <Compile Include="Ast\Process\ExpressionReduction.fs" />
+    <Compile Include="Ast\Process\RelativePosition.fs" />
+    <Compile Include="Ast\Process\PragmaBuilding.fs" />
+    <Compile Include="Ast\Process\AssemblyFlattening.fs" />
+    <Compile Include="Ast\Process\AssemblyStuffing.fs" />
+    <Compile Include="Ast\Process\Docstrings.fs" />
+    <Compile Include="Ast\Process.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
     <Compile Include="Ast\LegacyParseTypes.fs" />
     <Compile Include="Core\Types.fs" />

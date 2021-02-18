@@ -1,11 +1,11 @@
 ﻿namespace GslCore
 
+open GslCore.Ast.Process
 open GslCore.DesignParams
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
 open Amyris.Bio.primercore
-open GslCore.DesignParams
 open GslCore.AstTypes
 open GslCore.AstFixtures
 open GslCore.AstProcess
@@ -31,7 +31,9 @@ type TestPragmas() =
             |> ignore)
         |> ignore
 
-        Assert.DoesNotThrow(fun () -> PragmaBuilder.createPragmaFromNameValue goodName [ goodOption ] |> ignore)
+        Assert.DoesNotThrow(fun () ->
+            PragmaBuilder.createPragmaFromNameValue goodName [ goodOption ]
+            |> ignore)
 
 
     [<Test>]
@@ -56,23 +58,23 @@ type TestPragmas() =
 
 [<TestFixture>]
 type TestPragmasAST() =
-    
+
     let pragmaCache = PragmaBuilder.builtin
 
     let pragmaBuildPipeline =
-        resolveVariables
-        >=> inlineFunctionCalls
+        VariableResolution.resolveVariables
+        >=> Inlining.inlineFunctionCalls
         >=> stripFunctions
-        >=> resolveVariablesStrict
+        >=> VariableResolution.resolveVariablesStrict
         >=> stripVariables
-        >=> reduceMathExpressions
-        >=> (buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList) pragmaCache)
+        >=> ExpressionReduction.reduceMathExpressions
+        >=> (PragmaBuilding.buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList) pragmaCache)
 
     let compilePragmas = compile pragmaBuildPipeline
 
     let checkPragmaIsBuilt node =
         match node with
-        | Pragma (p) -> Validation.good
+        | Pragma _ -> Validation.good
         | ParsePragma (p) -> AstMessage.createErrorf Error "Pragma '%s' was not built." p.Value.Name node
         | _ -> Validation.good
 
@@ -87,8 +89,8 @@ type TestPragmasAST() =
 
     let stuffPragmasPipeline =
         pragmaBuildPipeline
-        >=> flattenAssemblies pragmaCache
-        >=> stuffPragmasIntoAssemblies
+        >=> AssemblyFlattening.flattenAssemblies pragmaCache
+        >=> AssemblyStuffing.stuffPragmasIntoAssemblies
 
     [<Test>]
     member x.TestBasicPragmaBuild() =
@@ -198,7 +200,10 @@ gBAZ"""
             Pragma
                 (Node.wrapNode
                     { Definition =
-                          PragmaBuilder.builtin.Pragmas.TryFind("seed")
+                          PragmaBuilder
+                              .builtin
+                              .Pragmas
+                              .TryFind("seed")
                               .Value
                       Arguments = [ "123" ] })
 
@@ -206,7 +211,10 @@ gBAZ"""
             Pragma
                 (Node.wrapNode
                     { Definition =
-                          PragmaBuilder.builtin.Pragmas.TryFind("seed")
+                          PragmaBuilder
+                              .builtin
+                              .Pragmas
+                              .TryFind("seed")
                               .Value
                       Arguments = [ "456" ] })
 

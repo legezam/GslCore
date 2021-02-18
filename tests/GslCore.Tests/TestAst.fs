@@ -1,12 +1,13 @@
 ﻿namespace GslCore.Tests
 
+open GslCore.Ast.Process
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes
 open GslCore.AstErrorHandling
 open GslCore.AstProcess
-open GslCore.AstLinting
+open GslCore.Ast
 open GslCore.AstFixtures
 open GslCore.AstAssertions
 open GslCore.AstAlgorithms
@@ -19,7 +20,7 @@ type TestLinting() =
     member x.TestDetectOldVariableSyntax() =
         "@foo"
         |> GslSourceCode
-        |> compile linters
+        |> compile Linting.linters
         |> assertWarn Warning (Some("The syntax for using a variable has changed"))
         |> ignore
 
@@ -27,7 +28,7 @@ type TestLinting() =
     member x.TestDetectPushPop() =
         "#push\n#pop"
         |> GslSourceCode
-        |> compile linters
+        |> compile Linting.linters
         |> assertFailMany [ PragmaError; PragmaError ] [
             Some("#push and #pop have been removed")
             Some("#push and #pop have been removed")
@@ -51,7 +52,7 @@ type TestValidation() =
         let tree = treeify [ err ]
 
         let failure =
-            assertValidationFail ParserError (Some errorText) checkParseError tree
+            assertValidationFail ParserError (Some errorText) Validation.checkParseError tree
 
         Assert.AreEqual(err, failure.Node)
 
@@ -60,7 +61,11 @@ type TestValidation() =
         let source = GslSourceCode("###[2:20]")
         let tree = lexparse source |> returnOrFail
 
-        assertValidationFail PartError (Some "Can only apply part mods to Gene or PartId, not Marker") checkMods tree
+        assertValidationFail
+            PartError
+            (Some "Can only apply part mods to Gene or PartId, not Marker")
+            Validation.checkMods
+            tree
         |> ignore
 
     [<Test>]
@@ -68,36 +73,47 @@ type TestValidation() =
         let source = GslSourceCode("(pFOO; gFOO)[2:20]")
         let tree = lexparse source |> returnOrFail
 
-        assertValidationFail PartError (Some "Can only apply part mods to Gene or PartId, not Assembly") checkMods tree
+        assertValidationFail
+            PartError
+            (Some "Can only apply part mods to Gene or PartId, not Assembly")
+            Validation.checkMods
+            tree
         |> ignore
 
 [<TestFixture>]
 type TestTransformation() =
 
 
-    let variableTest = sourceCompareTest resolveVariables
+    let variableTest =
+        sourceCompareTest VariableResolution.resolveVariables
 
     let mathReductionTest =
-        sourceCompareTest (resolveVariables >=> reduceMathExpressions)
+        sourceCompareTest
+            (VariableResolution.resolveVariables
+             >=> ExpressionReduction.reduceMathExpressions)
 
     let functionInliningTest =
         sourceCompareTest
-            (resolveVariables
-             >=> inlineFunctionCalls
+            (VariableResolution.resolveVariables
+             >=> Inlining.inlineFunctionCalls
              >=> stripFunctions)
 
     let flattenAssemblyTest =
-        sourceCompareTest (buildPragmas Set.empty PragmaBuilder.builtin >=> flattenAssemblies PragmaBuilder.builtin)
+        sourceCompareTest
+            (PragmaBuilding.buildPragmas Set.empty PragmaBuilder.builtin
+             >=> AssemblyFlattening.flattenAssemblies PragmaBuilder.builtin)
 
     let flattenPartTest =
-        sourceCompareTest (resolveVariables >=> flattenAssemblies PragmaBuilder.builtin)
+        sourceCompareTest
+            (VariableResolution.resolveVariables
+             >=> AssemblyFlattening.flattenAssemblies PragmaBuilder.builtin)
 
     let variableResolutionPipeline =
-        checkRecursiveCalls
-        >=> resolveVariables
-        >=> inlineFunctionCalls
+        Validation.checkRecursiveCalls
+        >=> VariableResolution.resolveVariables
+        >=> Inlining.inlineFunctionCalls
         >=> stripFunctions
-        >=> resolveVariablesStrict
+        >=> VariableResolution.resolveVariablesStrict
 
     let fullVariableResolutionTest =
         sourceCompareTest variableResolutionPipeline
@@ -135,7 +151,7 @@ end
 """
 
         GslSourceCode(source)
-        |> compile resolveVariables
+        |> compile VariableResolution.resolveVariables
         |> assertFailMany [ UnresolvedVariable
                             UnresolvedVariable ] [
             Some("bar")

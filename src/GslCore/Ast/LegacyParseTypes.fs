@@ -2,6 +2,7 @@
 
 open Amyris.ErrorHandling
 open Amyris.Dna
+open GslCore.Ast.Process
 open GslCore.Constants
 open System
 open GslCore.Uri
@@ -266,7 +267,7 @@ let private createPPP part =
         >>= (fun legacyPart ->
             ok
                 { part = legacyPart
-                  pr = getPragmas p
+                  pr = ParsePart.getPragmas p
                   fwd = p.Value.IsForward })
     | x -> AstMessage.internalTypeMismatch (Some "legacy part conversion") "Part" x
 
@@ -277,16 +278,16 @@ type AssemblyConversionContext =
       docs: DocstringEnvironment }
 
 let emptyConversionContext =
-    { pragmaEnv = emptyPragmaEnvironment
-      docs = emptyDocstringEnvironment }
+    { pragmaEnv = PragmaEnvironment.empty
+      docs = DocstringEnvironment.empty }
 
 /// Accumulate both pragma and docstring context.
 let updateConversionContext mode s node =
     let newPragmaEnv =
-        updatePragmaEnvironment mode s.pragmaEnv node
+        AssemblyStuffing.updatePragmaEnvironment mode s.pragmaEnv node
 
     let newDocsEnv =
-        updateDocstringEnvironment mode s.docs node
+        Docstrings.updateDocstringEnvironment mode s.docs node
 
     { s with
           pragmaEnv = newPragmaEnv
@@ -296,7 +297,7 @@ let updateConversionContext mode s node =
 let convertAssembly (context: AssemblyConversionContext)
                     (partWrapper: Node<ParsePart>, aplw: Node<AstNode list>)
                     : Result<Assembly, AstMessage> =
-    let assemblyPragmas = getPragmas partWrapper
+    let assemblyPragmas = ParsePart.getPragmas partWrapper
 
     let name =
         assemblyPragmas
@@ -324,8 +325,8 @@ let convertAssembly (context: AssemblyConversionContext)
                   linkerHint = linkerHint
                   pragmas = assemblyPragmas
                   designParams = designParams
-                  capabilities = context.pragmaEnv.capabilities
-                  docStrings = context.docs.assigned
+                  capabilities = context.pragmaEnv.Capabilities
+                  docStrings = context.docs.Assigned
                   sourcePosition = partWrapper.Positions }
 
 // ======================
@@ -367,8 +368,8 @@ let private buildL2Expression (ew: Node<L2Expression>) =
 /// Build a L2Line from an AST node and pragma environment.
 let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expression>): Result<L2Line, AstMessage> =
     let pragmas =
-        pragmaEnv.persistent
-        |> PragmaCollection.mergeInCollection pragmaEnv.assignedTransients
+        pragmaEnv.Persistent
+        |> PragmaCollection.mergeInCollection pragmaEnv.AssignedTransients
 
     let name =
         pragmas
@@ -385,4 +386,4 @@ let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expressio
                   name = name
                   uri = uri
                   pragmas = pragmas
-                  capabilities = pragmaEnv.capabilities }
+                  capabilities = pragmaEnv.Capabilities }

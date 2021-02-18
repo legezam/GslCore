@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open System
+open GslCore.Ast.Process
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes
@@ -66,7 +67,7 @@ type TestParsing() =
 
         source
         |> GslSourceCode
-        |> compile (Validation.validate checkParseError)
+        |> compile (Validation.validate Validation.checkParseError)
         |> assertFail ParserError (Some("syntax error"))
         |> ignore
 

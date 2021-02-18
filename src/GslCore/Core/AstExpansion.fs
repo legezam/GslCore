@@ -2,9 +2,10 @@
 module GslCore.AstExpansion
 
 open System
+open GslCore.Ast.Process
 open GslCore.Constants
 open GslCore.AstTypes
-open GslCore.AstLinting
+open GslCore.Ast
 open GslCore.AstProcess
 open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
@@ -19,7 +20,6 @@ open GslCore.Core
 open GslCore.Core.Types
 open GslCore.Reference
 open GslCore.ResolveExtPart
-open GslCore.Ast
 open GslCore.PluginTypes
 
 // ==================
@@ -28,26 +28,26 @@ open GslCore.PluginTypes
 // ==================
 
 let immediateValidations =
-    Validation.validate (checkParseError &&& validBasePart)
+    Validation.validate (Validation.checkParseError &&& Validation.validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
-let phase1 legalCapas (pragmaCache: PragmaBuilder) =
-    linters
+let phase1 (legalCapas: Capabilities) (pragmaBuilder: PragmaBuilder): AstTreeHead -> Result<AstTreeHead, AstMessage> =
+    Linting.linters
     >=> immediateValidations
-    >=> checkRecursiveCalls
-    >=> resolveVariables
-    >=> inlineFunctionCalls
+    >=> Validation.checkRecursiveCalls
+    >=> VariableResolution.resolveVariables
+    >=> Inlining.inlineFunctionCalls
     >=> stripFunctions
-    >=> resolveVariablesStrict
+    >=> VariableResolution.resolveVariablesStrict
     >=> stripVariables
-    >=> reduceMathExpressions
-    >=> buildPragmas legalCapas pragmaCache
+    >=> ExpressionReduction.reduceMathExpressions
+    >=> PragmaBuilding.buildPragmas legalCapas pragmaBuilder
     >=> collectWarnings
-    >=> buildRelativePositions
+    >=> RelativePosition.compute
     >=> expandRoughageLines // inline roughage expansion is pretty simple so we always do it
-    >=> flattenAssemblies pragmaCache
-    >=> (Validation.validate checkMods)
-    >=> stuffPragmasIntoAssemblies
+    >=> AssemblyFlattening.flattenAssemblies pragmaBuilder
+    >=> (Validation.validate Validation.checkMods)
+    >=> AssemblyStuffing.stuffPragmasIntoAssemblies
 
 /// Prep a tree for phase 2, after phase 1 compilation is complete.
 let prepPhase2 rgs library =
@@ -231,7 +231,7 @@ let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
         foldmapParameters
         tree
     >>= healSplices // heal the splices
-    >>= stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
+    >>= AssemblyStuffing.stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
 
 // ==========================
 // expanding L2 GSL
@@ -355,14 +355,14 @@ let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider 
     let foldmapParameters =
         { FoldMapParameters.Direction = TopDown
           Mode = Serial
-          StateUpdate = updatePragmaEnvironment
+          StateUpdate = AssemblyStuffing.updatePragmaEnvironment
           Map = bootstrapExpandL2Expression }
     FoldMap.foldMap  // run the bootstrapped expand operation
-        emptyPragmaEnvironment
+        PragmaEnvironment.empty
         foldmapParameters
         tree
     >>= healSplices // heal the splices
-    >>= stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
+    >>= AssemblyStuffing.stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
 
 
 // ==================================
