@@ -207,7 +207,7 @@ let handleCompileResult (result, input: GslSourceCode, s) =
             printfn "%s\n" w.Summary
         // if we just want one expansion step, reprint expanded source and done
         if not s.Options.Iter || s.Options.OnlyPhase1
-        then Exit(0, Some(decompile tree.wrappedNode))
+        then Exit(0, Some(AstNode.decompile tree.wrappedNode))
         // do output generation
         else Continue(assemblies, input, s)
     | Bad (errors) ->

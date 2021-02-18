@@ -99,7 +99,7 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
 let checkParseError node =
     match node with
     | ParseError (ew) -> AstMessage.createError ParserError ew.Value node
-    | _ -> good
+    | _ -> Validation.good
 
 // ===============
 // validation of parts
@@ -108,13 +108,13 @@ let checkParseError node =
 let validatePart op node =
     match node with
     | Part ({ Value = pp; Positions = _ }) -> op pp
-    | _ -> good
+    | _ -> Validation.good
 
 // FIXME: this may be either a step too far, or just on example of something we need a lot more of
 // Ideally the parser structure should make this kind of check unnecessary.
 let private validBasePartPP pp =
     match pp.BasePart with
-    | ValidBasePart _ -> good
+    | ValidBasePart _ -> Validation.good
     | x -> AstMessage.createErrorf (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
 
 let validBasePart = validatePart validBasePartPP
@@ -123,11 +123,11 @@ let validBasePart = validatePart validBasePartPP
 let private checkModsPP pp =
     if not pp.Modifiers.IsEmpty then
         match pp.BasePart with
-        | Gene _ -> good
-        | PartId _ -> good
+        | Gene _ -> Validation.good
+        | PartId _ -> Validation.good
         | x -> AstMessage.createErrorf PartError "Can only apply part mods to Gene or PartId, not %s" x.TypeName x
     else
-        good
+        Validation.good
 
 let checkMods = validatePart checkModsPP
 
@@ -160,7 +160,12 @@ let private checkRecursiveCall (s: string list) node =
 
 /// Fail if a GSL program contains recursively-defined functions.
 let checkRecursiveCalls =
-    foldmap Serial TopDown updateRecursiveCheckState [] checkRecursiveCall
+    let foldMapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updateRecursiveCheckState
+          Map = checkRecursiveCall }
+    FoldMap.foldMap [] foldMapParameters
 
 
 // ===================
@@ -274,12 +279,22 @@ let private resolveVariable mode (s: VariableBindings) (n: AstNode) =
 /// Transform an AST with unresolved scoped variables into a tree with resolved scoped variables.
 /// Variables that resolve to function arguments are left untouched in this phase.
 let resolveVariables =
-    foldmap Serial TopDown updateVariableResolution Map.empty (resolveVariable AllowUnresolvedFunctionLocals)
+    let foldMapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updateVariableResolution
+          Map = resolveVariable AllowUnresolvedFunctionLocals }
+    FoldMap.foldMap Map.empty foldMapParameters
 
 /// Transform an AST with unresolved scoped variables into a tree with resolved scoped variables.
 /// Fails on unresolved function locals.
 let resolveVariablesStrict =
-    foldmap Serial TopDown updateVariableResolution Map.empty (resolveVariable Strict)
+    let foldMapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updateVariableResolution
+          Map = resolveVariable Strict }
+    FoldMap.foldMap Map.empty foldMapParameters
 
 // =====================
 // inlining function calls
@@ -340,7 +355,7 @@ let private localVarFromTypedValueAndName (vb: VariableBindings) (name, node) =
         // using the existing variable bindings, resolve any variables contained in this value
         // this ensures that function locals never resolve to each other.
         AstTreeHead(v)
-        |> map Serial TopDown (resolveVariable Strict vb)
+        |> FoldMap.map Serial TopDown (resolveVariable Strict vb)
         >>= (fun (AstTreeHead (newVal)) ->
             ok
                 (VariableBinding
@@ -390,14 +405,20 @@ let private inlineFunctionCall (s: FunctionInliningState) (node: AstNode) =
             checkArgs fd fc node
             >>= inlinePassedArgs s.vars
             |> lift AstTreeHead // needed to adapt to the map function
-            >>= map Serial TopDown addPositions
+            >>= FoldMap.map Serial TopDown addPositions
             |> lift (fun treeHead -> treeHead.wrappedNode)
 
         | None -> AstMessage.createError UnresolvedFunction fc.Name node
     | _ -> ok node
 
 let inlineFunctionCalls =
-    foldmap Serial TopDown updateFunctionInliningState initialInliningState inlineFunctionCall
+    let foldMapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updateFunctionInliningState
+          Map = inlineFunctionCall }
+        
+    FoldMap.foldMap initialInliningState foldMapParameters
 
 // =====================
 // simplification of binary expressions
@@ -459,7 +480,7 @@ let private reduceMathExpression node =
         | NotAVariable -> AstMessage.createError TypeError (negationErrMsg inner) inner
     | _ -> ok node
 
-let reduceMathExpressions = map Serial BottomUp reduceMathExpression
+let reduceMathExpressions = FoldMap.map Serial BottomUp reduceMathExpression
 
 // ======================
 // computing relative positions
@@ -514,7 +535,7 @@ let private buildRelativePosition node =
                     buildNode ai ThreePrime)
     | _ -> ok node
 
-let buildRelativePositions = map Serial TopDown buildRelativePosition
+let buildRelativePositions = FoldMap.map Serial TopDown buildRelativePosition
 
 // =====================
 // compiling parsed pragmas into built pragmas
@@ -639,7 +660,12 @@ let private compilePragma (legalCapas: Capabilities)
 
 /// Build genuine pragmas from reduced parsed pragmas.
 let buildPragmas legalCapas (pragmaCache: PragmaBuilder) =
-    foldmap Serial TopDown updatePragmaConstructionContext [] (compilePragma legalCapas pragmaCache)
+    let foldMapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updatePragmaConstructionContext
+          Map = compilePragma legalCapas pragmaCache }    
+    FoldMap.foldMap [] foldMapParameters
 
 
 // ==========================
@@ -789,7 +815,7 @@ let private flattenAssembly (pragmaCache: PragmaBuilder) node =
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
 let flattenAssemblies (pragmaCache: PragmaBuilder) =
-    map Serial BottomUp (flattenAssembly pragmaCache)
+    FoldMap.map Serial BottomUp (flattenAssembly pragmaCache)
 
 // =====================
 // determining the pragma environment at any given node; stuffing assemblies
@@ -947,7 +973,12 @@ let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment) (nod
 /// symptom of a bugged GSL program.
 ///</summary>
 let stuffPragmasIntoAssemblies =
-    foldmap Serial TopDown updatePragmaEnvironment emptyPragmaEnvironment stuffPragmasIntoAssembly
+    let foldMapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updatePragmaEnvironment
+          Map = stuffPragmasIntoAssembly }       
+    FoldMap.foldMap emptyPragmaEnvironment foldMapParameters
 
 // ==================
 // gathering and assigning docstrings
@@ -995,10 +1026,10 @@ let private checkGeneName (rgs: GenomeDefinitions) (library: Map<string, Dna>) a
         >>= (fun reference ->
             if reference |> GenomeDefinition.isValidFeature geneName
                || library.ContainsKey(geneName) then
-                good
+                Validation.good
             else
                 AstMessage.createErrorf PartError "Unknown gene: '%s'." geneName (pp.Value.BasePart))
-    | _ -> good
+    | _ -> Validation.good
 
 /// Check all the gene names in the context of a single assembly.
 let private checkGeneNamesInAssembly (rgs: GenomeDefinitions) library node =
@@ -1009,11 +1040,11 @@ let private checkGeneNamesInAssembly (rgs: GenomeDefinitions) library node =
         aw.Value
         |> List.map (checkGeneName rgs library assemblyPrags)
         |> collectValidations
-    | _ -> good
+    | _ -> Validation.good
 
 /// Validate all gene names.
 let checkGeneNames rgs library =
-    validate (checkGeneNamesInAssembly rgs library)
+    Validation.validate (checkGeneNamesInAssembly rgs library)
 
 // =========================
 // stripping all non-literals from a tree
@@ -1044,11 +1075,11 @@ let private cleanBlock cleaner node =
 
 /// Strip function defintions from tree.
 let stripFunctions =
-    map Serial TopDown (promote (cleanBlock cleanFunction))
+    FoldMap.map Serial TopDown (promote (cleanBlock cleanFunction))
 
 /// Strip variable bindings from tree.
 let stripVariables =
-    map Serial TopDown (promote (cleanBlock cleanVariable))
+    FoldMap.map Serial TopDown (promote (cleanBlock cleanVariable))
 
 // =======================
 // collecting warning messages from pragmas
@@ -1063,7 +1094,7 @@ let private collectWarning (node: AstNode): Result<AstNode, AstMessage> =
     | _ -> ok node
 
 /// Add warnings into the message stream for every #warn pragma in the tree.
-let collectWarnings = map Serial TopDown collectWarning
+let collectWarnings = FoldMap.map Serial TopDown collectWarning
 
 // =====================
 // naming every assembly if it isn't named
@@ -1099,7 +1130,7 @@ let private nameAssembly (node: AstNode): AstNode =
 
         if pragmas
            |> PragmaCollection.contains BuiltIn.namePragmaDef then node // already named
-        else let literal = decompile node |> cleanHashName
+        else let literal = AstNode.decompile node |> cleanHashName
 
              let name =
                  literal
@@ -1127,7 +1158,7 @@ let private nameAssembly (node: AstNode): AstNode =
 /// the new name pragma.
 ///</summary>
 let nameAssemblies =
-    map Serial TopDown (promote nameAssembly)
+    FoldMap.map Serial TopDown (promote nameAssembly)
 
 
 // ====================
@@ -1150,7 +1181,7 @@ let private validateRoughageLine (rw: Node<Roughage>) =
     let node = Roughage(rw)
 
     if not hasLocus
-    then AstMessage.createErrorf ValueError "Roughage construct has indeterminate locus: %s" (decompile node) node
+    then AstMessage.createErrorf ValueError "Roughage construct has indeterminate locus: %s" (AstNode.decompile node) node
     else ok rw
 
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
@@ -1215,4 +1246,4 @@ let private expandRoughageLine node =
     | _ -> ok node
 
 /// Expand all inline roughage definitions into subblocks.
-let expandRoughageLines = map Serial TopDown expandRoughageLine
+let expandRoughageLines = FoldMap.map Serial TopDown expandRoughageLine

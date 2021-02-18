@@ -21,7 +21,7 @@ let assertTreesEqual (expected: AstTreeHead) (actual: AstTreeHead) =
     if expected <> actual then
         let dumpAst node =
             let items =
-                traverse expected
+                AstNode.traverse expected
                 |> Seq.map (fun n -> sprintf "%+A" n)
                 |> List.ofSeq
 
@@ -29,14 +29,14 @@ let assertTreesEqual (expected: AstTreeHead) (actual: AstTreeHead) =
 
         let msg =
             sprintf "ASTs were not equal.\nExpected:\n%s\n\nActual:\n%s\nExpected nodes:\n%+A\nActual nodes:\n%+A"
-                (decompile expected.wrappedNode) (decompile actual.wrappedNode) (expected) (actual)
+                (AstNode.decompile expected.wrappedNode) (AstNode.decompile actual.wrappedNode) (expected) (actual)
 
         Assert.Fail(msg)
 
 /// Assert that passed tree decompiles to the provided source literal.
 /// Optionally trim leading and trailing whitespace.
 let assertDecompilesTo (source: string) (tree: AstTreeHead) =
-    let treeAsText = decompile tree.wrappedNode
+    let treeAsText = AstNode.decompile tree.wrappedNode
 
     let cleanString (s: string) = s.Trim().Replace("\r\n", "\n")
 

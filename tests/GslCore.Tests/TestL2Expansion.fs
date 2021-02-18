@@ -15,7 +15,7 @@ type TestL2Expansion() =
 
     let phase1WithL2Validation =
         phase1 Set.empty PragmaBuilder.builtin
-        >=> (validate validateNoAssemblyInL2Promoter)
+        >=> (Validation.validate validateNoAssemblyInL2Promoter)
 
     //    let phase1AndL2 =
 //        phase1 Set.empty // empty list as we shouldn't need any capas for this test

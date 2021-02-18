@@ -28,7 +28,7 @@ open GslCore.PluginTypes
 // ==================
 
 let immediateValidations =
-    validate (checkParseError &&& validBasePart)
+    Validation.validate (checkParseError &&& validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
 let phase1 legalCapas (pragmaCache: PragmaBuilder) =
@@ -46,7 +46,7 @@ let phase1 legalCapas (pragmaCache: PragmaBuilder) =
     >=> buildRelativePositions
     >=> expandRoughageLines // inline roughage expansion is pretty simple so we always do it
     >=> flattenAssemblies pragmaCache
-    >=> (validate checkMods)
+    >=> (Validation.validate checkMods)
     >=> stuffPragmasIntoAssemblies
 
 /// Prep a tree for phase 2, after phase 1 compilation is complete.
@@ -111,7 +111,7 @@ let private replaceSourcePosition pos node =
 /// Replace all source positions in a bootstrapped expanded tree with the position of the node
 /// that was expanded into source.
 let private replaceSourcePositions pos =
-    map Serial TopDown (promote (replaceSourcePosition pos))
+    FoldMap.map Serial TopDown (promote (replaceSourcePosition pos))
 
 /// If any messages emanated from a bootstrapped parsing, replace their positions with the input position.
 let private replaceMessagePositions pos =
@@ -187,7 +187,7 @@ let private healSplice node =
     | _ -> node
 
 /// Explode all Splices into their enclosing context.
-let healSplices = map Serial TopDown (promote healSplice)
+let healSplices = FoldMap.map Serial TopDown (promote healSplice)
 
 
 // ==================================
@@ -221,12 +221,14 @@ let bootstrapExpandLegacyAssembly errorMsgType
 /// This is necessary because some bootstrapped expansion phases convert a single
 /// node into a miniature block, which we want to expand into the outer context.
 let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
-    foldmap  // run the bootstrapped expand operation
-        mode
-        TopDown
-        updateConversionContext
+    let foldmapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = mode
+          StateUpdate = updateConversionContext
+          Map = bootstrappedExpansionFunction }
+    FoldMap.foldMap  // run the bootstrapped expand operation
         emptyConversionContext
-        bootstrappedExpansionFunction
+        foldmapParameters
         tree
     >>= healSplices // heal the splices
     >>= stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
@@ -331,8 +333,8 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
         | AssemblyPart a -> AstMessage.createError L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
             AstMessage.createError (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
-        | _ -> good
-    | _ -> good
+        | _ -> Validation.good
+    | _ -> Validation.good
 
 /// Expand all level 2 expressions.
 let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider list) (rgs: GenomeDefinitions) tree =
@@ -350,12 +352,14 @@ let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider 
             >>= (bootstrapPhase1 legalCapas pragmaCache l2e.Positions)
         | _ -> ok node
 
-    foldmap  // run the bootstrapped expand operation
-        Serial
-        TopDown
-        updatePragmaEnvironment
+    let foldmapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updatePragmaEnvironment
+          Map = bootstrapExpandL2Expression }
+    FoldMap.foldMap  // run the bootstrapped expand operation
         emptyPragmaEnvironment
-        bootstrapExpandL2Expression
+        foldmapParameters
         tree
     >>= healSplices // heal the splices
     >>= stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
@@ -393,7 +397,7 @@ let private expansionMode node =
 let expansionNeeded tree =
     let expansionsNeeded =
         tree
-        |> traverse
+        |> AstNode.traverse
         |> Seq.map expansionMode
         |> Seq.choose id
         |> Set.ofSeq
@@ -410,7 +414,7 @@ let expansionNeeded tree =
 let maybeBypassBootstrap mode bootstrapOperation state (node: AstNode) =
     let modesRequiredByThisNode =
         AstTreeHead(node)
-        |> traverse
+        |> AstNode.traverse
         |> Seq.choose expansionMode
         |> Set.ofSeq
 
@@ -1114,7 +1118,12 @@ let private convertAndGatherAssembly (accum: ResizeArray<Assembly>) conversionCo
 let convertAndGatherAssemblies tree =
     let accum = ResizeArray<Assembly>()
 
-    foldmap Serial TopDown updateConversionContext emptyConversionContext (convertAndGatherAssembly accum) tree
+    let foldmapParameters =
+        { FoldMapParameters.Direction = TopDown
+          Mode = Serial
+          StateUpdate = updateConversionContext
+          Map = convertAndGatherAssembly accum }
+    FoldMap.foldMap emptyConversionContext foldmapParameters tree
     >>= (fun treeOut ->
         // if successful, return the accumulated assemblies and the tree itself
         ok ((accum |> List.ofSeq), treeOut))

@@ -72,16 +72,16 @@ type TestPragmasAST() =
 
     let checkPragmaIsBuilt node =
         match node with
-        | Pragma (p) -> good
+        | Pragma (p) -> Validation.good
         | ParsePragma (p) -> AstMessage.createErrorf Error "Pragma '%s' was not built." p.Value.Name node
-        | _ -> good
+        | _ -> Validation.good
 
     let pragmaBuildTest source =
         let source = GslSourceCode source
 
         source
         |> compilePragmas
-        >>= validate checkPragmaIsBuilt
+        >>= Validation.validate checkPragmaIsBuilt
         |> failIfBad (Some(source))
         |> ignore
 

@@ -66,7 +66,7 @@ type TestParsing() =
 
         source
         |> GslSourceCode
-        |> compile (validate checkParseError)
+        |> compile (Validation.validate checkParseError)
         |> assertFail ParserError (Some("syntax error"))
         |> ignore
 

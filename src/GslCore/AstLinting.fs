@@ -15,7 +15,7 @@ let private warnOnPartThatIsLikelyVariable node =
     match node with
     | PartId (pw) ->
         if rabitPartRegex.IsMatch(pw.Value) then
-            good
+            Validation.good
         else
             let msgText =
                 sprintf "The syntax for using a variable has changed to &myVar from @myVar.\n@%s looks like it should probably be &%s."
@@ -23,7 +23,7 @@ let private warnOnPartThatIsLikelyVariable node =
 
             let warnMsg = AstMessage.createWarning msgText node
             warn warnMsg ()
-    | _ -> good
+    | _ -> Validation.good
 
 let private failOnPushAndPop node =
     match node with
@@ -33,8 +33,8 @@ let private failOnPushAndPop node =
                  PragmaError
                  "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
                  node
-        else good
-    | _ -> good
+        else Validation.good
+    | _ -> Validation.good
 
 
 let private allLinters =
@@ -42,4 +42,4 @@ let private allLinters =
     &&& failOnPushAndPop
 
 /// Perform all linting passes on an AST.
-let linters = validate allLinters
+let linters = Validation.validate allLinters

@@ -40,7 +40,7 @@ type TestLinting() =
 type TestValidation() =
 
     let assertValidationFail msgType msgSnippet op tree =
-        (validate op tree)
+        (Validation.validate op tree)
         |> assertFail msgType msgSnippet
 
     [<Test>]
