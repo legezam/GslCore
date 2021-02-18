@@ -2,7 +2,7 @@
 module GslCore.TaggingPlugin
 
 open System
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.CommandConfig
 open GslCore.Pragma

@@ -1,7 +1,7 @@
 ﻿module GslCore.BasicMarkerProvider
 
 open GslCore.Constants
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open GslCore.CommonTypes
 open Amyris.Dna
 open GslCore.PluginTypes

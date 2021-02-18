@@ -4,7 +4,7 @@ module GslCore.GslcProcess
 open System
 open Amyris.Bio
 open GslCore.AstExpansion
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.DnaCreation
 open GslCore.Pragma

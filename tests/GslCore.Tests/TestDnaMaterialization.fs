@@ -6,7 +6,7 @@ open GslCore.Pragma
 open GslCore.Reference
 open NUnit.Framework
 open Amyris.Bio.biolib
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open GslCore.CommonTypes
 open GslCore.Pragma
 open Amyris.ErrorHandling

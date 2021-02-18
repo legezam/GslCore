@@ -9,7 +9,7 @@ open GslCore.AstProcess
 open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
 open Amyris.ErrorHandling
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open Amyris.Dna
 open GslCore.DnaCreation
 open GslCore.Pragma

@@ -9,7 +9,7 @@ open GslCore.AstErrorHandling
 open GslCore.AstAlgorithms
 open GslCore.AstExpansion
 open GslCore.AstAssertions
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 
 [<TestFixture>]
 type TestBootstrapping() =

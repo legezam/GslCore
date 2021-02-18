@@ -4,7 +4,7 @@ open System.Collections
 open GslCore
 open GslCore.Reference
 open GslCore.Tests
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstTypes

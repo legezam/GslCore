@@ -2,7 +2,7 @@
 
 open System
 open GslCore
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open NUnit.Framework
 open GslCore.CommonTypes
 open GslCore.AssemblyTestSupport

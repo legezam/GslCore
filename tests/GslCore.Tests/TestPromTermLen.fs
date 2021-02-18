@@ -3,7 +3,7 @@
 
 open GslCore.Reference
 open NUnit.Framework
-open GslCore.LegacyParseTypes
+open GslCore.Ast.LegacyParseTypes
 open GslCore.Constants
 open GslCore.CommonTypes
 open GslCore.Pragma
