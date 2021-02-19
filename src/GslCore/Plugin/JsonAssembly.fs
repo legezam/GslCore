@@ -95,13 +95,13 @@ type AutodeskJsonOutputProvider(outPath: (string) option) =
     inherit ConfigurableOutputProvider<string>(outPath)
     with
         override x.ArgSpec =
-            { name = "json"
-              param = [ "outfile" ]
-              alias = []
-              desc = "write a json file format for the assembly results" }
+            { Name = "json"
+              Parameters = [ "outfile" ]
+              Aliases = []
+              Description = "write a json file format for the assembly results" }
 
         override x.UseArg(arg) =
-            AutodeskJsonOutputProvider(Some(arg.values.[0])) :> IOutputFormat
+            AutodeskJsonOutputProvider(Some(arg.Values.[0])) :> IOutputFormat
 
         override x.DoOutput(path, data) = dumpJsonAssemblies path data.Assemblies
 

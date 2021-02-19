@@ -11,10 +11,10 @@ open GslCore.Core.PluginTypes
 module fixtures =
 
     let testArg name alias desc =
-        { name = name
-          param = [ "justOneArg" ]
-          alias = [ alias ]
-          desc = desc }
+        { Name = name
+          Parameters = [ "justOneArg" ]
+          Aliases = [ alias ]
+          Description = desc }
 
     type TestOutputFormat =
         { data: string option
@@ -28,9 +28,9 @@ module fixtures =
 
             member x.Configure(parsedArg) =
                 let revised =
-                    if parsedArg.spec = x.TestArg then
+                    if parsedArg.Specification = x.TestArg then
                         { x with
-                              data = Some(parsedArg.values.[0]) }
+                              data = Some(parsedArg.Values.[0]) }
                     else
                         x
                 revised :> IOutputFormat

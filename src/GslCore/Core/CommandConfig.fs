@@ -8,41 +8,41 @@ open Amyris.Bio.utils
 
 /// Base type for a command line argument specification.
 type CmdLineArgSpec =
-    { name: string
-      param: string list
-      alias: string list
-      desc: string }
+    { Name: string
+      Parameters: string list
+      Aliases: string list
+      Description: string }
 
 /// Combination of a command line arg defintion and a behavior to update some options
 /// structure based on passed arguments.
 type CmdLineArg<'cfg> =
-    { spec: CmdLineArgSpec
-      proc: string list -> 'cfg -> 'cfg }
+    { Specification: CmdLineArgSpec
+      Process: string list -> 'cfg -> 'cfg }
 
 type BuiltinCmdLineArg = CmdLineArg<ParsedOptions>
 
 type CollectedCommandLineArgs =
-    { builtins: Map<string, CmdLineArgSpec>
-      builtinsWithProc: Map<string, BuiltinCmdLineArg>
-      fromPlugins: Map<string, CmdLineArgSpec> }
+    { Builtins: Map<string, CmdLineArgSpec>
+      BuiltinsWithProcess: Map<string, BuiltinCmdLineArg>
+      FromPlugins: Map<string, CmdLineArgSpec> }
     member x.Specs =
-        let builtinSpecs = x.builtins |> Map.toSeq |> Seq.map snd
+        let builtinSpecs = x.Builtins |> Map.toSeq |> Seq.map snd
 
         let fromPlugins =
-            x.fromPlugins |> Map.toSeq |> Seq.map snd
+            x.FromPlugins |> Map.toSeq |> Seq.map snd
 
         Seq.append builtinSpecs fromPlugins
 
     member x.TryFind(name) =
-        match x.builtins.TryFind(name) with
+        match x.Builtins.TryFind(name) with
         | Some (a) -> Some(a)
-        | None -> x.fromPlugins.TryFind(name)
+        | None -> x.FromPlugins.TryFind(name)
 
 
 /// Literal command line argument parsed from input.
 type ParsedCmdLineArg =
-    { spec: CmdLineArgSpec
-      values: string list }
+    { Specification: CmdLineArgSpec
+      Values: string list }
 
 let informalVersion =
     AssemblyVersionInformation.AssemblyInformationalVersion // git hash
@@ -59,124 +59,125 @@ let libRoot =
 module CommandLine =
 
     let libCmdArg =
-        { spec =
-              { name = "lib"
-                param = [ "directory" ]
-                alias = []
-                desc = "directory in which genome definitions reside\nDefault: GSL_LIB var, or 'lib' in current directory" }
-          proc = fun p opts -> { opts with LibDir = smashSlash p.[0] } }
+        { Specification =
+              { Name = "lib"
+                Parameters = [ "directory" ]
+                Aliases = []
+                Description = "directory in which genome definitions reside\nDefault: GSL_LIB var, or 'lib' in current directory" }
+          Process = fun p opts -> { opts with LibDir = smashSlash p.[0] } }
 
     let deterministicCmdArg =
         let processParameters (_parameters: string list) (parsedOptions: ParsedOptions): ParsedOptions =
             { parsedOptions with
                   IsDeterministic = true }
 
-        { CmdLineArg.spec =
-              { CmdLineArgSpec.name = "deterministic"
-                param = []
-                alias = []
-                desc = "Produce deterministic output (= if rerun with same input then will produce identical output)" }
-          proc = processParameters }
+        { CmdLineArg.Specification =
+              { CmdLineArgSpec.Name = "deterministic"
+                Parameters = []
+                Aliases = []
+                Description =
+                    "Produce deterministic output (= if rerun with same input then will produce identical output)" }
+          Process = processParameters }
 
     /// Define all GSLC command line arguments here.
     /// An argument consists of its name, the names of its parameters, a description,
     /// and a function that takes a list of passed parameters and an options record
     /// and returns a modified options record.
     let builtinCmdLineArgs =
-        [ { spec =
-                { name = "reflist"
-                  param = []
-                  alias = []
-                  desc = "list available reference genomes" }
-            proc = fun _ opts -> { opts with RefList = true } }
+        [ { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "reflist"
+                  Parameters = []
+                  Aliases = []
+                  Description = "list available reference genomes" }
+            Process = fun _ opts -> { opts with RefList = true } }
 
-          { spec =
-                { name = "refdump"
-                  param = [ "refname" ]
-                  alias = []
-                  desc = "dump available loci in reference genome" }
-            proc = fun p opts -> { opts with RefDump = Some(p.[0]) } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "refdump"
+                  Parameters = [ "refname" ]
+                  Aliases = []
+                  Description = "dump available loci in reference genome" }
+            Process = fun p opts -> { opts with RefDump = Some(p.[0]) } }
 
-          { spec =
-                { name = "step"
-                  param = []
-                  alias = []
-                  desc = "expand GSL just one round, and emit intermediate GSL" }
-            proc = fun _ opts -> { opts with Iter = false } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "step"
+                  Parameters = []
+                  Aliases = []
+                  Description = "expand GSL just one round, and emit intermediate GSL" }
+            Process = fun _ opts -> { opts with Iter = false } }
 
-          { spec =
-                { name = "verbose"
-                  param = []
-                  alias = []
-                  desc = "print debugging info" }
-            proc = fun _ opts -> { opts with Verbose = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "verbose"
+                  Parameters = []
+                  Aliases = []
+                  Description = "print debugging info" }
+            Process = fun _ opts -> { opts with Verbose = true } }
 
-          { spec =
-                { name = "version"
-                  param = []
-                  alias = []
-                  desc = "print version information" }
-            proc =
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "version"
+                  Parameters = []
+                  Aliases = []
+                  Description = "print version information" }
+            Process =
                 fun _ opts ->
                     printfn "GSL core compiler version %s (%s)" version informalVersion
                     opts }
 
-          { spec =
-                { name = "helpPragmas"
-                  param = []
-                  alias = []
-                  desc = "print available pragmas" }
-            proc = fun _ opts -> { opts with DoHelpPragmas = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "helpPragmas"
+                  Parameters = []
+                  Aliases = []
+                  Description = "print available pragmas" }
+            Process = fun _ opts -> { opts with DoHelpPragmas = true } }
 
-          { spec =
-                { name = "quiet"
-                  param = []
-                  alias = []
-                  desc = "suppress any non-essential output" }
-            proc = fun _ opts -> { opts with Quiet = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "quiet"
+                  Parameters = []
+                  Aliases = []
+                  Description = "suppress any non-essential output" }
+            Process = fun _ opts -> { opts with Quiet = true } }
 
-          { spec =
-                { name = "noprimers"
-                  param = []
-                  alias = []
-                  desc = "do not attempt to generate primers" }
-            proc = fun _ opts -> { opts with NoPrimers = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "noprimers"
+                  Parameters = []
+                  Aliases = []
+                  Description = "do not attempt to generate primers" }
+            Process = fun _ opts -> { opts with NoPrimers = true } }
 
           libCmdArg
 
-          { spec =
-                { name = "serial"
-                  param = []
-                  alias = []
-                  desc = "don't run parallel operations, useful for debugging" }
-            proc = fun _ opts -> { opts with DoParallel = false } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "serial"
+                  Parameters = []
+                  Aliases = []
+                  Description = "don't run parallel operations, useful for debugging" }
+            Process = fun _ opts -> { opts with DoParallel = false } }
 
-          { spec =
-                { name = "lextest"
-                  param = []
-                  alias = [ "tokentest"; "tokenize" ]
-                  desc = "for debugging only, show stream of parsed tokens from input file" }
-            proc = fun _ opts -> { opts with LexOnly = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "lextest"
+                  Parameters = []
+                  Aliases = [ "tokentest"; "tokenize" ]
+                  Description = "for debugging only, show stream of parsed tokens from input file" }
+            Process = fun _ opts -> { opts with LexOnly = true } }
 
-          { spec =
-                { name = "only_phase1"
-                  param = []
-                  alias = []
-                  desc = "expand GSL just through the phase 1 pipeline, and emit intermediate GSL" }
-            proc = fun _ opts -> { opts with OnlyPhase1 = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "only_phase1"
+                  Parameters = []
+                  Aliases = []
+                  Description = "expand GSL just through the phase 1 pipeline, and emit intermediate GSL" }
+            Process = fun _ opts -> { opts with OnlyPhase1 = true } }
 
-          { spec =
-                { name = "plugins"
-                  param = []
-                  alias = []
-                  desc = "List all plugins installed in this build of the compiler." }
-            proc = fun _ opts -> { opts with ListPlugins = true } }
+          { CmdLineArg.Specification =
+                { CmdLineArgSpec.Name = "plugins"
+                  Parameters = []
+                  Aliases = []
+                  Description = "List all plugins installed in this build of the compiler." }
+            Process = fun _ opts -> { opts with ListPlugins = true } }
 
           deterministicCmdArg ]
         |> Seq.map (fun a ->
             seq {
-                yield (a.spec.name, a)
-                for alias in a.spec.alias -> (alias, a)
+                yield (a.Specification.Name, a)
+                for alias in a.Specification.Aliases -> (alias, a)
             })
         |> Seq.concat
         |> Map.ofSeq
@@ -188,15 +189,15 @@ module CommandLine =
         let padSize = 35
 
         let p =
-            Seq.map (sprintf " <%s>") a.param
+            Seq.map (sprintf " <%s>") a.Parameters
             |> Seq.fold (+) ""
 
-        let larg = sprintf "       --%s%s" a.name p
+        let larg = sprintf "       --%s%s" a.Name p
 
         let rPad =
             String.replicate (padSize - larg.Length) " "
 
-        let descLines = a.desc.Split [| '\n' |]
+        let descLines = a.Description.Split [| '\n' |]
         let firstLine = larg + rPad + "-" + descLines.[0]
 
         let formatOtherLine l = (String.replicate (padSize + 1) " ") + l
@@ -208,9 +209,9 @@ module CommandLine =
             yield firstLine
             for l in otherLines -> l
 
-            if not a.alias.IsEmpty then
+            if not a.Aliases.IsEmpty then
                 let aliases =
-                    a.alias
+                    a.Aliases
                     |> List.map (sprintf "--%s")
                     |> String.concat ", "
 
@@ -225,7 +226,7 @@ module CommandLine =
             args.Specs
             |> Set.ofSeq
             |> Set.toList
-            |> List.sortBy (fun s -> s.name)
+            |> List.sortBy (fun s -> s.Name)
             |> List.map printCmdLineArg
             |> Seq.concat
 

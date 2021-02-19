@@ -31,7 +31,7 @@ type HutchRabit =
     
 type PrimerType =
     | Amplification
-    | Quickchange    
+    | QuickChange    
     
 module Ryse =
     /// RYSE verbose flag
@@ -734,7 +734,7 @@ module Ryse =
         let primerRole =
             match kind with
             | Amplification -> Uris.ampPrimerRoleUri
-            | Quickchange -> Uris.quickchangePrimerRoleUri
+            | QuickChange -> Uris.quickchangePrimerRoleUri
 
         let fullComp =
             { id =

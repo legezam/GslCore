@@ -26,7 +26,7 @@ type ConfigurableOutputProvider<'T>(param: 'T option) =
         member x.ProvidedArgs() = [ x.ArgSpec ]
 
         member x.Configure(parsedArg) =
-            if parsedArg.spec = x.ArgSpec then x.UseArg(parsedArg) else x :> IOutputFormat
+            if parsedArg.Specification = x.ArgSpec then x.UseArg(parsedArg) else x :> IOutputFormat
 
         member x.ConfigureFromOptions(_) = x :> IOutputFormat
 
@@ -50,13 +50,13 @@ type GslFlatFileOutputProvider(outPath) =
     inherit ConfigurableOutputProvider<string>(outPath)
     with
         override x.ArgSpec =
-            { name = "flat"
-              param = [ "outfile" ]
-              alias = []
-              desc = "write a flat file format for results to outputfile" }
+            { Name = "flat"
+              Parameters = [ "outfile" ]
+              Aliases = []
+              Description = "write a flat file format for results to outputfile" }
 
         override x.UseArg(arg) =
-            GslFlatFileOutputProvider(Some(arg.values.[0])) :> IOutputFormat
+            GslFlatFileOutputProvider(Some(arg.Values.[0])) :> IOutputFormat
 
         override x.DoOutput(path, data) = dumpFlat path data.Assemblies
 
@@ -68,13 +68,13 @@ type CloneManagerOutputProvider(outParams) =
     inherit ConfigurableOutputProvider<(string * string)>(outParams)
     with
         override x.ArgSpec =
-            { name = "cm"
-              param = [ "outDir"; "prefix" ]
-              alias = []
-              desc = "write clone manager output to prefix_##.cx5 to output directory outDir" }
+            { Name = "cm"
+              Parameters = [ "outDir"; "prefix" ]
+              Aliases = []
+              Description = "write clone manager output to prefix_##.cx5 to output directory outDir" }
 
         override x.UseArg(arg) =
-            CloneManagerOutputProvider(Some(arg.values.[0], arg.values.[1])) :> IOutputFormat
+            CloneManagerOutputProvider(Some(arg.Values.[0], arg.Values.[1])) :> IOutputFormat
 
         override x.DoOutput((path, tag), data) =
             dumpCM path tag data.Assemblies data.Primers
@@ -86,13 +86,13 @@ type ApeOutputProvider(outParams) =
     inherit ConfigurableOutputProvider<(string * string)>(outParams)
     with
         override x.ArgSpec =
-            { name = "ape"
-              param = [ "outDir"; "prefix" ]
-              alias = []
-              desc = "write APE output to prefix_##.ape to outDir\n(http://biologylabs.utah.edu/jorgensen/wayned/ape/)" }
+            { Name = "ape"
+              Parameters = [ "outDir"; "prefix" ]
+              Aliases = []
+              Description = "write APE output to prefix_##.ape to outDir\n(http://biologylabs.utah.edu/jorgensen/wayned/ape/)" }
 
         override x.UseArg(arg) =
-            ApeOutputProvider(Some(arg.values.[0], arg.values.[1])) :> IOutputFormat
+            ApeOutputProvider(Some(arg.Values.[0], arg.Values.[1])) :> IOutputFormat
 
         override x.DoOutput((path, tag), data) = dumpAPE path tag data.Assemblies
 
@@ -104,13 +104,13 @@ type SnapGeneOutputProvider(outParams) =
     inherit ConfigurableOutputProvider<(string * string)>(outParams)
     with
         override x.ArgSpec =
-            { name = "snapgene"
-              param = [ "outDir"; "prefix" ]
-              alias = []
-              desc = "write Snapgene output to prefix_##.dna to outDir\n(http://www.snapgene.com/products/snapgene_viewer/)" }
+            { Name = "snapgene"
+              Parameters = [ "outDir"; "prefix" ]
+              Aliases = []
+              Description = "write Snapgene output to prefix_##.dna to outDir\n(http://www.snapgene.com/products/snapgene_viewer/)" }
 
         override x.UseArg(arg) =
-            SnapGeneOutputProvider(Some(arg.values.[0], arg.values.[1])) :> IOutputFormat
+            SnapGeneOutputProvider(Some(arg.Values.[0], arg.Values.[1])) :> IOutputFormat
 
         override x.DoOutput((path, tag), data) =
             dumpSnapgene path tag data.Assemblies data.Primers
@@ -134,13 +134,13 @@ type DocstringOutputProvider(outPath) =
     inherit ConfigurableOutputProvider<string>(outPath)
     with
         override x.ArgSpec =
-            { name = "docstring"
-              param = [ "outfile" ]
-              alias = [ "docstrings" ]
-              desc = "log emitted documentation for each design to outfile" }
+            { Name = "docstring"
+              Parameters = [ "outfile" ]
+              Aliases = [ "docstrings" ]
+              Description = "log emitted documentation for each design to outfile" }
 
         override x.UseArg(arg) =
-            DocstringOutputProvider(Some(arg.values.[0])) :> IOutputFormat
+            DocstringOutputProvider(Some(arg.Values.[0])) :> IOutputFormat
 
         override x.DoOutput(path, data) = dumpDocStrings path data.Assemblies
 
@@ -155,13 +155,13 @@ type PrimerOutputProvider(outPath) =
     inherit ConfigurableOutputProvider<string>(outPath)
     with
         override x.ArgSpec =
-            { name = "primers"
-              param = [ "primerfile" ]
-              alias = []
-              desc = "emit raw primer details (see also thumper output format)" }
+            { Name = "primers"
+              Parameters = [ "primerfile" ]
+              Aliases = []
+              Description = "emit raw primer details (see also thumper output format)" }
 
         override x.UseArg(arg) =
-            PrimerOutputProvider(Some(arg.values.[0])) :> IOutputFormat
+            PrimerOutputProvider(Some(arg.Values.[0])) :> IOutputFormat
 
         override x.DoOutput(path, data) =
             match data.Primers with

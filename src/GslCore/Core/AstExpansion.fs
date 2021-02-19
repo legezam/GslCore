@@ -926,84 +926,91 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
                                                                                                         fwd4) :: tl ->
             // External part variation
             // ===============================================
+            
+            let part1 =
+                ResolveExtPart.fetchFullPartSequence (verbose) (Map.empty) pid1
+                |> Trial.mapFailure
+                    (fun messages -> sprintf "Fail fetching %s" pid1.id :: messages)
+                |> returnOrFail
+                
+            let part4 =
+                ResolveExtPart.fetchFullPartSequence verbose Map.empty pid4
+                |> Trial.mapFailure
+                    (fun messages -> sprintf "Fail fetching %s" pid4.id :: messages)
+                |> returnOrFail                
+                
 
-            match ResolveExtPart.fetchFullPartSequence (verbose) (Map.empty) pid1 with
-            | EXT_FAIL (msg) -> failwithf "Fail fetching %s %s" pid1.id msg
-            | EXT_FETCH_OK (part1) ->
-                match ResolveExtPart.fetchFullPartSequence verbose Map.empty pid4 with
-                | EXT_FAIL (msg) -> failwithf "Fail fetching %s %s" pid1.id msg
-                | EXT_FETCH_OK (part4) ->
-                    let s1 = ResolveExtPart.getExtPartSlice verbose pid1
-                    let s4 = ResolveExtPart.getExtPartSlice verbose pid4
+            let s1 = ResolveExtPart.getExtPartSlice verbose pid1
+            let s4 = ResolveExtPart.getExtPartSlice verbose pid4
 
-                    // Build up upstream and downstream DNA slice
-                    let sliceSeq1 =
-                        ResolveExtPart.applySliceToExtSequence verbose part1 pr1 fwd1 pid1 s1
+            // Build up upstream and downstream DNA slice
+            let sliceSeq1 =
+                ResolveExtPart.applySliceToExtSequence verbose part1 pr1 fwd1 pid1 s1
 
-                    let sliceSeq4 =
-                        ResolveExtPart.applySliceToExtSequence verbose part4 pr4 fwd4 pid4 s4
+            let sliceSeq4 =
+                ResolveExtPart.applySliceToExtSequence verbose part4 pr4 fwd4 pid4 s4
 
-                    let targetAALen = getLenPragma pr2 // Get optional length spec for the HB
+            let targetAALen = getLenPragma pr2 // Get optional length spec for the HB
 
-                    // generate hetblock sequence by cutting into upstream sequence
-                    // Generate an alternative prefix for the GENEPART on LHS
-                    let alt =
-                        generateLeftHB
-                            codonUsage
-                            Default.MinHBCodonUsage
-                            targetAALen
-                            a.designParams
-                            sliceSeq1.Dna
-                            ic
-                            sliceSeq4.Dna
+            // generate hetblock sequence by cutting into upstream sequence
+            // Generate an alternative prefix for the GENEPART on LHS
+            let alt =
+                generateLeftHB
+                    codonUsage
+                    Default.MinHBCodonUsage
+                    targetAALen
+                    a.designParams
+                    sliceSeq1.Dna
+                    ic
+                    sliceSeq4.Dna
 
-                    // Build up the slice mods for the upstream part from scratch
-                    // Modify upstream slice to account for the part we chopped off
-                    let newSlice: Slice =
-                        { s1 with
-                              right =
-                                  { s1.right with
-                                        Position = s1.right.Position - (alt.Length * 1<OneOffset>) } }
+            // Build up the slice mods for the upstream part from scratch
+            // Modify upstream slice to account for the part we chopped off
+            let newSlice: Slice =
+                { s1 with
+                      right =
+                          { s1.right with
+                                Position = s1.right.Position - (alt.Length * 1<OneOffset>) } }
 
-                    let newInline = DnaOps.append alt ic
+            let newInline = DnaOps.append alt ic
 
-                    assert (alt
-                            <> sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..])
+            assert (alt
+                    <> sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..])
 
-                    if verbose then
-                        let t =
-                            sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..]
+            if verbose then
+                let t =
+                    sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..]
 
-                        let sim =
-                            Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr
+                let sim =
+                    Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr
 
-                        let simProp =
-                            (seq { for x in sim -> if x = '.' then 1.0 else 0.0 }
-                             |> Seq.sum)
-                            / float (alt.Length)
-                            * 100.0
+                let simProp =
+                    (seq { for x in sim -> if x = '.' then 1.0 else 0.0 }
+                     |> Seq.sum)
+                    / float (alt.Length)
+                    * 100.0
 
-                        printf "// From: %O \n// To  : %O\n//     : %s %3.0f%%\n" alt (t |> capUsing alt) (arr2seq sim)
-                            simProp
-                    // Assemble new mod list by getting rid of existing slice mods
-                    // and putting in new consolidated slice.
-                    let newMods =
-                        SLICE(newSlice)
-                        :: (pid1.mods |> List.filter modIsNotSlice)
-                    // Prepend backwards as we will flip list at end
-                    // Note - currently destroy pr2 pragmas associated with the hetblock
-                    scan
-                        a
-                        ((PARTID(pid4), pr4, fwd4)
-                         :: (INLINEDNA(newInline),
-                             (pr3
-                              |> PragmaCollection.add
-                                  { Pragma.Definition = BuiltIn.inlinePragmaDef
-                                    Arguments = [] }),
-                             fwd3)
-                            :: (PARTID({ pid1 with mods = newMods }), pr1, fwd1)
-                               :: res)
-                        tl
+                printf "// From: %O \n// To  : %O\n//     : %s %3.0f%%\n" alt (t |> capUsing alt) (arr2seq sim)
+                    simProp
+            // Assemble new mod list by getting rid of existing slice mods
+            // and putting in new consolidated slice.
+            let newMods =
+                SLICE(newSlice)
+                :: (pid1.mods |> List.filter modIsNotSlice)
+            // Prepend backwards as we will flip list at end
+            // Note - currently destroy pr2 pragmas associated with the hetblock
+            scan
+                a
+                ((PARTID(pid4), pr4, fwd4)
+                 :: (INLINEDNA(newInline),
+                     (pr3
+                      |> PragmaCollection.add
+                          { Pragma.Definition = BuiltIn.inlinePragmaDef
+                            Arguments = [] }),
+                     fwd3)
+                    :: (PARTID({ pid1 with mods = newMods }), pr1, fwd1)
+                       :: res)
+                tl
         | hd :: tl -> scan a (hd :: res) tl // do nothing
         | [] -> List.rev res
     /// Easier to process part/pragma pairs if they are explicit tuples

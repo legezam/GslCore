@@ -11,8 +11,8 @@ open GslCore.Reference
 
 let getArgAndAliases (a: CmdLineArgSpec) =
     seq {
-        yield (a.name, a)
-        for alias in a.alias -> (alias, a)
+        yield (a.Name, a)
+        for alias in a.Aliases -> (alias, a)
     }
 
 let checkConflict pluginName context (existingSpecs: Map<string, CmdLineArgSpec>) (name, spec) =
@@ -32,7 +32,7 @@ let collectCommandLineArgs plugins =
     let builtinSpecs =
         CommandLine.builtinCmdLineArgs
         |> Map.toSeq
-        |> Seq.map (fun (name, a) -> (name, a.spec))
+        |> Seq.map (fun (name, a) -> (name, a.Specification))
         |> Map.ofSeq
 
     let specsByPlugin =
@@ -55,14 +55,14 @@ let collectCommandLineArgs plugins =
             |> Map.ofSeq) Map.empty
 
 
-    { builtins = builtinSpecs
-      builtinsWithProc = CommandLine.builtinCmdLineArgs
-      fromPlugins = pluginSpecs }
+    { Builtins = builtinSpecs
+      BuiltinsWithProcess = CommandLine.builtinCmdLineArgs
+      FromPlugins = pluginSpecs }
 
 /// Check an arg list against a arg defintion, ensuring enough arguments are present.
 /// If so, return a type that indicates successful format, as well as any remaining args.
 let private tryParseArg (a: CmdLineArgSpec) argList =
-    let nameWithDashes = sprintf "--%s" a.name
+    let nameWithDashes = sprintf "--%s" a.Name
 
     let rec getParams n argList ps =
         // if we got all our parameters, done
@@ -74,7 +74,7 @@ let private tryParseArg (a: CmdLineArgSpec) argList =
             | [ p ] -> getParams (n - 1) [] (p :: ps)
             | p :: tl -> getParams (n - 1) tl (p :: ps)
 
-    let ps, restOfArgList = getParams a.param.Length argList []
+    let ps, restOfArgList = getParams a.Parameters.Length argList []
     // Make sure none of the parameters are another command
     let badParams =
         List.filter (fun (i: string) -> i.StartsWith("--")) ps
@@ -82,7 +82,7 @@ let private tryParseArg (a: CmdLineArgSpec) argList =
     if not badParams.IsEmpty
     then failwithf "%s got bad parameters '%A'" nameWithDashes badParams
 
-    ({ spec = a; values = ps }, restOfArgList)
+    ({ Specification = a; Values = ps }, restOfArgList)
 
 /// Parse all command line arguments, and return a list of parsed args and file names
 /// or fail with an exception.
@@ -187,8 +187,8 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         parsedArgs
         |> List.fold (fun opts (arg: ParsedCmdLineArg) ->
             // get the appropriate definion, and use its processor to update the parsed options
-            match argSpecs.builtinsWithProc.TryFind(arg.spec.name) with
-            | Some (a) -> a.proc arg.values opts
+            match argSpecs.BuiltinsWithProcess.TryFind(arg.Specification.Name) with
+            | Some (a) -> a.Process arg.Values opts
             | None -> opts) CommandLine.defaultOpts
 
     /// Now use the args to update all of the plugins.

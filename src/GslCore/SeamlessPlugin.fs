@@ -116,10 +116,10 @@ let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
         ok { a with DnaParts = dnaPartsProcessed }
 
 let seamlessArg =
-    { name = "seamless"
-      param = [ "(true or false)" ]
-      alias = []
-      desc = "Perform seamless assembly." }
+    { Name = "seamless"
+      Parameters = [ "(true or false)" ]
+      Aliases = []
+      Description = "Perform seamless assembly." }
 
 
 type SeamlessAssembler =
@@ -132,9 +132,9 @@ type SeamlessAssembler =
         member x.ProvidedArgs() = [ seamlessArg ]
 
         member x.Configure(arg) =
-            if arg.spec = seamlessArg then
+            if arg.Specification = seamlessArg then
                 let run =
-                    match arg.values with
+                    match arg.Values with
                     | [ "true" ] -> true
                     | [ "false" ] -> false
                     | [ x ] -> failwithf "Invalid argument for seamless: '%s'. Options are 'true' or 'false'." x

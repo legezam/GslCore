@@ -10,10 +10,10 @@ open GslCore.Core.PluginTypes
 open Amyris.ErrorHandling
 
 let taggingArg =
-    { name = "tag"
-      param = [ "namespace:value" ]
-      alias = []
-      desc = "Add default tag to every assembly." }
+    { Name = "tag"
+      Parameters = [ "namespace:value" ]
+      Aliases = []
+      Description = "Add default tag to every assembly." }
 
 let parseTag (single: string) state =
     match single.IndexOf(":") with
@@ -88,8 +88,8 @@ type TaggingProvider =
         member __.ProvidedArgs() = [ taggingArg ]
 
         member x.Configure(arg) =
-            if arg.spec = taggingArg then
-                match parseTags arg.values with
+            if arg.Specification = taggingArg then
+                match parseTags arg.Values with
                 | Ok (v, _) ->
                     { x with
                           cmdlineTags = v @ x.cmdlineTags }

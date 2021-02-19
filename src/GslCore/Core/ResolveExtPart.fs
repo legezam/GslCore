@@ -10,14 +10,10 @@ open Amyris.Dna
 open Amyris.ErrorHandling
 
 type ExtFetchSeq =
-    { id: string
-      dna: Dna
-      source: string
-      name: string }
-
-type ExtFetchResult =
-    | EXT_FETCH_OK of ExtFetchSeq
-    | EXT_FAIL of string
+    { Id: string
+      Dna: Dna
+      Source: string
+      Name: string }
 
 module ResolveExtPart =
     let legalPrefixes = [ ("r", "rabit"); ("b", "biobrick") ]
@@ -214,7 +210,7 @@ module ResolveExtPart =
 
         match legalPartPrefix pid with
         | None ->
-            EXT_FAIL
+            fail
                 (sprintf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid)
         | Some (partSpace, _) ->
             match partSpace with
@@ -231,18 +227,18 @@ module ResolveExtPart =
                     let dna =
                         Dna(rabit.DnaElementSpecs.[0].DnaSequence)
 
-                    EXT_FETCH_OK
-                        ({ dna = dna
-                           source = "hutch"
-                           id = pid
-                           name = rabit.Name })
+                    ok
+                        ({ Dna = dna
+                           Source = "hutch"
+                           Id = pid
+                           Name = rabit.Name })
                 else
                     // Part is in the library
-                    EXT_FETCH_OK
-                        ({ dna = library.[libName]
-                           source = "library"
-                           id = pid
-                           name = libName })
+                    ok
+                        ({ Dna = library.[libName]
+                           Source = "library"
+                           Id = pid
+                           Name = libName })
             | x -> failwithf "ERROR: unimplemented external partSpace %s\n" x
 
     let getExtPartSlice (verbose: bool) (partId: PartIdLegacy) =
@@ -282,18 +278,18 @@ module ResolveExtPart =
 
         if partId.mods.Length = 0 then
             let dna =
-                extPart.dna |> DnaOps.revCompIf (not fwd)
+                extPart.Dna |> DnaOps.revCompIf (not fwd)
 
             { Id = None
-              ExternalId = Some(extPart.id.[1..])
+              ExternalId = Some(extPart.Id.[1..])
               SliceName = sliceName
               Uri = uri // TODO: mint new URI if None?
               Dna = dna
               Template = None
               IsAmplified = false
-              SourceChromosome = extPart.source
+              SourceChromosome = extPart.Source
               SourceFrom = 0<ZeroOffset>
-              SourceTo = (extPart.dna.Length - 1) * 1<ZeroOffset>
+              SourceTo = (extPart.Dna.Length - 1) * 1<ZeroOffset>
               SourceForward = fwd
               SourceFromApprox = false
               SourceToApprox = false
@@ -301,12 +297,12 @@ module ResolveExtPart =
               DestinationFrom = 0<ZeroOffset>
               DestinationTo = 0<ZeroOffset>
               DestinationForward = fwd
-              Description = extPart.name
+              Description = extPart.Name
               Type = SliceType.Regular
               DnaSource =
                   pr
                   |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef
-                  |> Option.defaultValue extPart.id
+                  |> Option.defaultValue extPart.Id
 
               Pragmas = pr
               Breed = Breed.X
@@ -317,15 +313,15 @@ module ResolveExtPart =
             // DNA source and they are effectively building a new rabit
             // Find the left and right hand ends of the slice
             let x, y =
-                getBoundsFromSlice finalSlice extPart.dna.Length (Library(extPart.id))
+                getBoundsFromSlice finalSlice extPart.Dna.Length (Library(extPart.Id))
                 |> returnOrFail
 
             let finalDNA =
-                extPart.dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]
+                extPart.Dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]
                 |> DnaOps.revCompIf (not fwd)
 
             let name1 =
-                if partId.mods.Length = 0 then extPart.name else (extPart.name + (printSlice finalSlice))
+                if partId.mods.Length = 0 then extPart.Name else (extPart.Name + (printSlice finalSlice))
 
             let name2 = if fwd then name1 else "!" + name1
 
@@ -336,7 +332,7 @@ module ResolveExtPart =
               Dna = finalDNA
               Template = Some finalDNA
               IsAmplified = true
-              SourceChromosome = extPart.source
+              SourceChromosome = extPart.Source
               SourceFrom =
                   (finalSlice.left.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
@@ -355,7 +351,7 @@ module ResolveExtPart =
               DnaSource =
                   pr
                   |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef
-                  |> Option.defaultValue extPart.id
+                  |> Option.defaultValue extPart.Id
               Pragmas = pr
               Breed = Breed.X
               MaterializedFrom = None
