@@ -103,8 +103,8 @@ type TestSeamlessPrimers() =
     let checkSliceTypes (exp: SliceType list) (actual: SliceType list) =
         if exp <> actual then
             printfn "ERROR: matching slice types in seamless check"
-            printfn "Expected: %s" (String.Join(",", exp |> List.map (SliceType.formatST)))
-            printfn "Actual  : %s" (String.Join(",", actual |> List.map (SliceType.formatST)))
+            printfn "Expected: %s" (String.Join(",", exp |> List.map (SliceType.toString)))
+            printfn "Actual  : %s" (String.Join(",", actual |> List.map (SliceType.toString)))
 
         Assert.AreEqual(exp, actual)
 

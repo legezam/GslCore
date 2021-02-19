@@ -2,6 +2,7 @@
 
 open System
 
+open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Pragma
@@ -17,7 +18,7 @@ open GslCore.PluginTypes
 // ================================================================================================
 // Slice manipulation routines for getting from gene notation down to specific genomics coordinates
 // ================================================================================================
-let validateMods errorRef (where: AstTypes.SourcePosition list) (mods: Mod list) =
+let validateMods errorRef (where: SourcePosition list) (mods: Mod list) =
     for m in mods do
         match m with
         | SLICE (s) ->
@@ -28,7 +29,7 @@ let validateMods errorRef (where: AstTypes.SourcePosition list) (mods: Mod list)
                     "slice left %A greater than right %A %O in %s"
                     s.left.Position
                     s.right.Position
-                    (AstTypes.SourcePosition.formatSourcePositionList where)
+                    (SourcePosition.formatSourcePositionList where)
                     errorRef
         | _ -> () // No checks for now TODO
 

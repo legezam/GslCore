@@ -40,7 +40,7 @@ let mt =
 let mtRev = { mt with sourceFwd = false }
 
 let dumpSliceLayout (slices: DNASlice list) =
-    String.Join(";", slices |> List.map (fun s -> SliceType.formatST s.sliceType))
+    String.Join(";", slices |> List.map (fun s -> SliceType.toString s.sliceType))
 
 /// Insert FUSE directives and MT linkers to get a seamless design from later primergen
 let procInsertFuse verbose (l: DNASlice list) =

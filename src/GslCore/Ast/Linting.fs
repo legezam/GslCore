@@ -3,9 +3,9 @@
 /// compiler abilities change.
 module GslCore.Ast.Linting
 
-open GslCore.AstTypes
-open GslCore.AstAlgorithms
-open GslCore.AstErrorHandling
+open GslCore.Ast.Types
+open GslCore.Ast.Algorithms
+open GslCore.Ast.ErrorHandling
 open Amyris.ErrorHandling
 open System.Text.RegularExpressions
 

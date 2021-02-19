@@ -8,7 +8,7 @@ open Amyris.Dna
 open System
 open GslCore.Constants
 open GslCore.DesignParams
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.Pragma
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Reference

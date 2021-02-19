@@ -2,9 +2,9 @@ module GslCore.Ast.Process.RelativePosition
 
 
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
-open GslCore.AstAlgorithms
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Algorithms
 open GslCore.Constants
 
 // ======================

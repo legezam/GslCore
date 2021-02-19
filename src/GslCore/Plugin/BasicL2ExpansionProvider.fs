@@ -4,11 +4,11 @@
 /// Implementation of GSL Level 2 Expression Lines
 /// Modelled roughly on roughage syntax  e.g. gHO^ ; a> b ; c>d etc
 ///
+open GslCore.Ast.Process
 open GslCore.Pragma
 open GslCore.Ast.LegacyParseTypes
-open GslCore.AstTypes
-open GslCore.AstAlgorithms
-open GslCore.AstProcess
+open GslCore.Ast.Types
+open GslCore.Ast.Algorithms
 open GslCore.Constants
 open System
 open GslCore.PluginTypes
@@ -128,7 +128,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
                     sprintf "#name %s" providedName
 
                 // if no name is provided, use this as the default donor name
-                | None -> sprintf "#name u%s_%s_d%s" locusGene (AstNode.decompile locusExp.promoter |> cleanHashName) locusGene
+                | None -> sprintf "#name u%s_%s_d%s" locusGene (AstNode.decompile locusExp.promoter |> Naming.cleanHashName) locusGene
 
             // yield a new linker line because the default pattern will cause an A linker
             // to land on a marker (error: no A-9 markers)

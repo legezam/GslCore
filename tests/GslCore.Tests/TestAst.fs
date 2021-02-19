@@ -4,13 +4,12 @@ open GslCore.Ast.Process
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
-open GslCore.AstProcess
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast
 open GslCore.AstFixtures
 open GslCore.AstAssertions
-open GslCore.AstAlgorithms
+open GslCore.Ast.Algorithms
 open GslCore.Constants
 
 [<TestFixture>]
@@ -96,7 +95,7 @@ type TestTransformation() =
         sourceCompareTest
             (VariableResolution.resolveVariables
              >=> Inlining.inlineFunctionCalls
-             >=> stripFunctions)
+             >=> Cleanup.stripFunctions)
 
     let flattenAssemblyTest =
         sourceCompareTest
@@ -112,7 +111,7 @@ type TestTransformation() =
         Validation.checkRecursiveCalls
         >=> VariableResolution.resolveVariables
         >=> Inlining.inlineFunctionCalls
-        >=> stripFunctions
+        >=> Cleanup.stripFunctions
         >=> VariableResolution.resolveVariablesStrict
 
     let fullVariableResolutionTest =

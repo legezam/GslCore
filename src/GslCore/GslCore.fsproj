@@ -65,7 +65,10 @@
     <Compile Include="Ast\Process\AssemblyFlattening.fs" />
     <Compile Include="Ast\Process\AssemblyStuffing.fs" />
     <Compile Include="Ast\Process\Docstrings.fs" />
-    <Compile Include="Ast\Process.fs" />
+    <Compile Include="Ast\Process\Naming.fs" />
+    <Compile Include="Ast\Process\Cleanup.fs" />
+    <Compile Include="Ast\Process\PragmaWarning.fs" />
+    <Compile Include="Ast\Process\RoughageExpansion.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
     <Compile Include="Ast\LegacyParseTypes.fs" />
     <Compile Include="Core\Types.fs" />

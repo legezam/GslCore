@@ -4,7 +4,7 @@ open System
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.AstExpansion
 open GslCore.Constants

@@ -4,11 +4,10 @@ module GslCore.AstExpansion
 open System
 open GslCore.Ast.Process
 open GslCore.Constants
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.Ast
-open GslCore.AstProcess
-open GslCore.AstErrorHandling
-open GslCore.AstAlgorithms
+open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Algorithms
 open Amyris.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 open Amyris.Dna
@@ -28,7 +27,9 @@ open GslCore.PluginTypes
 // ==================
 
 let immediateValidations =
-    Validation.validate (Validation.checkParseError &&& Validation.validBasePart)
+    Validation.validate
+        (Validation.checkParseError
+         &&& Validation.validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
 let phase1 (legalCapas: Capabilities) (pragmaBuilder: PragmaBuilder): AstTreeHead -> Result<AstTreeHead, AstMessage> =
@@ -37,21 +38,22 @@ let phase1 (legalCapas: Capabilities) (pragmaBuilder: PragmaBuilder): AstTreeHea
     >=> Validation.checkRecursiveCalls
     >=> VariableResolution.resolveVariables
     >=> Inlining.inlineFunctionCalls
-    >=> stripFunctions
+    >=> Cleanup.stripFunctions
     >=> VariableResolution.resolveVariablesStrict
-    >=> stripVariables
+    >=> Cleanup.stripVariables
     >=> ExpressionReduction.reduceMathExpressions
     >=> PragmaBuilding.buildPragmas legalCapas pragmaBuilder
-    >=> collectWarnings
+    >=> PragmaWarning.collect
     >=> RelativePosition.compute
-    >=> expandRoughageLines // inline roughage expansion is pretty simple so we always do it
+    >=> RoughageExpansion.expandRoughageLines // inline roughage expansion is pretty simple so we always do it
     >=> AssemblyFlattening.flattenAssemblies pragmaBuilder
     >=> (Validation.validate Validation.checkMods)
     >=> AssemblyStuffing.stuffPragmasIntoAssemblies
 
 /// Prep a tree for phase 2, after phase 1 compilation is complete.
 let prepPhase2 rgs library =
-    checkGeneNames rgs library >=> nameAssemblies
+    Naming.checkGeneNames rgs library
+    >=> Naming.nameAssemblies
 
 // ==================
 // bootstrapping literal source into an AST node
@@ -187,7 +189,8 @@ let private healSplice node =
     | _ -> node
 
 /// Explode all Splices into their enclosing context.
-let healSplices = FoldMap.map Serial TopDown (promote healSplice)
+let healSplices =
+    FoldMap.map Serial TopDown (promote healSplice)
 
 
 // ==================================
@@ -226,6 +229,7 @@ let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
           Mode = mode
           StateUpdate = updateConversionContext
           Map = bootstrappedExpansionFunction }
+
     FoldMap.foldMap  // run the bootstrapped expand operation
         emptyConversionContext
         foldmapParameters
@@ -332,7 +336,10 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
         match e.Value.Promoter with
         | AssemblyPart a -> AstMessage.createError L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
-            AstMessage.createError (InternalError L2ExpansionError) "Unexpected recursive part definition in L2 promoter position." node
+            AstMessage.createError
+                (InternalError L2ExpansionError)
+                "Unexpected recursive part definition in L2 promoter position."
+                node
         | _ -> Validation.good
     | _ -> Validation.good
 
@@ -357,6 +364,7 @@ let expandLevel2 legalCapas (pragmaCache: PragmaBuilder) (providers: L2Provider 
           Mode = Serial
           StateUpdate = AssemblyStuffing.updatePragmaEnvironment
           Map = bootstrapExpandL2Expression }
+
     FoldMap.foldMap  // run the bootstrapped expand operation
         PragmaEnvironment.empty
         foldmapParameters
@@ -514,8 +522,10 @@ let private expandMut verbose
                          | CTERM -> "Cterm"
                          | NONETERM -> "No end preference")
 
-                if not (rg' |> GenomeDefinition.isValidFeature gp.part.gene.[1..])
-                then failwithf "Undefined gene '%s' %O\n" (gp.part.gene.[1..]) (gp.part.where)
+                if not
+                    (rg'
+                     |> GenomeDefinition.isValidFeature gp.part.gene.[1..]) then
+                    failwithf "Undefined gene '%s' %O\n" (gp.part.gene.[1..]) (gp.part.where)
 
                 let asAACheck =
                     match a.pragmas
@@ -594,7 +604,11 @@ let expandMutations verbose
 // ====================
 
 /// Take inline protein sequences and expand them out to DNA sequences
-let private expandProtein verbose (rgs: GenomeDefinitions) (unconfiguredCodonProvider: ICodonProvider) (assembly: Assembly) =
+let private expandProtein verbose
+                          (rgs: GenomeDefinitions)
+                          (unconfiguredCodonProvider: ICodonProvider)
+                          (assembly: Assembly)
+                          =
 
     let rewritePPP (codonProvider: ICodonProvider) (refGenome: string) (p: PPP) =
         match p.part with
@@ -610,7 +624,9 @@ let private expandProtein verbose (rgs: GenomeDefinitions) (unconfiguredCodonPro
                 | Some (rg) -> rg
                 | None -> refGenome
 
-            match rgs |> GenomeDefinitions.get |> Map.tryFind refGenome' with
+            match rgs
+                  |> GenomeDefinitions.get
+                  |> Map.tryFind refGenome' with
             | None -> failwithf "Unable to load refgenome %s to determine environment" refGenome'
             | Some (genomeDef) ->
                 // Check to see if there is a local #seed parameter and extract it else
@@ -634,7 +650,8 @@ let private expandProtein verbose (rgs: GenomeDefinitions) (unconfiguredCodonPro
                 { p with part = INLINEDNA(result) }
         | _ -> p
 
-    let refGenome = GenomeDefinitions.chooseReferenceGenome assembly.pragmas
+    let refGenome =
+        GenomeDefinitions.chooseReferenceGenome assembly.pragmas
 
     let configuredCodonProvider =
         unconfiguredCodonProvider.Setup(assembly.pragmas)
@@ -647,7 +664,14 @@ let private expandProtein verbose (rgs: GenomeDefinitions) (unconfiguredCodonPro
     |> prettyPrintAssembly
 
 /// Expand all inline protein sequences in an AST.
-let expandInlineProteins doParallel verbose legalCapas (pragmaCache: PragmaBuilder) (rgs: GenomeDefinitions) codonProvider tree =
+let expandInlineProteins doParallel
+                         verbose
+                         legalCapas
+                         (pragmaCache: PragmaBuilder)
+                         (rgs: GenomeDefinitions)
+                         codonProvider
+                         tree
+                         =
 
     let mode = if doParallel then Parallel else Serial
 
@@ -700,7 +724,9 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
 
     let rec scan (a: Assembly) (res: (Part * PragmaCollection * bool) list) (p: (Part * PragmaCollection * bool) list) =
         // Need to select a codon usage table
-        let referenceGenome = GenomeDefinitions.chooseReferenceGenome a.pragmas
+        let referenceGenome =
+            GenomeDefinitions.chooseReferenceGenome a.pragmas
+
         let references = rgs |> GenomeDefinitions.get
         let rg = references.[referenceGenome]
         let codonUsage = codonProvider.GetCodonLookupTable(rg)
@@ -737,7 +763,9 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
             then failwithf "Heterology block must be adjacent to g part, %s not allowed" gp.part.gene
 
             let s = translateGenePrefix a.pragmas rg' GENE // Start with standard slice
-            let startSlice = ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
+
+            let startSlice =
+                ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
 
             let newSlice =
                 { startSlice with
@@ -805,7 +833,9 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
                     gp.part.gene.[0]
 
             let s = translateGenePrefix a.pragmas rg'' GENE // Start with standard slice
-            let startSlice = ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
+
+            let startSlice =
+                ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
 
             let newSlice =
                 { startSlice with
@@ -868,7 +898,9 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
 
             // now build up the slice again and apply from scratch to the gene
             let s = translateGenePrefix a.pragmas rg' GENE // Start with standard slice
-            let startSlice = ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
+
+            let startSlice =
+                ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
 
             // modify slice to take into account the bit we chopped off
             let newSlice =
@@ -1081,7 +1113,11 @@ let phase2 oneShot
     let rec doPhase2 passNumber (tree: AstTreeHead) =
         match maxPasses with
         | Some (limit) when passNumber > limit -> // if we're past a limit passed in, fail.
-            AstMessage.createErrorf (InternalError(Error)) "Compiler phase 2 hit recursion limit of %d." limit tree.wrappedNode
+            AstMessage.createErrorf
+                (InternalError(Error))
+                "Compiler phase 2 hit recursion limit of %d."
+                limit
+                tree.wrappedNode
         | _ -> // otherwise, run the expansion step
             match expansionNeeded tree with
             | Some (mode) -> runPhase2 mode tree >>= doPhase2 (passNumber + 1)
@@ -1123,6 +1159,7 @@ let convertAndGatherAssemblies tree =
           Mode = Serial
           StateUpdate = updateConversionContext
           Map = convertAndGatherAssembly accum }
+
     FoldMap.foldMap emptyConversionContext foldmapParameters tree
     >>= (fun treeOut ->
         // if successful, return the accumulated assemblies and the tree itself

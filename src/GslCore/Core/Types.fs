@@ -8,7 +8,7 @@ open GslCore.Uri
 open GslCore.Ast.LegacyParseTypes
 open Amyris.Dna
 open Amyris.ErrorHandling
-open GslCore.AstTypes
+open GslCore.Ast.Types
 
 type SequenceLibrary = Map<string, Dna>
 
@@ -89,8 +89,8 @@ type SliceType =
     | FUSIONST
 
 module SliceType =
-    let formatST (s: SliceType) =
-        match s with
+    let toString: SliceType -> string =
+        function
         | REGULAR -> "REG"
         | MARKER -> "MARKER"
         | LINKER -> "LINKER"

@@ -79,7 +79,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
             | None -> ()
 
             sprintf "DE %s" p.description |> w
-            sprintf "ST %s" (SliceType.formatST p.sliceType) |> w
+            sprintf "ST %s" (SliceType.toString p.sliceType) |> w
             sprintf "PA %s" aId |> w
             sprintf "DS %s" p.dnaSource |> w
             sprintf "CH %s" p.sourceChr |> w

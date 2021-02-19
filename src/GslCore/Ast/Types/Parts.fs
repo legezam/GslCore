@@ -1,4 +1,4 @@
-module GslCore.AstTypes.Parts
+module GslCore.Ast.Types.Parts
 
 let private stringToRelPosQualifier (input: string): RelPosQualifier =
     match input.ToUpper() with

@@ -2,7 +2,7 @@
 module GslCore.AstFixtures
 
 open Amyris.ErrorHandling
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.Ast
 open GslCore.Constants
 
@@ -37,11 +37,11 @@ let addPragsToPart prags a =
 let variableize name v =
     let t =
         match v with
-        | BinaryOperation (_) -> IntType // right now we only support integer math so this is OK
-        | Int (_) -> IntType
-        | Float (_) -> FloatType
-        | String (_) -> StringType
-        | Part (_) -> PartType
+        | BinaryOperation _ -> IntType // right now we only support integer math so this is OK
+        | Int _ -> IntType
+        | Float _ -> FloatType
+        | String _ -> StringType
+        | Part _ -> PartType
 
     VariableBinding(Node.wrapNode { Name = name; Type = t; Value = v })
 

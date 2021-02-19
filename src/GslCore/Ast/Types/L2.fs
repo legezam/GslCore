@@ -1,4 +1,4 @@
-module GslCore.AstTypes.L2
+module GslCore.Ast.Types.L2
 
 let createL2IdNode (maybePrefix: Node<string> option) (id: Node<string>): Node<L2Id> =
     let pos =

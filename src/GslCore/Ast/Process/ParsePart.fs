@@ -1,8 +1,8 @@
 module GslCore.Ast.Process.ParsePart
 
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
 open GslCore.Pragma
 
 // ==========================

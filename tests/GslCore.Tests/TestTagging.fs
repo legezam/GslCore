@@ -7,7 +7,7 @@ open GslCore.Tests
 open GslCore.Ast.LegacyParseTypes
 open NUnit.Framework
 open Amyris.ErrorHandling
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.AstExpansion
 open GslCore.PluginTypes

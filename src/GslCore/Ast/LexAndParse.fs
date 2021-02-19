@@ -6,8 +6,8 @@ open GslCore.Ast.GslParser
 open GslCore.Ast.GslLexer
 open FSharp.Text.Lexing
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
 open System.Diagnostics
 open System
 

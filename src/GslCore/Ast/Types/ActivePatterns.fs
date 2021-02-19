@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module GslCore.AstTypes.ActivePatterns
+module GslCore.Ast.Types.ActivePatterns
 
 
 // ------ Active patterns on the AST of general interest ------

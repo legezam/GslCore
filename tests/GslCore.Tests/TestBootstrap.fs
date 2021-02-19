@@ -4,9 +4,9 @@ open GslCore.Pragma
 open NUnit.Framework
 open GslCore.Constants
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
-open GslCore.AstAlgorithms
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Algorithms
 open GslCore.AstExpansion
 open GslCore.AstAssertions
 open GslCore.Ast.LegacyParseTypes

@@ -3,9 +3,9 @@ module GslCore.Ast.Process.AssemblyFlattening
 
 open Amyris.ErrorHandling
 open GslCore.Ast.Process
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
-open GslCore.AstAlgorithms
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Algorithms
 open GslCore.Pragma
 
 

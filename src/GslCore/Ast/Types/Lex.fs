@@ -1,4 +1,4 @@
-module GslCore.AstTypes.Lex
+module GslCore.Ast.Types.Lex
 
 open FSharp.Text.Lexing
 

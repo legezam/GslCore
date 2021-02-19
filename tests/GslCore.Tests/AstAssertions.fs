@@ -4,9 +4,9 @@ module GslCore.AstAssertions
 open System
 open NUnit.Framework
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
-open GslCore.AstAlgorithms
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Algorithms
 open GslCore.AstFixtures
 open GslCore.Ast
 open GslCore.Constants

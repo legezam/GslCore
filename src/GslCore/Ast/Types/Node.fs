@@ -1,4 +1,4 @@
-namespace GslCore.AstTypes
+namespace GslCore.Ast.Types
 
 
 // =============================

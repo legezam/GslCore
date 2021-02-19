@@ -1,5 +1,5 @@
 ﻿/// Types and functions for AST creation.
-namespace GslCore.AstTypes
+namespace GslCore.Ast.Types
 
 open GslCore.Constants
 open GslCore

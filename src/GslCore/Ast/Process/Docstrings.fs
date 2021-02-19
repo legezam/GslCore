@@ -1,7 +1,7 @@
 namespace GslCore.Ast.Process
 
-open GslCore.AstTypes
-open GslCore.AstAlgorithms
+open GslCore.Ast.Types
+open GslCore.Ast.Algorithms
 
 // ==================
 // gathering and assigning docstrings
@@ -32,4 +32,4 @@ module Docstrings =
         | _ -> state
 
     let updateDocstringEnvironment =
-        pretransformOnly updateDocstringEnvironmentInner
+        StateUpdateMode.pretransformOnly updateDocstringEnvironmentInner

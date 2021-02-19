@@ -5,9 +5,9 @@ open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstAssertions
-open GslCore.AstAlgorithms
+open GslCore.Ast.Algorithms
 open GslCore.AstExpansion
-open GslCore.AstErrorHandling
+open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 
 [<TestFixture>]

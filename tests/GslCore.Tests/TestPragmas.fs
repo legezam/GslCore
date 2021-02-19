@@ -6,12 +6,11 @@ open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
 open Amyris.Bio.primercore
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.AstFixtures
-open GslCore.AstProcess
-open GslCore.AstAlgorithms
+open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
-open GslCore.AstErrorHandling
+open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 
 [<TestFixture>]
@@ -64,9 +63,9 @@ type TestPragmasAST() =
     let pragmaBuildPipeline =
         VariableResolution.resolveVariables
         >=> Inlining.inlineFunctionCalls
-        >=> stripFunctions
+        >=> Cleanup.stripFunctions
         >=> VariableResolution.resolveVariablesStrict
-        >=> stripVariables
+        >=> Cleanup.stripVariables
         >=> ExpressionReduction.reduceMathExpressions
         >=> (PragmaBuilding.buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList) pragmaCache)
 

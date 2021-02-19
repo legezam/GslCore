@@ -1,6 +1,6 @@
-﻿namespace GslCore.AstErrorHandling
+﻿namespace GslCore.Ast.ErrorHandling
 
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open Amyris.ErrorHandling
 open FSharp.Text.Parsing
 open System.Diagnostics

@@ -12,7 +12,7 @@ open GslCore.Uri
 open GslCore.Pragma
 open GslCore.Core.Types
 open GslCore.SbolExample
-open GslCore.AstTypes
+open GslCore.Ast.Types
 
 // ==================================================================
 // RYSE megastitch architecture
@@ -595,7 +595,7 @@ let mapRyseLinkers (opts: ParsedOptions)
             | [] -> failwith noLinkersLeftMsg
             | linkerName :: lt ->
                 let linker = prepLinker linkerName
-                printVerbose (sprintf "Assigning linker %s to %s/%s" linkerName hd.description (SliceType.formatST hd.sliceType))
+                printVerbose (sprintf "Assigning linker %s to %s/%s" linkerName hd.description (SliceType.toString hd.sliceType))
 
                 // DETECT MARKER, transition to phase II
                 if hd.sliceType = MARKER then

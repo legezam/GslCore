@@ -1,4 +1,4 @@
-module GslCore.AstTypes.Utils
+module GslCore.Ast.Types.Utils
 
 /// Helper function for pushing new source code positions onto stack during function expansion
 /// Most recently (first) postition refers to highest level function invocation.

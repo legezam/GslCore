@@ -1,4 +1,4 @@
-module GslCore.AstTypes.Create
+module GslCore.Ast.Types.Create
 
 /// Parse two integer literals separated by a dot as a float.
 let float (intPart: PInt) (fracPart: PInt): AstNode =

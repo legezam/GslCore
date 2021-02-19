@@ -8,7 +8,7 @@ open Amyris.Bio
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Pragma
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open Amyris.Bio.IO.CodonUsage
 open GslCore
 open Amyris.Dna

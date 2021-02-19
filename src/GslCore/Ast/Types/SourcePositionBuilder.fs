@@ -1,4 +1,4 @@
-module GslCore.AstTypes.SourcePositionBuilder
+module GslCore.Ast.Types.SourcePositionBuilder
 
 // ------ deriving source code positions ------
 

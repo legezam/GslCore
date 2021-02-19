@@ -7,9 +7,8 @@ open GslCore.Constants
 open System
 open GslCore.Uri
 open GslCore.Pragma
-open GslCore.AstTypes
-open GslCore.AstProcess
-open GslCore.AstErrorHandling
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
 open GslCore.DesignParams
 
 type Slice =

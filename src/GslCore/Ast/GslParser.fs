@@ -7,11 +7,11 @@ open FSharp.Text.Parsing.ParseHelpers
 
 // F# code goes here
 open System
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.Pragma
 open Amyris.Bio
 open GslCore.Constants
-open GslCore.AstErrorHandling
+open GslCore.Ast.ErrorHandling
 open GslCore
  
 let uppercase (s: string) = s.ToUpper()

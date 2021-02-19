@@ -12,16 +12,16 @@ open GslCore.Core.Types
 open GslCore.CommandConfig
 open GslCore.Ast
 open GslCore.GslcProcess // Top-level compiler operations
-open GslCore.AstAlgorithms
+open GslCore.Ast.Algorithms
 open Amyris.ErrorHandling
-open GslCore.AstErrorHandling
+open GslCore.Ast.ErrorHandling
 // Helper libs for oligo design, sequence parsing all in Amyris.Bio.dll
 // These imports are only needed for the temporary primer test function below.
 open Amyris.Bio
 open primercore
 open GslCore.Constants
 open PluginTypes
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open ProcessCmdLineArgs
 
 /// Test bed for investigating primer misadventure

@@ -4,12 +4,11 @@ open System
 open GslCore.Ast.Process
 open NUnit.Framework
 open Amyris.ErrorHandling
-open GslCore.AstTypes
+open GslCore.Ast.Types
 open GslCore.AstFixtures
 open GslCore.AstAssertions
-open GslCore.AstAlgorithms
-open GslCore.AstProcess
-open GslCore.AstErrorHandling
+open GslCore.Ast.Algorithms
+open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 
 [<TestFixture>]

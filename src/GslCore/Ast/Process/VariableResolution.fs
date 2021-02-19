@@ -1,9 +1,9 @@
 namespace GslCore.Ast.Process
 
 open Amyris.ErrorHandling
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
-open GslCore.AstAlgorithms
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Algorithms
 
 
 
@@ -48,7 +48,7 @@ module VariableResolution =
         | _ -> variableBindings
 
     let internal updateVariableResolution =
-        pretransformOnly updateVariableResolutionInner
+        StateUpdateMode.pretransformOnly updateVariableResolutionInner
 
     /// Elide a type for a value node, if it corresponds to a valid GslVarType.
     let private elideType (node: AstNode): GslVariableType option =

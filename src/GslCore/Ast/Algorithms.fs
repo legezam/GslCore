@@ -1,8 +1,8 @@
 ﻿/// Generic algorithms for operating on ASTs.
-module GslCore.AstAlgorithms
+namespace GslCore.Ast.Algorithms
 
-open GslCore.AstTypes
-open GslCore.AstErrorHandling
+open GslCore.Ast.Types
+open GslCore.Ast.ErrorHandling
 open System.Text
 open Amyris.ErrorHandling
 open GslCore.Constants
@@ -388,11 +388,12 @@ type StateUpdateMode =
     | PreTransform
     | PostTransform
 
-/// Create a state update function that only ever operates in PreTransform mode.
-let pretransformOnly (operator: 'a -> 'b -> 'a) (mode: StateUpdateMode) (state: 'a) (node: 'b): 'a =
-    match mode with
-    | PreTransform -> operator state node
-    | PostTransform -> state
+module StateUpdateMode =
+    /// Create a state update function that only ever operates in PreTransform mode.
+    let pretransformOnly (operator: 'a -> 'b -> 'a) (mode: StateUpdateMode) (state: 'a) (node: 'b): 'a =
+        match mode with
+        | PreTransform -> operator state node
+        | PostTransform -> state
 
 type FoldmapMode =
     | Serial
