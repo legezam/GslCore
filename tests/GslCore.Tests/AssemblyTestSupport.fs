@@ -10,6 +10,10 @@ open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.Dna
 
+let defaultPhase1Parameters =
+    { Phase1Parameters.PragmaBuilder = PragmaBuilder.builtin
+      LegalCapabilities = Set.empty  }
+
 let rec extractAssemblies (n: AstNode): AstNode list =
     [ match n with
       | Block b ->
@@ -34,7 +38,7 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 let compileOne source =
     source
     |> GslSourceCode
-    |> compile (Phase1.phase1 Set.empty PragmaBuilder.builtin)
+    |> compile (Phase1.phase1 defaultPhase1Parameters)
     |> returnOrFail
     |> fun x -> extractAssemblies x.wrappedNode
 

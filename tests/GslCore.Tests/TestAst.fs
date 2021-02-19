@@ -1,5 +1,6 @@
 ﻿namespace GslCore.Tests
 
+open GslCore
 open GslCore.Ast.Process
 open GslCore.Pragma
 open NUnit.Framework
@@ -99,13 +100,13 @@ type TestTransformation() =
 
     let flattenAssemblyTest =
         sourceCompareTest
-            (PragmaBuilding.buildPragmas Set.empty PragmaBuilder.builtin
-             >=> AssemblyFlattening.flattenAssemblies PragmaBuilder.builtin)
+            (PragmaBuilding.buildPragmas AssemblyTestSupport.defaultPhase1Parameters
+             >=> AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters)
 
     let flattenPartTest =
         sourceCompareTest
             (VariableResolution.resolveVariables
-             >=> AssemblyFlattening.flattenAssemblies PragmaBuilder.builtin)
+             >=> AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters)
 
     let variableResolutionPipeline =
         Validation.checkRecursiveCalls

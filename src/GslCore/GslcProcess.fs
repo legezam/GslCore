@@ -3,8 +3,10 @@ module GslCore.GslcProcess
 
 open System
 open Amyris.Bio
-open GslCore.Core.AstExpansion
+open GslCore.Constants
+open GslCore.Core
 open GslCore.Ast.LegacyParseTypes
+open GslCore.Core.Expansion
 open GslCore.Core.Types
 open GslCore.Core.DnaCreation
 open GslCore.Pragma
@@ -17,10 +19,12 @@ open Amyris.ErrorHandling
 /// Run GSLC on string input.
 let rec processGSL (s: ConfigurationState) gslText =
 
-    let opts, plugins, ga = s.Options, s.Plugins, s.GlobalAssets
+    let options = s.Options
+    let plugins = s.Plugins
+    let globalAssets = s.GlobalAssets
 
-    let verbose = opts.Verbose
-    let pragmaCache = ga.PragmaBuilder
+    let verbose = options.Verbose
+    let pragmaBuilder = globalAssets.PragmaBuilder
     /// Build up all legal capabilities by going through plugins
     // FIXME: need to inject this and validate legal capabilities
     // Should also eliminate global pragma state while we're at it, if possible.
@@ -28,7 +32,7 @@ let rec processGSL (s: ConfigurationState) gslText =
         plugins
         |> List.map (fun pi -> pi.ProvidesCapas)
         |> List.concat
-        |> set
+        |> Set.ofList
 
     let alleleSwapAlgs =
         plugins
@@ -38,39 +42,43 @@ let rec processGSL (s: ConfigurationState) gslText =
         plugins
         |> Behavior.getAllProviders Behavior.getL2KOTitrationProviders
 
-    let phase2WithData =
-        phase2
-            (not opts.Iter)
-            (Some(10))
-            opts.DoParallel
-            verbose
-            legalCapas
-            pragmaCache
-            alleleSwapAlgs
-            ga.ReferenceGenomes
-            ga.CodonProvider
+    let phase2Params =
+        { Phase2Parameters.Parallel = options.DoParallel
+          OneShot = not options.Iter
+          MaxPasses = Default.maxPhase2Passes
+          Verbose = verbose
+          LegalCapas = legalCapas
+          PragmaBuilder = pragmaBuilder
+          AlleleSwapProviders = alleleSwapAlgs
+          References = globalAssets.ReferenceGenomes
+          CodonTableCache = globalAssets.CodonProvider }
 
+    let phase1Params =
+        phase2Params |> Phase1Parameters.fromPhase2
     /// Main compiler pipeline.
     let phase1Result =
         LexAndParse.lexAndParse verbose gslText
-        >>= Phase1.phase1 legalCapas pragmaCache
+        >>= Phase1.phase1 phase1Params
 
-    if opts.OnlyPhase1 then
-        phase1Result >>= convertAndGatherAssemblies
+    if options.OnlyPhase1 then
+        phase1Result
+        >>= AssemblyGathering.convertAndGatherAssemblies
     else
         phase1Result
         //>>= failOnAssemblyInL2Promoter
-        >>= expandLevel2 legalCapas pragmaCache l2Providers ga.ReferenceGenomes
-        >>= Phase1.postPhase1 ga.ReferenceGenomes ga.SequenceLibrary
-        >>= phase2WithData
-        >>= convertAndGatherAssemblies // collect the assemblies in the tree and return them
+        >>= Level2Expansion.expandLevel2 phase1Params l2Providers globalAssets.ReferenceGenomes
+        >>= Phase1.postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
+        >>= (Phase2.phase2 phase2Params)
+        >>= AssemblyGathering.convertAndGatherAssemblies // collect the assemblies in the tree and return them
 
 /// Convert all assemblies to DnaAssemblies.
 let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
-    let opts, library, rgs = s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
+    let opts, library, rgs =
+        s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
 
     let markerProviders =
-        s.Plugins |> Behavior.getAllProviders Behavior.getMarkerProviders
+        s.Plugins
+        |> Behavior.getAllProviders Behavior.getMarkerProviders
 
     if opts.Verbose
     then printf "Processing %d assemblies\n" (Seq.length assem)
@@ -175,7 +183,9 @@ let preProcessFuse _ (a: DnaAssembly) =
 /// go into more target-specific activities like assigning parts, reusing parts, etc.
 let transformAssemblies (s: ConfigurationState) (assemblies: DnaAssembly list) =
 
-    let atContext: ATContext = { Options = s.Options; GlobalAssets = s.GlobalAssets }
+    let atContext: ATContext =
+        { Options = s.Options
+          GlobalAssets = s.GlobalAssets }
 
     let builtinAssemblyTransforms = [ cleanLongSlices; preProcessFuse ]
 
@@ -203,7 +213,9 @@ let doPrimerDesign opts assemblyOuts =
     if opts.NoPrimers then
         None, assemblyOuts
     else
-        let p, t = PrimerCreation.designPrimers opts assemblyOuts
+        let p, t =
+            PrimerCreation.designPrimers opts assemblyOuts
+
         Some(p), t
 
 

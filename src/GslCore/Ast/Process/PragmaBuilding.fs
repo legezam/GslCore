@@ -109,8 +109,7 @@ module PragmaBuilding =
 
 
     /// Attempt to build a real pragma from a parsed pragma.
-    let private compilePragma (legalCapas: Capabilities)
-                              (pragmaCache: PragmaBuilder)
+    let private compilePragma (parameters: Phase1Parameters)
                               (contexts: PragmaConstructionContext list)
                               (node: AstNode)
                               : Result<AstNode, AstMessage> =
@@ -128,12 +127,12 @@ module PragmaBuilding =
             |> List.map checkPragmaArg
             |> collect
             >>= (fun values ->
-                pragmaCache
+                parameters.PragmaBuilder
                 |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
                 |> (mapMessages wrapPragmaErrorString))
             >>= (checkDeprecated node)
             >>= (checkScope contexts node)
-            >>= (checkCapa legalCapas node)
+            >>= (checkCapa parameters.LegalCapabilities node)
             >>= (fun builtPragma ->
                 ok
                     (Pragma
@@ -142,11 +141,11 @@ module PragmaBuilding =
         | _ -> ok node
 
     /// Build genuine pragmas from reduced parsed pragmas.
-    let buildPragmas (legalCapas: Capabilities) (pragmaCache: PragmaBuilder): AstTreeHead -> TreeTransformResult =
+    let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
               StateUpdate = updatePragmaConstructionContext
-              Map = compilePragma legalCapas pragmaCache }
+              Map = compilePragma parameters }
 
         FoldMap.foldMap [] foldMapParameters

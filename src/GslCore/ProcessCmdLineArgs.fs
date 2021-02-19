@@ -202,7 +202,7 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         | [] -> failwithf "No CodonProvider plugins found.  GSLc requires exactly one to be provided."
         | x -> failwithf "%d CodonProvider behaviors found.  GSLc requires excatly one to be provided." x.Length
 
-    let pragmaCache =
+    let pragmaBuilder =
         updatedPlugins
         |> List.map (fun p -> p.ProvidesPragmas)
         |> List.concat
@@ -215,12 +215,12 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
 
             { SequenceLibrary = library
               CodonProvider = codonProvider
-              PragmaBuilder = pragmaCache
+              PragmaBuilder = pragmaBuilder
               ReferenceGenomes = rgs }
         else
             { SequenceLibrary = Map.empty
               CodonProvider = codonProvider
-              PragmaBuilder = pragmaCache
+              PragmaBuilder = pragmaBuilder
               ReferenceGenomes = GenomeDefinitions.empty }
 
     { Options = parsedOptions

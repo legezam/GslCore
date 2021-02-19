@@ -38,10 +38,13 @@ type TestTagging() =
           | _ -> () ]
 
     /// compile one GSL source example and extract assemblies
-    let compileOne cache source =
+    let compileOne pragmaBuilder source =
+        let parameters =
+            { Phase1Parameters.LegalCapabilities = Set.empty
+              PragmaBuilder = pragmaBuilder }
         source
         |> GslSourceCode
-        |> compile (Phase1.phase1 Set.empty cache)
+        |> compile (Phase1.phase1 parameters)
         |> returnOrFail
         |> fun x -> extractParts x.wrappedNode
 
@@ -131,7 +134,7 @@ uADH2; dADH2
 
     let runAndExtractTags code =
         code
-        |> compileOne TestTagging.PragmaCache
+        |> compileOne TestTagging.PragmaBuilder
         |> List.map (fun p ->
             let tagPragmas =
                 p.Pragmas
@@ -144,7 +147,7 @@ uADH2; dADH2
             p, tagPragmas)
 
 
-    static member PragmaCache =
+    static member PragmaBuilder =
         PragmaBuilder.createWithBuiltinPragmas [ TaggingPlugin.tagPragmaDef
                                                  TaggingPlugin.gTagPragmaDef ]
 
@@ -304,7 +307,7 @@ uADH2; dADH2
         { ATContext.GlobalAssets =
               { GlobalAssets.ReferenceGenomes = GenomeDefinitions.empty
                 SequenceLibrary = Map.empty
-                PragmaBuilder = TestTagging.PragmaCache
+                PragmaBuilder = TestTagging.PragmaBuilder
                 CodonProvider =
                     { BasicCodonProvider.parameters = None
                       cache = None } }

@@ -1,6 +1,8 @@
 ﻿namespace GslCore.Tests
 
+open GslCore
 open GslCore.Ast
+open GslCore.Core.Expansion
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.Constants
@@ -8,7 +10,6 @@ open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.Core.AstExpansion
 open GslCore.AstAssertions
 open GslCore.Ast.LegacyParseTypes
 
@@ -30,10 +31,10 @@ type TestBootstrapping() =
         | Splice (nodes) -> AstTreeHead(Block(Node.wrapNode (List.ofArray nodes)))
         | x -> failwithf "Illegal: %A" x
 
-    let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty PragmaBuilder.builtin
+    let bootstrapPhase1NoCapas = Bootstrapping.bootstrapPhase1 AssemblyTestSupport.defaultPhase1Parameters
 
     let compilePhase1NoCapas =
-        GslSourceCode >> (compile (Phase1.phase1 Set.empty PragmaBuilder.builtin))
+        GslSourceCode >> (compile (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =
@@ -49,15 +50,15 @@ type TestBootstrapping() =
 
     let testPhase1 node =
         let bootstrapOperation =
-            bootstrapExpandLegacyAssembly Error reprintAssembly bootstrapPhase1NoCapas
+            Bootstrapping.bootstrapExpandLegacyAssembly Error reprintAssembly bootstrapPhase1NoCapas
 
-        executeBootstrap bootstrapOperation Serial node
+        Bootstrapping.executeBootstrap bootstrapOperation Serial node
 
     let testCaptureException node =
         let bootstrapOperation =
-            bootstrapExpandLegacyAssembly Error expansionFail bootstrapPhase1NoCapas
+            Bootstrapping.bootstrapExpandLegacyAssembly Error expansionFail bootstrapPhase1NoCapas
 
-        executeBootstrap bootstrapOperation Serial node
+        Bootstrapping.executeBootstrap bootstrapOperation Serial node
 
     [<Test>]
     member x.TestBootstrapAssembly() =

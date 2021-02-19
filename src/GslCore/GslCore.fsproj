@@ -55,6 +55,7 @@
     <Compile Include="Ast\GslLexer.fs" />
     <Compile Include="Ast\Algorithms.fs" />
     <Compile Include="Ast\Linting.fs" />
+    <Compile Include="Ast\Phase1Parameters.fs" />
     <Compile Include="Ast\Process\ParsePart.fs" />
     <Compile Include="Ast\Process\Validation.fs" />
     <Compile Include="Ast\Process\VariableResolution.fs" />
@@ -82,7 +83,15 @@
     <Compile Include="Core\PluginTypes.fs" />
     <Compile Include="Core\DnaCreation.fs" />
     <Compile Include="Core\AlleleSwaps.fs" />
-    <Compile Include="Core\AstExpansion.fs" />
+    <Compile Include="Core\Phase2Parameters.fs" />
+    <Compile Include="Core\Expansion\Bootstrapping.fs" />
+    <Compile Include="Core\Expansion\Level2Expansion.fs" />
+    <Compile Include="Core\Expansion\BootstrapSelection.fs" />
+    <Compile Include="Core\Expansion\MutationExpansion.fs" />
+    <Compile Include="Core\Expansion\ProteinExpansion.fs" />
+    <Compile Include="Core\Expansion\HeterologyExpansion.fs" />
+    <Compile Include="Core\AssemblyGathering.fs" />
+    <Compile Include="Core\Phase2.fs" />
     <Compile Include="Primer\PrimerValidation.fs" />
     <Compile Include="Primer\PrimerCreation.fs" />
     <Compile Include="Plugin\CoreOutputProviders\CloneManager.fs" />

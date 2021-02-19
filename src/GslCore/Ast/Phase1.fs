@@ -8,8 +8,6 @@ open GslCore.Ast.Algorithms
 open Amyris.ErrorHandling
 open GslCore.Pragma
 
-
-
 // ==================
 // phase 1 of AST reduction
 // everything before bioinformatics gets involved
@@ -21,7 +19,7 @@ let immediateValidations =
          &&& Validation.validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
-let phase1 (legalCapas: Capabilities) (pragmaBuilder: PragmaBuilder): AstTreeHead -> Result<AstTreeHead, AstMessage> =
+let phase1 (parameters: Phase1Parameters): AstTreeHead -> Result<AstTreeHead, AstMessage> =
     Linting.linters
     >=> immediateValidations
     >=> Validation.checkRecursiveCalls
@@ -31,11 +29,11 @@ let phase1 (legalCapas: Capabilities) (pragmaBuilder: PragmaBuilder): AstTreeHea
     >=> VariableResolution.resolveVariablesStrict
     >=> Cleanup.stripVariables
     >=> ExpressionReduction.reduceMathExpressions
-    >=> PragmaBuilding.buildPragmas legalCapas pragmaBuilder
+    >=> PragmaBuilding.buildPragmas parameters
     >=> PragmaWarning.collect
     >=> RelativePosition.compute
     >=> RoughageExpansion.expandRoughageLines // inline roughage expansion is pretty simple so we always do it
-    >=> AssemblyFlattening.flattenAssemblies pragmaBuilder
+    >=> AssemblyFlattening.flattenAssemblies parameters
     >=> (Validation.validate Validation.checkMods)
     >=> AssemblyStuffing.stuffPragmasIntoAssemblies
 

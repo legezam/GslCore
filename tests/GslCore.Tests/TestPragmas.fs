@@ -15,7 +15,7 @@ open GslCore.Constants
 
 [<TestFixture>]
 type TestPragmas() =
-    let pragmaCache = PragmaBuilder.builtin
+    let pragmaBuilder = PragmaBuilder.builtin
 
     [<Test>]
     member x.TestBadPragmasLocal() =
@@ -26,7 +26,7 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            returnOrFail (PragmaBuilder.createPragmaFromNameValue badName [ badOption ] pragmaCache)
+            returnOrFail (PragmaBuilder.createPragmaFromNameValue badName [ badOption ] pragmaBuilder)
             |> ignore)
         |> ignore
 
@@ -58,7 +58,11 @@ type TestPragmas() =
 [<TestFixture>]
 type TestPragmasAST() =
 
-    let pragmaCache = PragmaBuilder.builtin
+    let pragmaBuilder = PragmaBuilder.builtin
+
+    let phase1Params =
+        { Phase1Parameters.PragmaBuilder = pragmaBuilder
+          LegalCapabilities = [ "capa1"; "capa2" ] |> Set.ofList }
 
     let pragmaBuildPipeline =
         VariableResolution.resolveVariables
@@ -67,7 +71,7 @@ type TestPragmasAST() =
         >=> VariableResolution.resolveVariablesStrict
         >=> Cleanup.stripVariables
         >=> ExpressionReduction.reduceMathExpressions
-        >=> (PragmaBuilding.buildPragmas ([ "capa1"; "capa2" ] |> Set.ofList) pragmaCache)
+        >=> (PragmaBuilding.buildPragmas phase1Params)
 
     let compilePragmas = compile pragmaBuildPipeline
 
@@ -88,7 +92,7 @@ type TestPragmasAST() =
 
     let stuffPragmasPipeline =
         pragmaBuildPipeline
-        >=> AssemblyFlattening.flattenAssemblies pragmaCache
+        >=> AssemblyFlattening.flattenAssemblies phase1Params
         >=> AssemblyStuffing.stuffPragmasIntoAssemblies
 
     [<Test>]

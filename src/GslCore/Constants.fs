@@ -55,6 +55,8 @@ module Default =
     /// Amount of extra dna adjacent to the ORF to include
     [<Literal>]
     let OrfPlusMargin = 100
+    
+    let maxPhase2Passes = Some(10)
 
     let ValidAminoAcids: Set<char> = "ACDEFGHIKLMNPQRSTVWY*" |> Set.ofSeq
 

@@ -1,29 +1,25 @@
 ﻿namespace GslCore.Tests
 
 
+open GslCore
 open GslCore.Ast
+open GslCore.Ast.Types
+open GslCore.Core.Expansion
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstAssertions
 open GslCore.Ast.Algorithms
-open GslCore.Core.AstExpansion
 open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 
 [<TestFixture>]
 type TestL2Expansion() =
 
+        
     let phase1WithL2Validation =
-        Phase1.phase1 Set.empty PragmaBuilder.builtin
-        >=> (Validation.validate validateNoAssemblyInL2Promoter)
-
-    //    let phase1AndL2 =
-//        phase1 Set.empty // empty list as we shouldn't need any capas for this test
-//        >=> expandLevel2
-//            Set.empty
-//            (getL2KOTitrationProviders basicL2ExpansionPlugin)
-//            rgs // RefGenomes need to become an interface to test this here!
+        Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
+        >=> (Validation.validate Level2Expansion.validateNoAssemblyInL2Promoter)
 
     [<Test>]
     member x.TestDetectAssemblyInL2Promoter() =

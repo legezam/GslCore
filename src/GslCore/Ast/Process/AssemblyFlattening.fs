@@ -67,12 +67,12 @@ let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): Result<
         ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
-let private invertPragma (pragmaCache: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
+let private invertPragma (pragmaBuilder: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
     part
     |> ParsePart.getPragmas
     |> PragmaCollection.values
     |> Seq.map (fun pragma ->
-        pragmaCache
+        pragmaBuilder
         |> PragmaBuilder.inverts pragma.Definition
         |> Option.map (fun invertsTo -> { pragma with Definition = invertsTo })
         |> Option.defaultValue pragma)
@@ -84,7 +84,7 @@ let private invertPragma (pragmaCache: PragmaBuilder) (part: Node<ParsePart>): N
 /// This function encodes the logic that used to reside in MULTIPART expansion.
 /// This function ignores various unexpected conditions, like nodes besides parts inside the assembly.
 ///</summary>
-let private explodeAssembly (pragmaCache: PragmaBuilder)
+let private explodeAssembly (pragmaBuilder: PragmaBuilder)
                             (assemblyPart: Node<ParsePart>)
                             (assemblyBasePart: Node<AstNode list>)
                             : Result<AstNode list, AstMessage> =
@@ -102,7 +102,7 @@ let private explodeAssembly (pragmaCache: PragmaBuilder)
                       Value =
                           { subPart.Value with
                                 IsForward = not subPart.Value.IsForward } }) // flip the part
-            |> List.map (invertPragma pragmaCache) // flip the pragmas
+            |> List.map (invertPragma pragmaBuilder) // flip the pragmas
             |> shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
     // now that the parts are correctly oriented, stuff the assembly pragmas into them
     correctlyOrientedParts
@@ -142,14 +142,14 @@ let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<
 // should use an active pattern to match.
 // TODO: we should probably check for pragma collisions and complain about them, though this is
 // before stuffing pragmas into assemblies so it may be an edge case.
-let private flattenAssembly (pragmaCache: PragmaBuilder) (node: AstNode): Result<AstNode, AstMessage> =
+let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): Result<AstNode, AstMessage> =
     match node with
     | AssemblyPart (assemblyPart, assemblyBasePart) ->
         // iterate over the parts in the assembly, accumulating lists of parts we will concatenate
         assemblyBasePart.Value
         |> Seq.map (fun part ->
             match part with
-            | AssemblyPart (assemblyPart, assemblyBasePart) -> explodeAssembly pragmaCache assemblyPart assemblyBasePart
+            | AssemblyPart (assemblyPart, assemblyBasePart) -> explodeAssembly parameters.PragmaBuilder assemblyPart assemblyBasePart
             | x -> ok [ x ])
         |> collect
         |> lift (fun partLists ->
@@ -169,5 +169,5 @@ let private flattenAssembly (pragmaCache: PragmaBuilder) (node: AstNode): Result
     | _ -> ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
-let flattenAssemblies (pragmaCache: PragmaBuilder): AstTreeHead -> TreeTransformResult =
-    FoldMap.map Serial BottomUp (flattenAssembly pragmaCache)
+let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =
+    FoldMap.map Serial BottomUp (flattenAssembly parameters)
