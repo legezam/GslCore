@@ -53,7 +53,7 @@ let rec processGSL (s: ConfigurationState) gslText =
     /// Main compiler pipeline.
     let phase1Result =
         LexAndParse.lexAndParse verbose gslText
-        >>= phase1 legalCapas pragmaCache
+        >>= Phase1.phase1 legalCapas pragmaCache
 
     if opts.OnlyPhase1 then
         phase1Result >>= convertAndGatherAssemblies
@@ -61,7 +61,7 @@ let rec processGSL (s: ConfigurationState) gslText =
         phase1Result
         //>>= failOnAssemblyInL2Promoter
         >>= expandLevel2 legalCapas pragmaCache l2Providers ga.ReferenceGenomes
-        >>= prepPhase2 ga.ReferenceGenomes ga.SequenceLibrary
+        >>= Phase1.postPhase1 ga.ReferenceGenomes ga.SequenceLibrary
         >>= phase2WithData
         >>= convertAndGatherAssemblies // collect the assemblies in the tree and return them
 

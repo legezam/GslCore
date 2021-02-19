@@ -2,6 +2,7 @@
 
 open System.Collections
 open GslCore
+open GslCore.Ast
 open GslCore.Reference
 open GslCore.Tests
 open GslCore.Ast.LegacyParseTypes
@@ -39,7 +40,7 @@ type TestTagging() =
     let compileOne cache source =
         source
         |> GslSourceCode
-        |> compile (phase1 Set.empty cache)
+        |> compile (Phase1.phase1 Set.empty cache)
         |> returnOrFail
         |> fun x -> extractParts x.wrappedNode
 

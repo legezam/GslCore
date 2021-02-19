@@ -1,6 +1,7 @@
 ﻿/// Shared operations for compiling and extracting material from assemblies
 module GslCore.AssemblyTestSupport
 
+open GslCore.Ast
 open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.AstExpansion
@@ -34,7 +35,7 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 let compileOne source =
     source
     |> GslSourceCode
-    |> compile (phase1 Set.empty PragmaBuilder.builtin)
+    |> compile (Phase1.phase1 Set.empty PragmaBuilder.builtin)
     |> returnOrFail
     |> fun x -> extractAssemblies x.wrappedNode
 

@@ -1,5 +1,6 @@
 ﻿namespace GslCore.Tests
 
+open GslCore.Ast
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.Constants
@@ -31,7 +32,7 @@ type TestBootstrapping() =
     let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty PragmaBuilder.builtin
 
     let compilePhase1NoCapas =
-        GslSourceCode >> (compile (phase1 Set.empty PragmaBuilder.builtin))
+        GslSourceCode >> (compile (Phase1.phase1 Set.empty PragmaBuilder.builtin))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =

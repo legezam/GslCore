@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open System
+open GslCore.Ast
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
@@ -47,7 +48,7 @@ type TestLineNumbers() =
     let compileOne source =
         source
         |> GslSourceCode
-        |> compile (phase1 Set.empty PragmaBuilder.builtin)
+        |> compile (Phase1.phase1 Set.empty PragmaBuilder.builtin)
         |> returnOrFail
         |> fun x -> extractAssemblies x.wrappedNode
 

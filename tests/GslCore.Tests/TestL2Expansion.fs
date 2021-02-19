@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 
+open GslCore.Ast
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.ErrorHandling
@@ -14,7 +15,7 @@ open GslCore.Constants
 type TestL2Expansion() =
 
     let phase1WithL2Validation =
-        phase1 Set.empty PragmaBuilder.builtin
+        Phase1.phase1 Set.empty PragmaBuilder.builtin
         >=> (Validation.validate validateNoAssemblyInL2Promoter)
 
     //    let phase1AndL2 =
