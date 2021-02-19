@@ -3,7 +3,7 @@
 open System.Collections
 open GslCore
 open GslCore.Ast
-open GslCore.Core
+open GslCore.Core.CommandConfig
 open GslCore.Plugin
 open GslCore.Reference
 open GslCore.Tests
@@ -308,7 +308,7 @@ uADH2; dADH2
                 CodonProvider =
                     { BasicCodonProvider.parameters = None
                       cache = None } }
-          Options = CommandConfig.defaultOpts }
+          Options = CommandLine.defaultOpts }
 
     static member dummyDnaAssembly =
         { DnaAssembly.id = None

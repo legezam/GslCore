@@ -121,7 +121,7 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m
     if not (g.id.StartsWith("R"))
     then failwithf "ERROR: part %s should start with 'R'.  Non rabit part mutation not supported." g.id
 
-    let hr = getRabit (int (g.id.[1..]))
+    let hr = Ryse.getRabit (int (g.id.[1..]))
 
     let rabit = hr.RabitSpecs.[0]
 
@@ -133,8 +133,13 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m
         if m.Location <= 0 || m.Location > dna.Length
         then failwithf "ERROR: mutation position %d is outside range of rabit %s" m.Location g.id
 
-        if dna.[m.Location - 1] <> m.From
-        then failwithf "ERROR: existing base at position %d in rabit %s is %c not %c" m.Location g.id (dna.[m.Location - 1]) m.From
+        if dna.[m.Location - 1] <> m.From then
+            failwithf
+                "ERROR: existing base at position %d in rabit %s is %c not %c"
+                m.Location
+                g.id
+                (dna.[m.Location - 1])
+                m.From
 
         // Design for mutation
 
@@ -396,8 +401,9 @@ let expandAS (providers: AlleleSwapProvider list)
             |> GenomeDefinition.getDna
                 (errorDesc,
                  sprintf "%d" f.chr,
-                 ((l' - orfPlusMargin) |> max 0) * 1<ZeroOffset>,
-                 (r' + orfPlusMargin) * 1<ZeroOffset>)
+                 ((l' - Default.OrfPlusMargin) |> max 0)
+                 * 1<ZeroOffset>,
+                 (r' + Default.OrfPlusMargin) * 1<ZeroOffset>)
             |> DnaOps.revCompIf (not f.fwd)
 
         let x1 = ZeroOffset.toInt b
@@ -722,7 +728,6 @@ let private generateHBCore (cl: CodonLookup)
 
         if localVerbose
         then printf "finalScore=%f finalPrimerLen=%d\n" finalScore finalPrimer
-
         alt.[..finalPrimer - 1]
 
 /// Create a heterology block, removing part of the right hand (down) slice

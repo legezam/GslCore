@@ -152,7 +152,7 @@ let configureGslc unconfiguredPlugins argv =
     // print usage info
     | []
     | "--help" :: _ ->
-        let msg = usageText legalCmdLineArgs
+        let msg = CommandLine.usageText legalCmdLineArgs
         Exit(1, Some(msg))
     // temporary entry point for primer test
     | "--test" :: _ ->

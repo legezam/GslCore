@@ -5,6 +5,7 @@ open System
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
+open GslCore.Core.ResolveExtPart
 open GslCore.Pragma
 open GslCore.Core.Types
 open GslCore.Core
@@ -287,7 +288,7 @@ let expandGenePart verbose
 
     match gp.linker with
     | None -> () // No linkers were present
-    | Some (l) -> checkLinker l // Test the linkers
+    | Some (l) -> Ryse.checkLinker l // Test the linkers
 
     // If the dna source is empty, then we are going to pull the DNA
     // part from the default reference genome, so we should make the

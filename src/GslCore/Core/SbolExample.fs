@@ -1,4 +1,4 @@
-﻿namespace GslCore.Core.SbolExample
+﻿namespace GslCore.Core.Sbol
 
 open Amyris.Dna
 open Amyris.ErrorHandling

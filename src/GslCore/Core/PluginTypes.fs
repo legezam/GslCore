@@ -1,5 +1,5 @@
 ﻿/// Definitions of plug-in types and interfaces.
-module GslCore.Core.PluginTypes
+namespace GslCore.Core.PluginTypes
 
 open Amyris.ErrorHandling
 open GslCore.Core.Types
@@ -69,9 +69,6 @@ type EndPref =
     | NTERM
     | CTERM
     | NONETERM
-
-/// Amount of extra dna adjacent to the ORF to include
-let orfPlusMargin = 100
 
 type AlleleSwapJobAccept = Capabilities -> float<PluginScore> option
 
@@ -191,13 +188,14 @@ type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
         }
         |> String.concat "\n"
 
-/// Convert an exception during assembly transformation into a message.
-let exceptionToAssemblyMessage assembly (exc: System.Exception) =
-    { Message = exc.Message
-      Kind = ATError
-      Assembly = assembly
-      StackTrace = Some(System.Diagnostics.StackTrace(exc))
-      FromException = Some exc }
+module AssemblyTransformationMessage =
+    /// Convert an exception during assembly transformation into a message.
+    let exceptionToAssemblyMessage assembly (exc: System.Exception) =
+        { Message = exc.Message
+          Kind = ATError
+          Assembly = assembly
+          StackTrace = Some(System.Diagnostics.StackTrace(exc))
+          FromException = Some exc }
 
 /// Interface specification for output assembly transformations.
 type IAssemblyTransform =
@@ -260,37 +258,38 @@ type PluginBehaviorWrapper =
         }
         |> String.concat "\n"
 
-let configureBehavior arg b =
-    match b.Behavior with
-    | OutputFormat (f) ->
-        { b with
-              Behavior = OutputFormat(f.Configure(arg)) }
-    | AssemblyTransform (a) ->
-        { b with
-              Behavior = AssemblyTransform(a.Configure(arg)) }
-    | CodonProvider (c) ->
-        { b with
-              Behavior = CodonProvider(c.Configure(arg)) }
-    | AlleleSwapAA _
-    | MarkerProvider _
-    | L2KOTitration _ -> b
+module PluginBehaviorWrapper =
+    let configureBehavior arg b =
+        match b.Behavior with
+        | OutputFormat (f) ->
+            { b with
+                  Behavior = OutputFormat(f.Configure(arg)) }
+        | AssemblyTransform (a) ->
+            { b with
+                  Behavior = AssemblyTransform(a.Configure(arg)) }
+        | CodonProvider (c) ->
+            { b with
+                  Behavior = CodonProvider(c.Configure(arg)) }
+        | AlleleSwapAA _
+        | MarkerProvider _
+        | L2KOTitration _ -> b
 
-let configureBehaviorFromOpts opts b =
-    match b.Behavior with
-    | OutputFormat (f) ->
-        { b with
-              Behavior = OutputFormat(f.ConfigureFromOptions(opts)) }
-    | AssemblyTransform (a) ->
-        { b with
-              Behavior = AssemblyTransform(a.ConfigureFromOptions(opts)) }
-    | CodonProvider (c) ->
-        { b with
-              Behavior = CodonProvider(c.ConfigureFromOptions(opts)) }
-    | MarkerProvider (c) ->
-        { b with
-              Behavior = MarkerProvider(c.ConfigureFromOptions(opts)) }
-    | AlleleSwapAA _
-    | L2KOTitration _ -> b
+    let configureBehaviorFromOpts opts b =
+        match b.Behavior with
+        | OutputFormat (f) ->
+            { b with
+                  Behavior = OutputFormat(f.ConfigureFromOptions(opts)) }
+        | AssemblyTransform (a) ->
+            { b with
+                  Behavior = AssemblyTransform(a.ConfigureFromOptions(opts)) }
+        | CodonProvider (c) ->
+            { b with
+                  Behavior = CodonProvider(c.ConfigureFromOptions(opts)) }
+        | MarkerProvider (c) ->
+            { b with
+                  Behavior = MarkerProvider(c.ConfigureFromOptions(opts)) }
+        | AlleleSwapAA _
+        | L2KOTitration _ -> b
 
 /// Data structure specifying one or more behaviors
 type Plugin =
@@ -315,8 +314,8 @@ type Plugin =
         let configuredBehaviors =
             args
             |> List.fold (fun behaviors arg ->  // each iteration of fold uses one arg and updates all behaviors
-                behaviors |> List.map (configureBehavior arg)) x.Behaviors
-            |> List.map (configureBehaviorFromOpts opts)
+                behaviors |> List.map (PluginBehaviorWrapper.configureBehavior arg)) x.Behaviors
+            |> List.map (PluginBehaviorWrapper.configureBehaviorFromOpts opts)
 
         { x with
               Behaviors = configuredBehaviors }
@@ -356,55 +355,56 @@ type Plugin =
                 yield "Provides command line arguments:"
 
                 for a in args do
-                    yield! (printCmdLineArg a)
+                    yield! (CommandLine.printCmdLineArg a)
 
         }
         |> String.concat "\n"
 
-/// Get all of the marker providers from a plugin.
-let getMarkerProviders (plugin: Plugin) =
-    plugin.Behaviors
-    |> List.choose (fun b ->
-        match b.Behavior with
-        | MarkerProvider (m) -> Some(m)
-        | _ -> None)
+module Behavior =
+    /// Get all of the marker providers from a plugin.
+    let getMarkerProviders (plugin: Plugin) =
+        plugin.Behaviors
+        |> List.choose (fun b ->
+            match b.Behavior with
+            | MarkerProvider (m) -> Some(m)
+            | _ -> None)
 
 
-/// Get all of the allele swap providers from a plugin.
-let getAlleleSwapAAProviders (plugin: Plugin) =
-    plugin.Behaviors
-    |> List.choose (fun b ->
-        match b.Behavior with
-        | AlleleSwapAA (a) -> Some(a)
-        | _ -> None)
+    /// Get all of the allele swap providers from a plugin.
+    let getAlleleSwapAAProviders (plugin: Plugin) =
+        plugin.Behaviors
+        |> List.choose (fun b ->
+            match b.Behavior with
+            | AlleleSwapAA (a) -> Some(a)
+            | _ -> None)
 
-let getL2KOTitrationProviders (plugin: Plugin) =
-    plugin.Behaviors
-    |> List.choose (fun b ->
-        match b.Behavior with
-        | L2KOTitration (a) -> Some(a)
-        | _ -> None)
+    let getL2KOTitrationProviders (plugin: Plugin) =
+        plugin.Behaviors
+        |> List.choose (fun b ->
+            match b.Behavior with
+            | L2KOTitration (a) -> Some(a)
+            | _ -> None)
 
-let getAssemblyTransformers (plugin: Plugin) =
-    plugin.Behaviors
-    |> List.choose (fun b ->
-        match b.Behavior with
-        | AssemblyTransform (a) -> Some(a.TransformAssembly)
-        | _ -> None)
+    let getAssemblyTransformers (plugin: Plugin) =
+        plugin.Behaviors
+        |> List.choose (fun b ->
+            match b.Behavior with
+            | AssemblyTransform (a) -> Some(a.TransformAssembly)
+            | _ -> None)
 
-let getOutputProviders (plugin: Plugin) =
-    plugin.Behaviors
-    |> List.choose (fun b ->
-        match b.Behavior with
-        | OutputFormat (a) -> Some(a)
-        | _ -> None)
+    let getOutputProviders (plugin: Plugin) =
+        plugin.Behaviors
+        |> List.choose (fun b ->
+            match b.Behavior with
+            | OutputFormat (a) -> Some(a)
+            | _ -> None)
 
-let getCodonProviders (plugin: Plugin) =
-    plugin.Behaviors
-    |> List.choose (fun b ->
-        match b.Behavior with
-        | CodonProvider (a) -> Some(a)
-        | _ -> None)
+    let getCodonProviders (plugin: Plugin) =
+        plugin.Behaviors
+        |> List.choose (fun b ->
+            match b.Behavior with
+            | CodonProvider (a) -> Some(a)
+            | _ -> None)
 
-/// Use a provider extraction function to get every provider from a list of plugins.
-let getAllProviders mode plugins = plugins |> List.map mode |> List.concat
+    /// Use a provider extraction function to get every provider from a list of plugins.
+    let getAllProviders mode plugins = plugins |> List.map mode |> List.concat

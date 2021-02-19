@@ -30,7 +30,7 @@ let checkConflict pluginName context (existingSpecs: Map<string, CmdLineArgSpec>
 /// Return an initialized command line arg collection.
 let collectCommandLineArgs plugins =
     let builtinSpecs =
-        builtinCmdLineArgs
+        CommandLine.builtinCmdLineArgs
         |> Map.toSeq
         |> Seq.map (fun (name, a) -> (name, a.spec))
         |> Map.ofSeq
@@ -56,7 +56,7 @@ let collectCommandLineArgs plugins =
 
 
     { builtins = builtinSpecs
-      builtinsWithProc = builtinCmdLineArgs
+      builtinsWithProc = CommandLine.builtinCmdLineArgs
       fromPlugins = pluginSpecs }
 
 /// Check an arg list against a arg defintion, ensuring enough arguments are present.
@@ -96,7 +96,7 @@ let private parseAllCommandLineArgs (argSpecs: CollectedCommandLineArgs) (argLis
             let arg = h.[2..]
 
             if arg = "help" then
-                printfn "%s" (usageText argSpecs)
+                printfn "%s" (CommandLine.usageText argSpecs)
                 (argList, accumulatedArgs, files)
             else
                 match argSpecs.TryFind arg with
@@ -189,7 +189,7 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
             // get the appropriate definion, and use its processor to update the parsed options
             match argSpecs.builtinsWithProc.TryFind(arg.spec.name) with
             | Some (a) -> a.proc arg.values opts
-            | None -> opts) defaultOpts
+            | None -> opts) CommandLine.defaultOpts
 
     /// Now use the args to update all of the plugins.
     let updatedPlugins =
@@ -197,7 +197,7 @@ let configure loadGA argSpecs (plugins: Plugin list) (argList: string list) =
         |> List.map (fun plugin -> plugin.Configure(parsedArgs, parsedOptions))
 
     let codonProvider =
-        match getAllProviders getCodonProviders updatedPlugins with
+        match Behavior.getAllProviders Behavior.getCodonProviders updatedPlugins with
         | [ p ] -> p
         | [] -> failwithf "No CodonProvider plugins found.  GSLc requires exactly one to be provided."
         | x -> failwithf "%d CodonProvider behaviors found.  GSLc requires excatly one to be provided." x.Length

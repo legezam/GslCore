@@ -32,11 +32,11 @@ let rec processGSL (s: ConfigurationState) gslText =
 
     let alleleSwapAlgs =
         plugins
-        |> getAllProviders getAlleleSwapAAProviders
+        |> Behavior.getAllProviders Behavior.getAlleleSwapAAProviders
 
     let l2Providers =
         plugins
-        |> getAllProviders getL2KOTitrationProviders
+        |> Behavior.getAllProviders Behavior.getL2KOTitrationProviders
 
     let phase2WithData =
         phase2
@@ -70,7 +70,7 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
     let opts, library, rgs = s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
 
     let markerProviders =
-        s.Plugins |> getAllProviders getMarkerProviders
+        s.Plugins |> Behavior.getAllProviders Behavior.getMarkerProviders
 
     if opts.Verbose
     then printf "Processing %d assemblies\n" (Seq.length assem)
@@ -80,7 +80,7 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
         try
             expandAssembly opts.Verbose markerProviders rgs library i a
             |> ok
-        with e -> fail (exceptionToAssemblyMessage a e))
+        with e -> fail (AssemblyTransformationMessage.exceptionToAssemblyMessage a e))
     |> collect
     >>= (fun assemblies ->
 
@@ -181,7 +181,7 @@ let transformAssemblies (s: ConfigurationState) (assemblies: DnaAssembly list) =
 
     let assemblyTransformers =
         builtinAssemblyTransforms
-        @ (getAllProviders getAssemblyTransformers s.Plugins)
+        @ (Behavior.getAllProviders Behavior.getAssemblyTransformers s.Plugins)
 
     // do all the assembly transformation steps
     // the transformations are done in the order in which plugins were passed in, and in order
@@ -219,5 +219,5 @@ let doOutputGeneration (s: ConfigurationState) primers assemblies =
 
     // Use any output providers provided by plugins
     // They have already been configured to run or not during command line arg parsing.
-    for op in getAllProviders getOutputProviders s.Plugins do
+    for op in Behavior.getAllProviders Behavior.getOutputProviders s.Plugins do
         op.ProduceOutput(outputData)

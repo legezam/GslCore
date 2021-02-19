@@ -1,7 +1,7 @@
 ﻿namespace GslCore
 
 open System.Xml
-open GslCore.Core.SbolExample
+open GslCore.Core.Sbol
 open NUnit.Framework
 open Amyris.Dna
 
@@ -26,7 +26,7 @@ type TestSbolProvider() =
 </gbom:gbom>"""
 
         let parsedInput =
-            SbolExample.SBOLProvider.Parse(testSbolInput)
+            SBOLProvider.Parse(testSbolInput)
 
         Assert.AreEqual(parsedInput.ComponentDefinitions.Length, 1)
         let cd = parsedInput.ComponentDefinitions.[0]

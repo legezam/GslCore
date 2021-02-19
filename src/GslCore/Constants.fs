@@ -52,6 +52,10 @@ module Default =
     [<Literal>]
     let RefGenome = "cenpk"
 
+    /// Amount of extra dna adjacent to the ORF to include
+    [<Literal>]
+    let OrfPlusMargin = 100
+
     let ValidAminoAcids: Set<char> = "ACDEFGHIKLMNPQRSTVWY*" |> Set.ofSeq
 
     /// List of approved linker abbreviations.

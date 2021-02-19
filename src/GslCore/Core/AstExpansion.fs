@@ -927,21 +927,21 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
             // External part variation
             // ===============================================
 
-            match fetchFullPartSequence (verbose) (Map.empty) pid1 with
+            match ResolveExtPart.fetchFullPartSequence (verbose) (Map.empty) pid1 with
             | EXT_FAIL (msg) -> failwithf "Fail fetching %s %s" pid1.id msg
             | EXT_FETCH_OK (part1) ->
-                match fetchFullPartSequence verbose Map.empty pid4 with
+                match ResolveExtPart.fetchFullPartSequence verbose Map.empty pid4 with
                 | EXT_FAIL (msg) -> failwithf "Fail fetching %s %s" pid1.id msg
                 | EXT_FETCH_OK (part4) ->
-                    let s1 = getExtPartSlice verbose pid1
-                    let s4 = getExtPartSlice verbose pid4
+                    let s1 = ResolveExtPart.getExtPartSlice verbose pid1
+                    let s4 = ResolveExtPart.getExtPartSlice verbose pid4
 
                     // Build up upstream and downstream DNA slice
                     let sliceSeq1 =
-                        applySliceToExtSequence verbose part1 pr1 fwd1 pid1 s1
+                        ResolveExtPart.applySliceToExtSequence verbose part1 pr1 fwd1 pid1 s1
 
                     let sliceSeq4 =
-                        applySliceToExtSequence verbose part4 pr4 fwd4 pid4 s4
+                        ResolveExtPart.applySliceToExtSequence verbose part4 pr4 fwd4 pid4 s4
 
                     let targetAALen = getLenPragma pr2 // Get optional length spec for the HB
 
