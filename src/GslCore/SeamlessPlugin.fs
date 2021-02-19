@@ -13,40 +13,40 @@ open GslCore.Uri
 
 let mt =
     let mtLinkerUri = Uri.linkerUri "MT" |> returnOrFail
-    { id = None
-      extId = None
-      sliceName = ""
-      uri = Some mtLinkerUri
-      dna = Amyris.Dna.Dna("")
-      sourceChr = "linker"
-      sourceFr = 0<ZeroOffset>
-      sourceTo = 0<ZeroOffset>
-      template = None
-      amplified = false
-      sourceFrApprox = false
-      sourceToApprox = false
-      destFr = -999<ZeroOffset>
-      destTo = -999<ZeroOffset>
-      sourceFwd = true
-      description = sprintf "Linker_MT"
-      sliceType = LINKER
-      destFwd = true
-      dnaSource = ""
-      pragmas = PragmaCollection.empty
-      breed = B_LINKER
-      materializedFrom = None
-      annotations = [] }
+    { Id = None
+      ExternalId = None
+      SliceName = ""
+      Uri = Some mtLinkerUri
+      Dna = Amyris.Dna.Dna("")
+      SourceChromosome = "linker"
+      SourceFrom = 0<ZeroOffset>
+      SourceTo = 0<ZeroOffset>
+      Template = None
+      IsAmplified = false
+      SourceFromApprox = false
+      SourceToApprox = false
+      DestinationFrom = -999<ZeroOffset>
+      DestinationTo = -999<ZeroOffset>
+      SourceForward = true
+      Description = sprintf "Linker_MT"
+      Type = SliceType.Linker
+      DestinationForward = true
+      DnaSource = ""
+      Pragmas = PragmaCollection.empty
+      Breed = Breed.Linker
+      MaterializedFrom = None
+      Annotations = [] }
 
-let mtRev = { mt with sourceFwd = false }
+let mtRev = { mt with SourceForward = false }
 
 let dumpSliceLayout (slices: DNASlice list) =
-    String.Join(";", slices |> List.map (fun s -> SliceType.toString s.sliceType))
+    String.Join(";", slices |> List.map (fun s -> SliceType.toString s.Type))
 
 /// Insert FUSE directives and MT linkers to get a seamless design from later primergen
 let procInsertFuse verbose (l: DNASlice list) =
     if verbose then
         printfn "Entering procInsertFuse"
-        let names = l |> List.map (fun l -> l.sliceName)
+        let names = l |> List.map (fun l -> l.SliceName)
         printfn "Slices presented: %s" (String.Join(";", names))
 
     let rec procInsertFuseInternal (l: DNASlice list) res =
@@ -58,25 +58,25 @@ let procInsertFuse verbose (l: DNASlice list) =
         match l with
         | [] -> finish l
         | [ x ] -> finish (x :: res) // don't fuse after last piece
-        | hd :: tl when hd.sliceType = SliceType.FUSIONST ->
+        | hd :: tl when hd.Type = SliceType.Fusion ->
             if verbose
             then printfn "placeFuseForSeamless: .. skipping existing fuse"
             // pass existing fuse elements straight through
             procInsertFuseInternal tl (hd :: res)
-        | hd :: tl when hd.sliceType = SliceType.INLINEST ->
+        | hd :: tl when hd.Type = SliceType.Inline ->
             // inline segments should get primer gen anyway I think
             if verbose
             then printfn "placeFuseForSeamless: .. ignoring inline"
 
             procInsertFuseInternal tl (hd :: res)
 
-        | hd :: middle :: tl when hd.sliceType = SliceType.FUSIONST
-                                  && middle.sliceType = SliceType.INLINEST ->
+        | hd :: middle :: tl when hd.Type = SliceType.Fusion
+                                  && middle.Type = SliceType.Inline ->
             // omit hd, not needed
             procInsertFuseInternal tl (middle :: res)
 
-        | hd :: middle :: tl when hd.sliceType = SliceType.REGULAR
-                                  && middle.sliceType = SliceType.INLINEST ->
+        | hd :: middle :: tl when hd.Type = SliceType.Regular
+                                  && middle.Type = SliceType.Inline ->
             procInsertFuseInternal tl (middle :: hd :: res)
 
         | hd :: tl ->
@@ -97,23 +97,23 @@ let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
 
 
     let linkered =
-        a.dnaParts
-        |> List.exists (fun d -> d.sliceType = SliceType.LINKER)
+        a.DnaParts
+        |> List.exists (fun d -> d.Type = SliceType.Linker)
 
     if linkered then
         printVerbose "placeFuseForSeamless: skipping, since linkers present"
         ok a // we don't touch cases where linkers are already placed
     else
         printVerbose "placeFuseForSeamless: examining need for fuse slices"
-        printVerbose (sprintf "placeFuseForSeamless: starting layout: %s" (dumpSliceLayout a.dnaParts))
+        printVerbose (sprintf "placeFuseForSeamless: starting layout: %s" (dumpSliceLayout a.DnaParts))
 
         // flank final result with empty linkers to get end primer generation
         let dnaPartsProcessed =
-            procInsertFuse at.Options.Verbose a.dnaParts
+            procInsertFuse at.Options.Verbose a.DnaParts
 
         printVerbose (sprintf "placeFuseForSeamless: final layout: %s" (dumpSliceLayout dnaPartsProcessed))
 
-        ok { a with dnaParts = dnaPartsProcessed }
+        ok { a with DnaParts = dnaPartsProcessed }
 
 let seamlessArg =
     { name = "seamless"

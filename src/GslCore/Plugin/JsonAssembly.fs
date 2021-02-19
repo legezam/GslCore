@@ -33,26 +33,26 @@ type AssemblyOutJson =
 
 let formatST (s: SliceType) =
     match s with
-    | REGULAR -> "REGULAR"
-    | MARKER -> "MARKER"
-    | LINKER -> "LINKER"
-    | INLINEST -> "INLINE"
-    | FUSIONST -> "FUSION"
+    | SliceType.Regular -> "REGULAR"
+    | SliceType.Marker -> "MARKER"
+    | SliceType.Linker -> "LINKER"
+    | SliceType.Inline -> "INLINE"
+    | SliceType.Fusion -> "FUSION"
 
 let formatBreed (b: Breed) =
     match b with
-    | B_PROMOTER -> "B_PROMOTER"
-    | B_TERMINATOR -> "B_TERMINATOR"
-    | B_MARKER -> "B_MARKER"
-    | B_FUSABLEORF -> "B_FUSABLEORF"
-    | B_UPSTREAM -> "B_UPSTREAM"
-    | B_DOWNSTREAM -> "B_DOWNSTREAM"
-    | B_GST -> "B_GST"
-    | B_GS -> "B_GS"
-    | B_INLINE -> "B_INLINE"
-    | B_X -> "B_X"
-    | B_VIRTUAL -> "B_VIRTUAL"
-    | B_LINKER -> "B_LINKER"
+    | Breed.Promoter -> "B_PROMOTER"
+    | Breed.Terminator -> "B_TERMINATOR"
+    | Breed.Marker -> "B_MARKER"
+    | Breed.FusableOrf -> "B_FUSABLEORF"
+    | Breed.Upstream -> "B_UPSTREAM"
+    | Breed.Downstream -> "B_DOWNSTREAM"
+    | Breed.GST -> "B_GST"
+    | Breed.GS -> "B_GS"
+    | Breed.Inline -> "B_INLINE"
+    | Breed.X -> "B_X"
+    | Breed.Virtual -> "B_VIRTUAL"
+    | Breed.Linker -> "B_LINKER"
 
 ///  Write out a JSON file representing the output assembly list to a given path.
 let dumpJsonAssemblies (outFile: string) (assemblies: DnaAssembly list) =
@@ -62,29 +62,29 @@ let dumpJsonAssemblies (outFile: string) (assemblies: DnaAssembly list) =
     let assemblyHash =
         assemblies
         |> List.map (fun a ->
-            { id = a.id.Value.ToString()
-              name = a.name.ToString()
+            { id = a.Id.Value.ToString()
+              name = a.Name.ToString()
               dnaSlices =
-                  (a.dnaParts
+                  (a.DnaParts
                    |> List.map (fun d ->
                        { id =
-                             (match d.id with
+                             (match d.Id with
                               | None -> "0"
                               | Some id -> id.ToString())
                          extId = ""
-                         dna = String.Join("", d.dna)
-                         sourceChr = d.sourceChr
-                         sourceFr = d.sourceFr.ToString()
-                         sourceTo = d.sourceTo.ToString()
-                         sourceFwd = d.sourceFwd
-                         destFr = d.destFr.ToString()
-                         destTo = d.destTo.ToString()
-                         destFwd = d.destFwd
-                         amplified = d.amplified
-                         sliceName = d.sliceName.ToString()
-                         sliceType = (formatST d.sliceType)
-                         breed = (formatBreed d.breed)
-                         description = d.description.ToString() })) })
+                         dna = String.Join("", d.Dna)
+                         sourceChr = d.SourceChromosome
+                         sourceFr = d.SourceFrom.ToString()
+                         sourceTo = d.SourceTo.ToString()
+                         sourceFwd = d.SourceForward
+                         destFr = d.DestinationFrom.ToString()
+                         destTo = d.DestinationTo.ToString()
+                         destFwd = d.DestinationForward
+                         amplified = d.IsAmplified
+                         sliceName = d.SliceName.ToString()
+                         sliceType = (formatST d.Type)
+                         breed = (formatBreed d.Breed)
+                         description = d.Description.ToString() })) })
 
     let jsonFileString: string =
         Newtonsoft.Json.JsonConvert.SerializeObject(assemblyHash, Formatting.Indented)

@@ -26,23 +26,23 @@ let simplePrimerDump (file: string) (primers: DivergedPrimerPair list list) (ass
             //find the AMP part of the primer that binds to the template.
             let ampBody =
                 match primer.Interval DNAIntervalType.AMP with
-                | Some (i) -> primer.Primer.[i.il..i.ir]
-                | None -> primer.body
+                | Some (i) -> primer.Primer.[i.Left..i.Right]
+                | None -> primer.Body
             //search using either the ampBody or reverse complement of it depending on direction of primer
             let searchBody =
                 if isFwd then ampBody else ampBody.RevComp()
 
-            let containsPrimer (part: DNASlice) = part.dna.Contains searchBody
+            let containsPrimer (part: DNASlice) = part.Dna.Contains searchBody
 
             let bindingPart =
-                List.tryFind containsPrimer assembly.dnaParts
+                List.tryFind containsPrimer assembly.DnaParts
 
             let name =
                 match bindingPart with
                 | Some value ->
-                    if value.sliceName <> "" then value.sliceName
-                    else if value.description <> "" then value.description
-                    else (Utils.ambId value.id)
+                    if value.SliceName <> "" then value.SliceName
+                    else if value.Description <> "" then value.Description
+                    else (Utils.ambId value.Id)
                 | None -> ""
 
             if primer.Primer.Length > 0 then
@@ -51,36 +51,36 @@ let simplePrimerDump (file: string) (primers: DivergedPrimerPair list list) (ass
                         yield (sprintf "\"%s_%s\"" name (if isFwd then "fwd" else "rev"))
                         yield (if isFwd then "fwd" else "rev")
                         yield (primer.Primer.str)
-                        yield (primer.tail.str)
-                        yield (primer.body.str)
+                        yield (primer.Tail.str)
+                        yield (primer.Body.str)
                         //calculate tm for given primer parts
                         let tm (a: char array) =
-                            Amyris.Bio.primercore.temp assembly.designParams.PrimerParams a a.Length
+                            Amyris.Bio.primercore.temp assembly.DesignParams.PrimerParams a a.Length
                             |> fun t -> sprintf "%3.1f" (t * 1.0 / (1.0<Amyris.Bio.primercore.C>))
                         //emit individual primer parts and tm
                         yield
-                            (match primer.Interval DNAIntervalType.ANNEAL with
-                             | Some (i) -> primer.Primer.[i.il..i.ir].str
+                            (match primer.Interval DNAIntervalType.Anneal with
+                             | Some (i) -> primer.Primer.[i.Left..i.Right].str
                              | None -> "")
 
                         yield
-                            (match primer.Interval DNAIntervalType.SANDWICH with
-                             | Some (i) -> primer.Primer.[i.il..i.ir].str
-                             | None -> "")
-
-                        yield
-                            (match primer.Interval DNAIntervalType.AMP with
-                             | Some (i) -> primer.Primer.[i.il..i.ir].str
-                             | None -> "")
-
-                        yield
-                            (match primer.Interval DNAIntervalType.ANNEAL with
-                             | Some (i) -> primer.Primer.[i.il..i.ir].arr |> tm
+                            (match primer.Interval DNAIntervalType.Sandwich with
+                             | Some (i) -> primer.Primer.[i.Left..i.Right].str
                              | None -> "")
 
                         yield
                             (match primer.Interval DNAIntervalType.AMP with
-                             | Some (i) -> primer.Primer.[i.il..i.ir].arr |> tm
+                             | Some (i) -> primer.Primer.[i.Left..i.Right].str
+                             | None -> "")
+
+                        yield
+                            (match primer.Interval DNAIntervalType.Anneal with
+                             | Some (i) -> primer.Primer.[i.Left..i.Right].arr |> tm
+                             | None -> "")
+
+                        yield
+                            (match primer.Interval DNAIntervalType.AMP with
+                             | Some (i) -> primer.Primer.[i.Left..i.Right].arr |> tm
                              | None -> "")
                     }
 
@@ -88,11 +88,11 @@ let simplePrimerDump (file: string) (primers: DivergedPrimerPair list list) (ass
 
         for dpp in primerList do
             match dpp with
-            | GAP
-            | SANDWICHGAP -> () // Don't need to emit these
-            | DPP (dpp) ->
-                primerInfo true dpp.fwd
-                primerInfo false dpp.rev
+            | Gap
+            | SandwichGap -> () // Don't need to emit these
+            | DivergedPrimerPair (dpp) ->
+                primerInfo true dpp.Forward
+                primerInfo false dpp.Reverse
 
     w
         (String.Join

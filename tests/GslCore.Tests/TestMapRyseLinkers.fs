@@ -50,26 +50,26 @@ type TestMapRyseLinkers() =
 
         let linkers =
             [ for l in leftLinkers @ rightLinkers ->
-                l.sliceName,
-                { RYSELinker.name = l.sliceName
-                  dna = l.dna } ]
+                l.SliceName,
+                { RYSELinker.Name = l.SliceName
+                  Dna = l.Dna } ]
             |> Map.ofList
 
 
         /// Wrap up in a generic assembly
         let assemblyIn: DnaAssembly =
-            { id = None
-              dnaParts = slicesIn
-              name = name
-              uri = None
-              linkerHint =
-                  String.Join(",", [ for l in leftLinkers -> l.sliceName ])
+            { Id = None
+              DnaParts = slicesIn
+              Name = name
+              Uri = None
+              LinkerHint =
+                  String.Join(",", [ for l in leftLinkers -> l.SliceName ])
                   + "|"
-                  + String.Join(",", [ for l in rightLinkers -> l.sliceName ])
-              pragmas = if isMegastitch then PragmaCollection.empty else makePragma "platform" [ "stitch" ]
-              designParams = DesignParams.identity
-              docStrings = []
-              materializedFrom =
+                  + String.Join(",", [ for l in rightLinkers -> l.SliceName ])
+              Pragmas = if isMegastitch then PragmaCollection.empty else makePragma "platform" [ "stitch" ]
+              DesignParams = DesignParams.identity
+              DocStrings = []
+              MaterializedFrom =
                   { Assembly.name = None
                     parts = []
                     uri = None
@@ -79,13 +79,13 @@ type TestMapRyseLinkers() =
                     capabilities = Set.empty
                     docStrings = []
                     sourcePosition = [] }
-              tags = Set.empty
-              topology = Linear }
+              Tags = Set.empty
+              Topology = Linear }
 
         let updatedAssembly =
             Ryse.mapRyseLinkers opts Map.empty linkers assemblyIn
         // Check expected and actual slice output
-        SharedSliceTesting.checkSequence expected updatedAssembly.dnaParts
+        SharedSliceTesting.checkSequence expected updatedAssembly.DnaParts
 
 
     [<Test>]

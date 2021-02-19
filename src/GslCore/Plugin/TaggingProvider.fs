@@ -51,25 +51,25 @@ let gTagPragmaDef =
 let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly) =
     // gtag is global tag, tag is dna assembly tag
     match List.collect (fun pragma -> pragma.Arguments)
-              ([ a.pragmas
+              ([ a.Pragmas
                  |> PragmaCollection.tryFind tagPragmaDef
-                 a.pragmas
+                 a.Pragmas
                  |> PragmaCollection.tryFind gTagPragmaDef ]
                |> List.choose id) with
     | [] ->
         let newTags =
-            cmdlineTags |> Set.ofList |> Set.union a.tags
+            cmdlineTags |> Set.ofList |> Set.union a.Tags
 
-        ok { a with tags = newTags }
+        ok { a with Tags = newTags }
     | args ->
         match parseTags args with
         | Ok (newTags, _) ->
             let newTags =
                 (cmdlineTags @ newTags)
                 |> Set.ofList
-                |> Set.union a.tags
+                |> Set.union a.Tags
 
-            ok { a with tags = newTags }
+            ok { a with Tags = newTags }
         | Bad msg ->
             fail
                 { Message = String.Join(";", msg)

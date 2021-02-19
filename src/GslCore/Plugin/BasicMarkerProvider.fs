@@ -14,31 +14,31 @@ let jobScorerBasicMarkerProvider _ = Some 0.0<PluginScore>
 /// Exception on failure.
 let expandMarkerPartIntoURA3 dnaSource (dna: Dna) (ppp: PPP) =
 
-    { id = None
-      extId = None
-      sliceName = getSliceName ppp
-      uri = getUri ppp // TODO: should this marker have a static URI we always assign here?
-      dna = dna
-      sourceChr = "library"
-      sourceFr = 0<ZeroOffset>
-      sourceTo = (dna.Length - 1) * 1<ZeroOffset>
-      sourceFwd = true
-      sourceFrApprox = false
-      sourceToApprox = false
+    { Id = None
+      ExternalId = None
+      SliceName = getSliceName ppp
+      Uri = getUri ppp // TODO: should this marker have a static URI we always assign here?
+      Dna = dna
+      SourceChromosome = "library"
+      SourceFrom = 0<ZeroOffset>
+      SourceTo = (dna.Length - 1) * 1<ZeroOffset>
+      SourceForward = true
+      SourceFromApprox = false
+      SourceToApprox = false
       // Don't assign coordinates to pieces until later when we
       // decide how they are getting joined up
-      template = Some dna
-      amplified = false
-      destFr = 0<ZeroOffset>
-      destTo = 0<ZeroOffset>
-      destFwd = ppp.fwd
-      description = "URA3 marker"
-      sliceType = MARKER
-      dnaSource = dnaSource
-      pragmas = ppp.pr
-      breed = B_MARKER
-      materializedFrom = Some(ppp)
-      annotations = [] }
+      Template = Some dna
+      IsAmplified = false
+      DestinationFrom = 0<ZeroOffset>
+      DestinationTo = 0<ZeroOffset>
+      DestinationForward = ppp.fwd
+      Description = "URA3 marker"
+      Type = SliceType.Marker
+      DnaSource = dnaSource
+      Pragmas = ppp.pr
+      Breed = Breed.Marker
+      MaterializedFrom = Some(ppp)
+      Annotations = [] }
 
 /// Classic URA3 sequence that has always been hard coded into center of megastitches (from lib.fa)
 let basicURA3 = "GTTCATCATCTCATGGATCTGCACATGAACAAACACCAGAGTCAAACGACGTTGAAATTG\

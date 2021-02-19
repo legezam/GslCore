@@ -12,7 +12,7 @@ open GslCore.DesignParams
 
 module SharedSliceTesting =
     let dumpSlices (slices: DNASlice list) =
-        printf "%s" (String.Join(";", [ for s in slices -> if s.sliceName <> "" then s.sliceName else s.description ]))
+        printf "%s" (String.Join(";", [ for s in slices -> if s.SliceName <> "" then s.SliceName else s.Description ]))
 
     let checkSequence (expected: DNASlice list) (actual: DNASlice list) =
         if expected.Length <> actual.Length then
@@ -25,13 +25,13 @@ module SharedSliceTesting =
             printfn ""
 
         for e, a in List.zip expected actual do
-            match e.sourceFrApprox, e.sourceToApprox with
-            | false, false -> Assert.AreEqual(e.dna.str, a.dna, sprintf "expect %s to equal %s" e.sliceName a.sliceName)
+            match e.SourceFromApprox, e.SourceToApprox with
+            | false, false -> Assert.AreEqual(e.Dna.str, a.Dna, sprintf "expect %s to equal %s" e.SliceName a.SliceName)
             | true, false ->
-                Assert.IsTrue(e.dna.EndsWith(a.dna), sprintf "expect %s to end with %s" e.sliceName a.sliceName)
+                Assert.IsTrue(e.Dna.EndsWith(a.Dna), sprintf "expect %s to end with %s" e.SliceName a.SliceName)
             | false, true ->
-                Assert.IsTrue(e.dna.StartsWith(a.dna), sprintf "expect %s to start with %s" e.sliceName a.sliceName)
-            | _ -> Assert.IsTrue(e.dna.Contains(a.dna), sprintf "expect %s to contain %s" e.sliceName a.sliceName)
+                Assert.IsTrue(e.Dna.StartsWith(a.Dna), sprintf "expect %s to start with %s" e.SliceName a.SliceName)
+            | _ -> Assert.IsTrue(e.Dna.Contains(a.Dna), sprintf "expect %s to contain %s" e.SliceName a.SliceName)
 
 [<TestFixture>]
 type TestProcAssembly() =
@@ -72,9 +72,9 @@ type TestProcAssembly() =
             result
             |> List.map (fun dpp ->
                 match dpp with
-                | DPP _ -> "D"
-                | GAP _ -> "G"
-                | SANDWICHGAP _ -> "S")
+                | DivergedPrimerPair _ -> "D"
+                | Gap _ -> "G"
+                | SandwichGap _ -> "S")
             |> List.reduce (+)
 
         Assert.AreEqual(expected, pattern)
@@ -99,9 +99,9 @@ type TestProcAssembly() =
 
         printfn
             "slice order expected: %s"
-            (String.Join(";", [ for s in [ uFoo; fuse; marker; fuse; dFoo ] -> s.sliceName ]))
+            (String.Join(";", [ for s in [ uFoo; fuse; marker; fuse; dFoo ] -> s.SliceName ]))
 
-        printfn "slice order returned: %s" (String.Join(";", [ for s in slices -> s.sliceName ]))
+        printfn "slice order returned: %s" (String.Join(";", [ for s in slices -> s.SliceName ]))
         SharedSliceTesting.checkSequence [ uFoo; fuse; marker; fuse; dFoo ] slices
 
     [<Test>]

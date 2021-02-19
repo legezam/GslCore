@@ -15,89 +15,89 @@ let emptyPragmas =
     PragmaCollection.empty
 
 let uHO: DNASlice =
-    { id = Some(2)
-      amplified = true
-      annotations = []
-      breed = B_UPSTREAM
-      description = "uHO"
-      destFr = 0<ZeroOffset>
-      destFwd = true
-      destTo = 549<ZeroOffset>
-      dna =
+    { Id = Some(2)
+      IsAmplified = true
+      Annotations = []
+      Breed = Breed.Upstream
+      Description = "uHO"
+      DestinationFrom = 0<ZeroOffset>
+      DestinationForward = true
+      DestinationTo = 549<ZeroOffset>
+      Dna =
           Dna
               ("ACCTTTTTTGTGCGTGTATTGAAATATTATGACATATTACAGAAAGGGTTCGCAAGTCCTGTTTCTATGCCTTTCTCTTAGTAATTCACGAAATAAACCTATGGTTTACGAAATGATCCACGAAAATCATGTTATTATTTACATCAACATATCGCGAAAATTCATGTCATGTCCACATTAACATCATTGCAGAGCAACAATTCATTTTCATAGAGAAATTTGCTACTATCACCCACTAGTACTACCATTGGTACCTACTACTTTGAATTGTACTACCGCTGGGCGTTATTAGGTGTGAAACCACGAAAAGTTCACCATAACTTCGAATAAAGTCGCGGAAAAAAGTAAACAGCTATTGCTACTCAAATGAGGTTTGCAGAAGCTTGTTGAAGCATGATGAAGCGTTCTAAACGCACTATTCATCATTAAATATTTAAAGCTCATAAAATTGTATTCAATTCCTATTCTAAATGGCTTTTATTTCTATTACAACTATTAGCTCTAAATCCATATCCTCATAAGCAGCAATCAATTCTATCTATACTTTAAA")
-      dnaSource = "S288C"
-      extId = None
-      materializedFrom = None // Some({LegacyParseTypes.PPP})
-      pragmas = emptyPragmas
-      sliceName = ""
-      sliceType = REGULAR
-      sourceChr = "4"
-      sourceFr = 48031<ZeroOffset>
-      sourceFrApprox = true
-      sourceFwd = false
-      sourceTo = 48580<ZeroOffset>
-      sourceToApprox = false
-      template =
+      DnaSource = "S288C"
+      ExternalId = None
+      MaterializedFrom = None // Some({LegacyParseTypes.PPP})
+      Pragmas = emptyPragmas
+      SliceName = ""
+      Type = SliceType.Regular
+      SourceChromosome = "4"
+      SourceFrom = 48031<ZeroOffset>
+      SourceFromApprox = true
+      SourceForward = false
+      SourceTo = 48580<ZeroOffset>
+      SourceToApprox = false
+      Template =
           Some
               (Dna
                   ("ACCTTTTTTGTGCGTGTATTGAAATATTATGACATATTACAGAAAGGGTTCGCAAGTCCTGTTTCTATGCCTTTCTCTTAGTAATTCACGAAATAAACCTATGGTTTACGAAATGATCCACGAAAATCATGTTATTATTTACATCAACATATCGCGAAAATTCATGTCATGTCCACATTAACATCATTGCAGAGCAACAATTCATTTTCATAGAGAAATTTGCTACTATCACCCACTAGTACTACCATTGGTACCTACTACTTTGAATTGTACTACCGCTGGGCGTTATTAGGTGTGAAACCACGAAAAGTTCACCATAACTTCGAATAAAGTCGCGGAAAAAAGTAAACAGCTATTGCTACTCAAATGAGGTTTGCAGAAGCTTGTTGAAGCATGATGAAGCGTTCTAAACGCACTATTCATCATTAAATATTTAAAGCTCATAAAATTGTATTCAATTCCTATTCTAAATGGCTTTTATTTCTATTACAACTATTAGCTCTAAATCCATATCCTCATAAGCAGCAATCAATTCTATCTATACTTTAAA"))
-      uri = None }
+      Uri = None }
 
 let inlineSlice =
-    { amplified = false
-      annotations = []
-      breed = B_INLINE
-      description = "ATGTGAC"
-      destFr = 550<ZeroOffset>
-      destFwd = true
-      destTo = 556<ZeroOffset>
-      dna = Dna("ATGTGAC")
-      dnaSource = "S288C"
-      extId = None
-      id = Some(0)
-      materializedFrom = None
-      pragmas = emptyPragmas
-      sliceName = ""
-      sliceType = INLINEST
-      sourceChr = "inline"
-      sourceFr = 0<ZeroOffset>
-      sourceFrApprox = false
-      sourceFwd = true
-      sourceTo = 6<ZeroOffset>
-      sourceToApprox = false
-      template = Some(Dna("ATGTGAC"))
-      uri = None }
+    { IsAmplified = false
+      Annotations = []
+      Breed = Breed.Inline
+      Description = "ATGTGAC"
+      DestinationFrom = 550<ZeroOffset>
+      DestinationForward = true
+      DestinationTo = 556<ZeroOffset>
+      Dna = Dna("ATGTGAC")
+      DnaSource = "S288C"
+      ExternalId = None
+      Id = Some(0)
+      MaterializedFrom = None
+      Pragmas = emptyPragmas
+      SliceName = ""
+      Type = SliceType.Inline
+      SourceChromosome = "inline"
+      SourceFrom = 0<ZeroOffset>
+      SourceFromApprox = false
+      SourceForward = true
+      SourceTo = 6<ZeroOffset>
+      SourceToApprox = false
+      Template = Some(Dna("ATGTGAC"))
+      Uri = None }
 
 let dHO =
-    { amplified = true
-      annotations = []
-      breed = B_DOWNSTREAM
-      description = "dHO"
-      destFr = 557<ZeroOffset>
-      destFwd = true
-      destTo = 1106<ZeroOffset>
-      dna =
+    { IsAmplified = true
+      Annotations = []
+      Breed = Breed.Downstream
+      Description = "dHO"
+      DestinationFrom = 557<ZeroOffset>
+      DestinationForward = true
+      DestinationTo = 1106<ZeroOffset>
+      Dna =
           Dna
               ("AATGTGTATATTAGTTTAAAAAGTTGTATGTAATAAAAGTAAAATTTAATATTTTGGATGAAAAAAACCATTTTTAGACTTTTTCTTAACTAGAATGCTGGAGTAGAAATACGCCATCTCAAGATACAAAAAGCGTTACCGGCACTGATTTGTTTCAACCAGTATATAGATTATTATTGGGTCTTGATCAACTTTCCTCAGACATATCAGTAACAGTTATCAAGCTAAATATTTACGCGAAAGAAAAACAAATATTTTAATTGTGATACTTGTGAATTTTATTTTATTAAGGATACAAAGTTAAGAGAAAACAAAATTTATATACAATATAAGTAATATTCATATATATGTGATGAATGCAGTCTTAACGAGAAGACATGGCCTTGGTGACAACTCTCTTCAAACCAACTTCAGCCTTTCTCAATTCATCAGCAGATGGGTCTTCGATTTGCAAAGCAGCCAAAGCATCGGACAAAGCAGCTTCAATCTTGGACTTGGAACCTCTCTTCAATTTAGAAGACAAGACTGGGTCAGTGACAGTTTGTTCGAT")
-      dnaSource = "S288C"
-      extId = None
-      id = Some(1)
-      materializedFrom = None
-      pragmas = emptyPragmas
-      sliceName = ""
-      sliceType = REGULAR
-      sourceChr = "4"
-      sourceFr = 45720<ZeroOffset>
-      sourceFrApprox = false
-      sourceFwd = false
-      sourceTo = 46269<ZeroOffset>
-      sourceToApprox = true
-      template =
+      DnaSource = "S288C"
+      ExternalId = None
+      Id = Some(1)
+      MaterializedFrom = None
+      Pragmas = emptyPragmas
+      SliceName = ""
+      Type = SliceType.Regular
+      SourceChromosome = "4"
+      SourceFrom = 45720<ZeroOffset>
+      SourceFromApprox = false
+      SourceForward = false
+      SourceTo = 46269<ZeroOffset>
+      SourceToApprox = true
+      Template =
           Some
               (Dna
                   ("AATGTGTATATTAGTTTAAAAAGTTGTATGTAATAAAAGTAAAATTTAATATTTTGGATGAAAAAAACCATTTTTAGACTTTTTCTTAACTAGAATGCTGGAGTAGAAATACGCCATCTCAAGATACAAAAAGCGTTACCGGCACTGATTTGTTTCAACCAGTATATAGATTATTATTGGGTCTTGATCAACTTTCCTCAGACATATCAGTAACAGTTATCAAGCTAAATATTTACGCGAAAGAAAAACAAATATTTTAATTGTGATACTTGTGAATTTTATTTTATTAAGGATACAAAGTTAAGAGAAAACAAAATTTATATACAATATAAGTAATATTCATATATATGTGATGAATGCAGTCTTAACGAGAAGACATGGCCTTGGTGACAACTCTCTTCAAACCAACTTCAGCCTTTCTCAATTCATCAGCAGATGGGTCTTCGATTTGCAAAGCAGCCAAAGCATCGGACAAAGCAGCTTCAATCTTGGACTTGGAACCTCTCTTCAATTTAGAAGACAAGACTGGGTCAGTGACAGTTTGTTCGAT"))
-      uri = None }
+      Uri = None }
 
 [<TestFixture>]
 type TestSeamlessPrimers() =
@@ -120,14 +120,14 @@ type TestSeamlessPrimers() =
         let fused =
             SeamlessPlugin.procInsertFuse false dnaParts
 
-        let pTypes = fused |> List.map (fun p -> p.sliceType)
+        let pTypes = fused |> List.map (fun p -> p.Type)
 
         let expected =
-            [ SliceType.LINKER
-              SliceType.REGULAR
-              SliceType.INLINEST
-              SliceType.REGULAR
-              SliceType.LINKER ]
+            [ SliceType.Linker
+              SliceType.Regular
+              SliceType.Inline
+              SliceType.Regular
+              SliceType.Linker ]
         // bug   LINKER,REG,FUSION,INLINE,REG,LINKER
         checkSliceTypes expected pTypes
 

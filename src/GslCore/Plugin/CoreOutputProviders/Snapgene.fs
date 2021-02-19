@@ -31,8 +31,8 @@ let dumpSnapgene (outDir: string)
             sprintf
                 "%s.%d.dna"
                 tag
-                (match a.id with
-                 | None -> failwithf "unassigned assembly id in %s" a.name
+                (match a.Id with
+                 | None -> failwithf "unassigned assembly id in %s" a.Name
                  | Some (i) -> i)
             |> opj outDir
 
@@ -46,12 +46,12 @@ let dumpSnapgene (outDir: string)
         let locusName = sprintf "Exported GSL %s" tag
 
         let totLength =
-            a.dnaParts
-            |> List.map (fun p -> p.dna.Length)
+            a.DnaParts
+            |> List.map (fun p -> p.Dna.Length)
             |> Seq.sum
 
         let now = DateTime.Now
-        let topology = a.topology |> Topology.toString
+        let topology = a.Topology |> Topology.toString
         (* // constraints on header format per SnapGene direct correspandance
 
         1) LOCUS must contain "Exported".
@@ -86,43 +86,43 @@ FEATURES             Location/Qualifiers
             totLength // source length line
         |> w
 
-        for p in a.dnaParts do
+        for p in a.DnaParts do
             let colorFwd =
-                match p.sliceType with
-                | REGULAR ->
-                    match p.breed with
-                    | Breed.B_UPSTREAM -> "#009933"
-                    | Breed.B_DOWNSTREAM -> "#009933"
-                    | Breed.B_PROMOTER -> "#3399FF"
-                    | Breed.B_FUSABLEORF -> "#FF0000"
-                    | Breed.B_GS -> "#FF3300"
-                    | Breed.B_GST -> "#FF6600"
-                    | Breed.B_INLINE -> "#99CCFF"
-                    | Breed.B_TERMINATOR -> "#000066"
-                    | Breed.B_VIRTUAL -> "#FF0066"
-                    | Breed.B_LINKER -> "#996633"
-                    | Breed.B_MARKER -> "#336600"
-                    | Breed.B_X -> "#000000"
-                | LINKER -> "#FF0000"
-                | MARKER -> "yellow"
-                | INLINEST -> "green"
-                | FUSIONST -> "red"
+                match p.Type with
+                | SliceType.Regular ->
+                    match p.Breed with
+                    | Breed.Upstream -> "#009933"
+                    | Breed.Downstream -> "#009933"
+                    | Breed.Promoter -> "#3399FF"
+                    | Breed.FusableOrf -> "#FF0000"
+                    | Breed.GS -> "#FF3300"
+                    | Breed.GST -> "#FF6600"
+                    | Breed.Inline -> "#99CCFF"
+                    | Breed.Terminator -> "#000066"
+                    | Breed.Virtual -> "#FF0066"
+                    | Breed.Linker -> "#996633"
+                    | Breed.Marker -> "#336600"
+                    | Breed.X -> "#000000"
+                | SliceType.Linker -> "#FF0000"
+                | SliceType.Marker -> "yellow"
+                | SliceType.Inline -> "green"
+                | SliceType.Fusion -> "red"
 
             let colorRev = colorFwd // reserve possibility of different colors for different orientations but for now the same
 
             let range =
-                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (ZeroOffset.toOne p.destFr) (ZeroOffset.toOne p.destTo)
+                sprintf (if p.DestinationForward then "%A..%A" else "complement(%A..%A)") (ZeroOffset.toOne p.DestinationFrom) (ZeroOffset.toOne p.DestinationTo)
 
             let label =
-                if p.sliceName <> "" then p.sliceName
-                else if p.description <> "" then p.description
-                else (Utils.ambId p.id)
+                if p.SliceName <> "" then p.SliceName
+                else if p.Description <> "" then p.Description
+                else (Utils.ambId p.Id)
 
             sprintf "     misc_feature    %s
                      /label=\"%s\"
                      /note=\"%s\"
-                     /note=\"color: %s; direction: %s\"\n" range label label (if p.destFwd then colorFwd else colorRev)
-                (if p.destFwd then "RIGHT" else "LEFT")
+                     /note=\"color: %s; direction: %s\"\n" range label label (if p.DestinationForward then colorFwd else colorRev)
+                (if p.DestinationForward then "RIGHT" else "LEFT")
             |> w
 
         // Primer emission
@@ -135,8 +135,8 @@ FEATURES             Location/Qualifiers
 
             let ampBody =
                 match primer.Interval DNAIntervalType.AMP with
-                | Some (i) -> primer.Primer.[i.il..i.ir]
-                | None -> primer.body
+                | Some (i) -> primer.Primer.[i.Left..i.Right]
+                | None -> primer.Body
             //search using either the ampBody or reverse complement of it depending on direction of primer
             let searchBody =
                 if isFwd then ampBody else ampBody.RevComp()
@@ -147,15 +147,15 @@ FEATURES             Location/Qualifiers
 
             let right = left + primer.Primer.Length - 1
             // naming primers using part it binds to
-            let containsPrimer (part: DNASlice) = part.dna.Contains searchBody
-            let bindingPart = List.tryFind containsPrimer a.dnaParts
+            let containsPrimer (part: DNASlice) = part.Dna.Contains searchBody
+            let bindingPart = List.tryFind containsPrimer a.DnaParts
 
             let name =
                 match bindingPart with
                 | Some value ->
-                    if value.sliceName <> "" then value.sliceName
-                    else if value.description <> "" then value.description
-                    else (Utils.ambId value.id)
+                    if value.SliceName <> "" then value.SliceName
+                    else if value.Description <> "" then value.Description
+                    else (Utils.ambId value.Id)
                 | None -> ""
 
             sprintf "     primer_bind     %s
@@ -168,11 +168,11 @@ FEATURES             Location/Qualifiers
 
         for pp in primers do
             match pp with
-            | GAP -> () // nothing to emit
-            | SANDWICHGAP -> () // nothing to emit
-            | DPP (dpp) ->
-                if dpp.fwd.Primer.Length > 0 then emitPrimer true dpp.fwd
-                if dpp.rev.Primer.Length > 0 then emitPrimer false dpp.rev
+            | Gap -> () // nothing to emit
+            | SandwichGap -> () // nothing to emit
+            | DivergedPrimerPair (dpp) ->
+                if dpp.Forward.Primer.Length > 0 then emitPrimer true dpp.Forward
+                if dpp.Reverse.Primer.Length > 0 then emitPrimer false dpp.Reverse
 
         "ORIGIN\n" |> w
 

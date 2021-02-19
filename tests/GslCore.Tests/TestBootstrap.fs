@@ -28,6 +28,7 @@ type TestBootstrapping() =
     let bootstrapToTree node =
         match node with
         | Splice (nodes) -> AstTreeHead(Block(Node.wrapNode (List.ofArray nodes)))
+        | x -> failwithf "Illegal: %A" x
 
     let bootstrapPhase1NoCapas = bootstrapPhase1 Set.empty PragmaBuilder.builtin
 

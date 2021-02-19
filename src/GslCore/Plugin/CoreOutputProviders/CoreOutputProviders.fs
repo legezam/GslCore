@@ -123,9 +123,9 @@ let private dumpDocStrings (path: string) (assemblies: DnaAssembly list) =
     use outF = new StreamWriter(path)
 
     for a in assemblies do
-        outF.WriteLine(sprintf "@name=%s" a.name)
+        outF.WriteLine(sprintf "@name=%s" a.Name)
 
-        for line in a.docStrings do
+        for line in a.DocStrings do
             outF.WriteLine(line)
 
         outF.WriteLine("")

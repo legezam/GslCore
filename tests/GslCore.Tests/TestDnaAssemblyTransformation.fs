@@ -24,42 +24,42 @@ module AssemblyTestBase =
           sourcePosition = [] }
 
     let testSlice pragmas =
-        { id = None
-          extId = None
-          dna = Dna("atcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcg")
-          sourceChr = ""
-          sourceFr = 0<ZeroOffset>
-          sourceTo = 0<ZeroOffset>
-          sourceFwd = true
-          sourceFrApprox = false
-          sourceToApprox = false
-          destFr = 0<ZeroOffset>
-          destTo = 0<ZeroOffset>
-          destFwd = true
-          amplified = false
-          template = None
-          sliceName = ""
-          uri = None
-          description = ""
-          sliceType = INLINEST
-          pragmas = pragmas
-          dnaSource = ""
-          breed = B_INLINE
-          materializedFrom = None
-          annotations = [] }
+        { Id = None
+          ExternalId = None
+          Dna = Dna("atcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcgatcg")
+          SourceChromosome = ""
+          SourceFrom = 0<ZeroOffset>
+          SourceTo = 0<ZeroOffset>
+          SourceForward = true
+          SourceFromApprox = false
+          SourceToApprox = false
+          DestinationFrom = 0<ZeroOffset>
+          DestinationTo = 0<ZeroOffset>
+          DestinationForward = true
+          IsAmplified = false
+          Template = None
+          SliceName = ""
+          Uri = None
+          Description = ""
+          Type = SliceType.Inline
+          Pragmas = pragmas
+          DnaSource = ""
+          Breed = Breed.Inline
+          MaterializedFrom = None
+          Annotations = [] }
 
     let testAssembly part assemblyPragmas: DnaAssembly =
-        { id = None
-          dnaParts = [ part ]
-          name = ""
-          uri = None
-          linkerHint = ""
-          pragmas = assemblyPragmas
-          designParams = DesignParams.identity
-          docStrings = []
-          materializedFrom = emptyAssembly
-          tags = Set.empty
-          topology = Linear }
+        { Id = None
+          DnaParts = [ part ]
+          Name = ""
+          Uri = None
+          LinkerHint = ""
+          Pragmas = assemblyPragmas
+          DesignParams = DesignParams.identity
+          DocStrings = []
+          MaterializedFrom = emptyAssembly
+          Tags = Set.empty
+          Topology = Linear }
 
 [<TestFixture>]
 type Test() =
@@ -68,9 +68,9 @@ type Test() =
             cleanLongSlices () assembly |> returnOrFail
 
         let source =
-            transformed.dnaParts
+            transformed.DnaParts
             |> List.head
-            |> (fun p -> p.dnaSource)
+            |> (fun p -> p.DnaSource)
 
         Assert.AreEqual(expectedSource, source)
 

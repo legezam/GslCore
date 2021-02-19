@@ -46,7 +46,7 @@ module Ryse =
         |> Seq.choose (fun l ->
             match l.Split([| ',' |]) with
             | [| "" |] -> None
-            | [| n; s |] -> Some(n, { name = n; dna = Dna(s) })
+            | [| n; s |] -> Some(n, { Name = n; Dna = Dna(s) })
             | _ -> failwithf "Bad linker specification: '%s'" l)
         |> Map.ofSeq
 
@@ -163,7 +163,7 @@ module Ryse =
     let getLinkerSetsForDesign (assembly: DnaAssembly): string list * string list =
         let defaultLinkers = [ "0"; "2"; "A"; "3"; "9" ]
 
-        if assembly.linkerHint = "" then
+        if assembly.LinkerHint = "" then
             defaultLinkers, defaultLinkers
         else
             let splitOnComma (s: string) =
@@ -176,7 +176,7 @@ module Ryse =
 
             let invalidLinkerWarn (a: string list) (b: string list): bool =
                 let linkerWarnOff =
-                    assembly.pragmas
+                    assembly.Pragmas
                     |> PragmaCollection.tryFind BuiltIn.warnoffPragmaDef
                     |> Option.map (Pragma.hasVal "zeronine")
                     |> Option.defaultValue false
@@ -186,17 +186,17 @@ module Ryse =
 
             let (altLinkers1, altLinkers2) =
                 let linkerSets =
-                    assembly.linkerHint.Split([| '|' |])
+                    assembly.LinkerHint.Split([| '|' |])
                     |> Array.map splitOnComma
 
                 match linkerSets with
                 | [| a; b |] ->
                     if invalidLinkerWarn a b
                     then printf "linker sets must start with linker 0 and end with linker 9.  %s fails\n"
-                             assembly.linkerHint
+                             assembly.LinkerHint
                     // FIXME: this error condition just prints a message, should it blow up?
                     a, b
-                | _ -> failwithf "bad #linkers structure, should be one part with | sep, not %s" (assembly.linkerHint)
+                | _ -> failwithf "bad #linkers structure, should be one part with | sep, not %s" (assembly.LinkerHint)
 
             if verbose
             then printf "Using alternative linkers: %A,%A" altLinkers1 altLinkers2
@@ -204,19 +204,19 @@ module Ryse =
             altLinkers1, altLinkers2
 
     /// active pattern for picking out inline slice types
-    let (|InlineSlice|_|) =
+    let (|InlineSlice|_|): DNASlice -> DNASlice option =
         function
-        | x when x.sliceType = INLINEST -> Some(x)
+        | x when x.Type = SliceType.Inline -> Some(x)
         | _ -> None
 
-    let (|RegularSlice|_|) =
+    let (|RegularSlice|_|): DNASlice -> DNASlice option =
         function
-        | x when x.sliceType = REGULAR -> Some(x)
+        | x when x.Type = SliceType.Regular -> Some(x)
         | _ -> None
 
-    let (|FusionSlice|_|) =
+    let (|FusionSlice|_|): DNASlice -> DNASlice option =
         function
-        | x when x.sliceType = FUSIONST -> Some(x)
+        | x when x.Type = SliceType.Fusion -> Some(x)
         | _ -> None
 
     /// Determine how many junctions will require RYSE linkers.
@@ -226,34 +226,34 @@ module Ryse =
         | [] ->
             printVerbose (sprintf "  countRyseLinkersNeeded:  done total=%d" total)
             total
-        | a :: b :: tl when a.sliceType = FUSIONST ->
+        | a :: b :: tl when a.Type = SliceType.Fusion ->
             printVerbose
                 (sprintf
                     "  countRyseLinkersNeeded:  +0 fusion slice, part=%s , fused to %s 0 linkers needed"
-                     a.description
-                     b.description)
+                     a.Description
+                     b.Description)
 
             countRyseLinkersNeeded printVerbose total tl
-        | a :: _ :: tl when a.sliceType = INLINEST
-                            && (a.pragmas
+        | a :: _ :: tl when a.Type = SliceType.Inline
+                            && (a.Pragmas
                                 |> PragmaCollection.contains BuiltIn.rabitStartPragmaDef
-                                || a.pragmas
+                                || a.Pragmas
                                    |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef) ->
             printVerbose
                 (sprintf
                     "  countRyseLinkersNeeded:  +0 inline slice at start/end of rabit 0 more linkers needed for %s"
-                     a.description)
+                     a.Description)
 
             countRyseLinkersNeeded printVerbose (total + 1) tl // Add one more rabit if we need to insert a linker next to this inline slice
-        | a :: b :: tl when a.sliceType = INLINEST && b.sliceType = REGULAR ->
+        | a :: b :: tl when a.Type = SliceType.Inline && b.Type = SliceType.Regular ->
             printVerbose
                 (sprintf
                     "  countRyseLinkersNeeded:  +0 inline slice before a regular slice, 0 more linkers needed for %s"
-                     a.description)
+                     a.Description)
 
             countRyseLinkersNeeded printVerbose total tl
         | a :: tl ->
-            printVerbose (sprintf "  countRyseLinkersNeeded:  +1 basic case, part=%s" a.description)
+            printVerbose (sprintf "  countRyseLinkersNeeded:  +1 basic case, part=%s" a.Description)
             countRyseLinkersNeeded printVerbose (total + 1) tl
 
 
@@ -269,7 +269,7 @@ module Ryse =
         printVerbose "ENTERING: mapRyseLinkers"
         /// If they are building just a stitch, we need to know not to look for the marker
         let megaMono =
-            match PragmaCollection.assemblyMode aIn.pragmas with
+            match PragmaCollection.assemblyMode aIn.Pragmas with
             | Megastitch -> false
             | Stitch -> true
 
@@ -278,8 +278,8 @@ module Ryse =
 
         // Replace DNA parts with expanded version including linkers
         let dnaName =
-            aIn.dnaParts
-            |> List.map (fun d -> d.description)
+            aIn.DnaParts
+            |> List.map (fun d -> d.Description)
             |> fun x -> String.Join(";", x)
 
         // An error description for user in the event problems happen
@@ -300,33 +300,33 @@ module Ryse =
                     | None -> failwithf "ERROR: unexpected error not found looking up linker '%s'" n
                 // DNA for the linker
                 let dna =
-                    linker.dna
+                    linker.Dna
                     |> fun x -> if phase then x else x.RevComp()
-                let linkerUri = linker.name |> Uri.linkerUri |> returnOrFail
+                let linkerUri = linker.Name |> Uri.linkerUri |> returnOrFail
                 // Build the linker entry
-                { id = None
-                  extId = None
-                  sliceName = ""
-                  uri = Some linkerUri
-                  dna = dna
-                  sourceChr = "linker"
-                  sourceFr = 0<ZeroOffset>
-                  sourceTo = 0<ZeroOffset>
-                  template = None
-                  amplified = false
-                  sourceFrApprox = false
-                  sourceToApprox = false
-                  destFr = -999<ZeroOffset>
-                  destTo = -999<ZeroOffset>
-                  sourceFwd = phase
-                  description = sprintf "Linker_%s" n
-                  sliceType = LINKER
-                  destFwd = phase
-                  dnaSource = ""
-                  pragmas = PragmaCollection.empty
-                  breed = B_LINKER
-                  materializedFrom = None
-                  annotations = [] }
+                { Id = None
+                  ExternalId = None
+                  SliceName = ""
+                  Uri = Some linkerUri
+                  Dna = dna
+                  SourceChromosome = "linker"
+                  SourceFrom = 0<ZeroOffset>
+                  SourceTo = 0<ZeroOffset>
+                  Template = None
+                  IsAmplified = false
+                  SourceFromApprox = false
+                  SourceToApprox = false
+                  DestinationFrom = -999<ZeroOffset>
+                  DestinationTo = -999<ZeroOffset>
+                  SourceForward = phase
+                  Description = sprintf "Linker_%s" n
+                  Type = SliceType.Linker
+                  DestinationForward = phase
+                  DnaSource = ""
+                  Pragmas = PragmaCollection.empty
+                  Breed = Breed.Linker
+                  MaterializedFrom = None
+                  Annotations = [] }
 
             let noLinkersLeftMsg =
                 sprintf "mapRyseLinkers: out of linkers.  Started with %A" startLinkers
@@ -358,7 +358,7 @@ module Ryse =
                 // Should this also happen for the regular parts?  Must be dealt with elsewhere ;(
                 let hd' =
                     { markerHd with
-                          destFwd = if phase then markerHd.destFwd else not markerHd.destFwd }
+                          DestinationForward = if phase then markerHd.DestinationForward else not markerHd.DestinationForward }
 
                 // phase set to false to denote second phase,
                 // grab the second set of linkers allLinkers2
@@ -381,7 +381,7 @@ module Ryse =
             // B stitch orientation)
             printVerbose
                 (sprintf "\n\n==============================================\nin mapRyseLinkers(TOP):\nassign: sliceList=%A \nlinkers=%A\nresult=%A"
-                     [| for i in inputList -> i.description |] linkers [| for r in res -> r.description |])
+                     [| for i in inputList -> i.Description |] linkers [| for r in res -> r.Description |])
 
 
             let reportFinalAndReturn (res: DNASlice list) =
@@ -391,7 +391,7 @@ module Ryse =
                     (sprintf "\n\n==============================================\nin mapRyseLinkers:\nFinal output: sliceList=%A \n"
                          (res
                           |> List.rev
-                          |> List.map (fun (x: DNASlice) -> x.description)))
+                          |> List.map (fun (x: DNASlice) -> x.Description)))
 
                 res
 
@@ -410,7 +410,7 @@ module Ryse =
                         let alreadyAssigned =
                             res
                             |> List.rev
-                            |> List.map (fun x -> x.description)
+                            |> List.map (fun x -> x.Description)
                             |> fun x -> String.Join(" ; ", x)
 
                         failwithf "in mapRyseLinkers:assign, ran ut of linkers while still in phase one :(  .  Are you missing a ### marker for your megastitch?\n\nAssigned:%s"
@@ -427,10 +427,10 @@ module Ryse =
                             (x.ToString()) (if phase then "phase1" else "phase2") errorDesc
 
             // MRL-CASE 1
-            | InlineSlice a :: b :: c when (b.sliceType = REGULAR
-                                            || b.sliceType = SliceType.INLINEST
-                                            || b.sliceType = SliceType.MARKER)
-                                           && a.pragmas
+            | InlineSlice a :: b :: c when (b.Type = SliceType.Regular
+                                            || b.Type = SliceType.Inline
+                                            || b.Type = SliceType.Marker)
+                                           && a.Pragmas
                                               |> PragmaCollection.contains BuiltIn.rabitStartPragmaDef ->
                 printVerbose "MRL-CASE 1"
                 // a in an inline type with a pragma telling us to initiate the
@@ -446,7 +446,7 @@ module Ryse =
                 | linkerName :: lt ->
                     let linker = prepLinker linkerName
 
-                    if b.sliceType = MARKER then
+                    if b.Type = SliceType.Marker then
                         // a takes the place of a linker in this scenario
                         markerTransition [ a; linker ] b c
                     else
@@ -456,10 +456,10 @@ module Ryse =
                         assign startLinkers phase c lt (b :: a :: linker :: res)
 
             // MRL-CASE 2
-            | InlineSlice (a) :: b :: c when (b.sliceType = REGULAR
-                                              || b.sliceType = MARKER
-                                              || b.sliceType = INLINEST)
-                                             && a.pragmas
+            | InlineSlice (a) :: b :: c when (b.Type = SliceType.Regular
+                                              || b.Type = SliceType.Marker
+                                              || b.Type = SliceType.Inline)
+                                             && a.Pragmas
                                                 |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef ->
                 printVerbose "MRL-CASE 2"
                 // a in an inline type with a pragma telling us to end a rabit here,
@@ -507,7 +507,7 @@ module Ryse =
 
             // MRL-CASE 5
             | FusionSlice _ :: b :: InlineSlice (c) :: d when not
-                                                                  (c.pragmas
+                                                                  (c.Pragmas
                                                                    |> PragmaCollection.contains
                                                                        BuiltIn.rabitStartPragmaDef) ->
                 printVerbose "MRL-CASE 5"
@@ -517,11 +517,11 @@ module Ryse =
 
             // MRL-CASE 6
             | FusionSlice _ :: InlineSlice (b) :: c :: d when not
-                                                                  (b.pragmas
+                                                                  (b.Pragmas
                                                                    |> PragmaCollection.contains
                                                                        BuiltIn.rabitStartPragmaDef)
                                                               && not
-                                                                  (b.pragmas
+                                                                  (b.Pragmas
                                                                    |> PragmaCollection.contains
                                                                        BuiltIn.rabitEndPragmaDef) ->
                 printVerbose "MRL-CASE 6"
@@ -556,11 +556,11 @@ module Ryse =
 
             // MRL-CASE 9
             | InlineSlice (a) :: FusionSlice (b) :: c when (not
-                                                                (a.pragmas
+                                                                (a.Pragmas
                                                                  |> PragmaCollection.contains
                                                                      BuiltIn.rabitStartPragmaDef))
                                                            && (not
-                                                                   (a.pragmas
+                                                                   (a.Pragmas
                                                                     |> PragmaCollection.contains
                                                                         BuiltIn.rabitEndPragmaDef)) ->
                 printVerbose "MRL-CASE 9"
@@ -572,9 +572,9 @@ module Ryse =
                 assign startLinkers phase (b :: c) linkers (a :: res)
 
             // MRL-CASE 10
-            | [ InlineSlice (hd) ] when (hd.pragmas
+            | [ InlineSlice (hd) ] when (hd.Pragmas
                                          |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
-                                         || hd.pragmas
+                                         || hd.Pragmas
                                             |> PragmaCollection.contains BuiltIn.inlinePragmaDef) ->
                 printVerbose "MRL-CASE 10"
                 printVerbose "terminal inline slice that will be made off final linker, just move it to output list"
@@ -582,7 +582,7 @@ module Ryse =
 
             // MRL-CASE 11
             | hd :: tl when (match res with
-                             | InlineSlice (x) :: _ when x.pragmas
+                             | InlineSlice (x) :: _ when x.Pragmas
                                                          |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
                                                          |> not -> true
                              | _ -> false) ->
@@ -593,26 +593,26 @@ module Ryse =
             | hd :: tl -> // General case, chomp one linker
                 printVerbose "MRL-CASE 999"
                 printVerbose "General case - assign a linker"
-                sprintf "hd=%A" hd.description |> printVerbose
+                sprintf "hd=%A" hd.Description |> printVerbose
 
-                sprintf "tl=%A" [ for x in tl -> x.description ]
+                sprintf "tl=%A" [ for x in tl -> x.Description ]
                 |> printVerbose
 
                 match linkers with
                 | [] -> failwith noLinkersLeftMsg
                 | linkerName :: lt ->
                     let linker = prepLinker linkerName
-                    printVerbose (sprintf "Assigning linker %s to %s/%s" linkerName hd.description (SliceType.toString hd.sliceType))
+                    printVerbose (sprintf "Assigning linker %s to %s/%s" linkerName hd.Description (SliceType.toString hd.Type))
 
                     // DETECT MARKER, transition to phase II
-                    if hd.sliceType = MARKER then
+                    if hd.Type = SliceType.Marker then
                         // enter marker transition with linker to go before the marker part, marker part and remaining parts to place
                         markerTransition [ linker ] hd tl
                     else
                         // We are putting linker before the piece hd (output gets flipped at the end).
                         // Make sure linker is appropriate to precede part hd.
                         // Matters in the case where hd is reuse of a ryse part.
-                        match hd.extId with
+                        match hd.ExternalId with
                         | Some (x) -> //when x.[0] = 'R' || x.[0] = 'r' ->
                             let rabitId = int (x)
 
@@ -625,7 +625,7 @@ module Ryse =
                             let hFive = sprintf "%s" h.Five
                             let hThree = sprintf "%s" h.Three
 
-                            let linkerName = extractLinker linker.description
+                            let linkerName = extractLinker linker.Description
 
                             let linkerNameNext =
                                 match lt with
@@ -654,10 +654,10 @@ module Ryse =
 
         let res =
             { aIn with
-                  dnaParts =
-                      assign allLinkers1 true aIn.dnaParts allLinkers1 []
+                  DnaParts =
+                      assign allLinkers1 true aIn.DnaParts allLinkers1 []
                       |> List.rev
-                      |> DNASlice.recalcOffset }
+                      |> DNASlice.recalculatOffset }
 
 
         printVerbose "DONE:  mapRyseLinkers"
@@ -683,11 +683,11 @@ module Ryse =
 
     /// Return the SBOL specification of a RYSE linker.
     let sbolLinker (linker: RYSELinker) =
-        let cdUri, seqUri = linkerUris linker.name
+        let cdUri, seqUri = linkerUris linker.Name
 
         { id =
               { identity = cdUri
-                name = Some("RYSE linker " + linker.name)
+                name = Some("RYSE linker " + linker.Name)
                 description = None }
           roles = [ Uris.ryseLinkerRoleUri ]
           sequence =
@@ -696,7 +696,7 @@ module Ryse =
                          { identity = seqUri
                            name = None
                            description = None }
-                     elements = linker.dna.str })
+                     elements = linker.Dna.str })
           subcomponents = []
           gslProg = None }
 

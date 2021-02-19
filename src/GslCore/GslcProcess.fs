@@ -88,19 +88,19 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
             printf "log: dnaParts dump\n"
 
             for a in assemblies do
-                printf "log: dnaPart: %s\n" a.name
+                printf "log: dnaPart: %s\n" a.Name
 
-                for p in a.dnaParts do
-                    printf "log:      %s\n" p.description
-                    printf "%s\n" (utils.format60 p.dna.arr)
+                for p in a.DnaParts do
+                    printf "log:      %s\n" p.Description
+                    printf "%s\n" (utils.format60 p.Dna.arr)
 
         // Check for reused pieces and number them accordingly
         // Make a list of all parts, determine unique set and assign ids
         let partIDs =
             seq {
                 for a in assemblies do
-                    for p in a.dnaParts do
-                        yield p.dna
+                    for p in a.DnaParts do
+                        yield p.Dna
             }
             |> Set.ofSeq
             |> Seq.mapi (fun i dna -> (dna, i))
@@ -108,7 +108,7 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
         // Relabel the pieces with IDs  - tedious, we have to reconstruct the tree
         List.map (fun a ->
             { a with
-                  dnaParts = List.map (fun (p: DNASlice) -> { p with id = Some(partIDs.[p.dna]) }) a.dnaParts })
+                  DnaParts = List.map (fun (p: DNASlice) -> { p with Id = Some(partIDs.[p.Dna]) }) a.DnaParts })
             assemblies
         |> ok)
 
@@ -118,15 +118,15 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
 let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
     l
     |> List.map (fun s ->
-        if (s.sliceType = INLINEST
-            && s.dna.Length > 30
+        if (s.Type = SliceType.Inline
+            && s.Dna.Length > 30
             && not
-                (s.pragmas
+                (s.Pragmas
                  |> PragmaCollection.contains BuiltIn.inlinePragmaDef)) then
             { s with
-                  sliceType = REGULAR
-                  dnaSource =
-                      match s.pragmas
+                  Type = SliceType.Regular
+                  DnaSource =
+                      match s.Pragmas
                             |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                       | Some (x) -> x
                       | None ->
@@ -136,12 +136,12 @@ let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
                           | Some (x) -> x
                   // add in an amp tag on this guy too, since we are now comitting to
                   // not placing it inline using primers
-                  pragmas =
-                      match s.pragmas
+                  Pragmas =
+                      match s.Pragmas
                             |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
-                      | Some _ -> s.pragmas // already there
+                      | Some _ -> s.Pragmas // already there
                       | None ->
-                          s.pragmas
+                          s.Pragmas
                           |> PragmaCollection.add
                               { Pragma.Definition = BuiltIn.ampPragmaDef
                                 Arguments = [] } }
@@ -153,7 +153,7 @@ let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
 let cleanLongSlices _ (a: DnaAssembly) =
     ok
         { a with
-              dnaParts = cleanLongSlicesInPartsList a.pragmas a.dnaParts }
+              DnaParts = cleanLongSlicesInPartsList a.Pragmas a.DnaParts }
 
 
 /// we run into trouble during primer generation if a virtual part (fuse) gets between two parts that
@@ -163,13 +163,13 @@ let preProcessFuse _ (a: DnaAssembly) =
     let rec proc (l: DNASlice list) res =
         match l with
         | [] -> List.rev res
-        | hd :: middle :: tl when hd.sliceType = SliceType.FUSIONST
-                                  && middle.sliceType = SliceType.INLINEST -> proc tl (middle :: res)
+        | hd :: middle :: tl when hd.Type = SliceType.Fusion
+                                  && middle.Type = SliceType.Inline -> proc tl (middle :: res)
         | hd :: tl -> proc tl (hd :: res)
 
     ok
         { a with
-              dnaParts = (proc a.dnaParts []) }
+              DnaParts = (proc a.DnaParts []) }
 
 /// Once GSL is expanded as far as possible,
 /// go into more target-specific activities like assigning parts, reusing parts, etc.

@@ -17,7 +17,7 @@ let dumpAPE (outDir: string) (tag: string) (assemblies: DnaAssembly list) =
             sprintf
                 "%s.%d.ape"
                 tag
-                (match a.id with
+                (match a.Id with
                  | None -> failwith "ERROR: unassigned assembly id"
                  | Some (i) -> i)
             |> opj outDir
@@ -29,12 +29,12 @@ let dumpAPE (outDir: string) (tag: string) (assemblies: DnaAssembly list) =
         let locusName = sprintf "%s_ape_output" tag
 
         let totLength =
-            a.dnaParts
-            |> List.map (fun p -> p.dna.Length)
+            a.DnaParts
+            |> List.map (fun p -> p.Dna.Length)
             |> Seq.sum
 
         let now = DateTime.Now
-        let topology = a.topology |> Topology.toString
+        let topology = a.Topology |> Topology.toString
 
         sprintf "LOCUS                 %15s%5d bp ds-DNA   %s       %2d-%s-%d
 DEFINITION  .
@@ -48,33 +48,33 @@ FEATURES             Location/Qualifiers
 "        locusName totLength topology now.Day (mon.[now.Month - 1]) now.Year
         |> w
 
-        for p in a.dnaParts do
+        for p in a.DnaParts do
             let colorFwd =
-                match p.sliceType with
-                | REGULAR -> "#0000FF"
-                | LINKER -> "#FF0000"
-                | MARKER -> "yellow"
-                | INLINEST -> "green"
-                | FUSIONST -> "red"
+                match p.Type with
+                | SliceType.Regular -> "#0000FF"
+                | SliceType.Linker -> "#FF0000"
+                | SliceType.Marker -> "yellow"
+                | SliceType.Inline -> "green"
+                | SliceType.Fusion -> "red"
 
             let colorRev =
-                match p.sliceType with
-                | REGULAR -> "#0000F0"
-                | LINKER -> "#D00000"
-                | MARKER -> "yellow"
-                | INLINEST -> "green"
-                | FUSIONST -> "red"
+                match p.Type with
+                | SliceType.Regular -> "#0000F0"
+                | SliceType.Linker -> "#D00000"
+                | SliceType.Marker -> "yellow"
+                | SliceType.Inline -> "green"
+                | SliceType.Fusion -> "red"
 
             let range =
-                sprintf (if p.destFwd then "%A..%A" else "complement(%A..%A)") (ZeroOffset.toOne p.destFr) (ZeroOffset.toOne p.destTo)
+                sprintf (if p.DestinationForward then "%A..%A" else "complement(%A..%A)") (ZeroOffset.toOne p.DestinationFrom) (ZeroOffset.toOne p.DestinationTo)
 
             sprintf "     misc_feature    %s
                      /label=%s
                      /ApEinfo_fwdcolor=%s
                      /ApEinfo_revcolor=%s\n" range
-                (if p.sliceName <> "" then p.sliceName
-                 else if p.description <> "" then p.description
-                 else (Utils.ambId p.id)) colorFwd colorRev
+                (if p.SliceName <> "" then p.SliceName
+                 else if p.Description <> "" then p.Description
+                 else (Utils.ambId p.Id)) colorFwd colorRev
             |> w
 
         sprintf "ORIGIN\n" |> w

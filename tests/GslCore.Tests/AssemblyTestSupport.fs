@@ -42,31 +42,31 @@ let compileOne source =
 /// needed for testing procAssembly
 let makeSimpleSlice dna sliceName sliceType pragmas isFromApprox isToApprox isAmplified breed =
 
-    { id = None
-      extId = None
-      dna = dna
-      sourceChr = "1"
-      sourceFr = 0<ZeroOffset>
-      sourceTo = (dna.Length - 1) * 1<ZeroOffset>
-      sourceFwd = true
-      sourceFrApprox = isFromApprox
-      sourceToApprox = isToApprox
-      destFr = 0<ZeroOffset>
-      destTo = (dna.Length - 1) * 1<ZeroOffset>
-      destFwd = true
+    { Id = None
+      ExternalId = None
+      Dna = dna
+      SourceChromosome = "1"
+      SourceFrom = 0<ZeroOffset>
+      SourceTo = (dna.Length - 1) * 1<ZeroOffset>
+      SourceForward = true
+      SourceFromApprox = isFromApprox
+      SourceToApprox = isToApprox
+      DestinationFrom = 0<ZeroOffset>
+      DestinationTo = (dna.Length - 1) * 1<ZeroOffset>
+      DestinationForward = true
       /// is this slice created by PCR
-      amplified = isAmplified
-      template = None // might want to add
-      sliceName = sliceName
-      uri = None
-      description = sliceName
-      sliceType = sliceType
-      pragmas = pragmas
-      dnaSource = "unknown"
-      breed = breed
+      IsAmplified = isAmplified
+      Template = None // might want to add
+      SliceName = sliceName
+      Uri = None
+      Description = sliceName
+      Type = sliceType
+      Pragmas = pragmas
+      DnaSource = "unknown"
+      Breed = breed
       /// Keep track of the part this slice was materialized from.
-      materializedFrom = None
-      annotations = [] }
+      MaterializedFrom = None
+      Annotations = [] }
 
 
 let uFoo =
@@ -74,24 +74,24 @@ let uFoo =
         (Dna
             "TACTGACTGAGTCTGACTGACGTTAGCTGACTGACTGCATGACGTACGTACTGAGTCAGTCGTACTGACTGACTGCATGACTGACTGCATGCATGATGCGTATCGAGCGGCGCTGCTGTGGTCGTATATCTGGTCGTATGTGCGTACGTGTAGTCATGCGTACTG")
         "uFoo"
-        SliceType.REGULAR
+        SliceType.Regular
         PragmaCollection.empty
         true
         false
         true
-        Breed.B_UPSTREAM
+        Breed.Upstream
 
 let dFoo =
     makeSimpleSlice
         (Dna
             "TTTGGTATGCTGTTATCGTGTTGGGCGGTCTATTGAGTTTTGCGTGTCGTAGTCGTGCGGCGCGTATTGTGCGTGTCGGCGCGATGCGTGTGTTGAGTCGTGTGGGATTGGTGTGTGTCGTCGCGACTGATCATGTATCAGTCGAGCGATGGTGTGTCAGTGTTGTGAGTCG")
         "dFoo"
-        SliceType.REGULAR
+        SliceType.Regular
         PragmaCollection.empty
         true  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_DOWNSTREAM
+        Breed.Downstream
 
 /// open reading frame slice
 let oBar =
@@ -99,12 +99,12 @@ let oBar =
         (Dna
             "ATGTCTCAGAACGTTTACATTGTATCGACTGCCAGAACCCCAATTGGTTCATTCCAGGGTTCTCTATCCTCCAAGACAGCAGTGGAATTGGGTGCTGTTGCTTTAAAAGGCGCCTTGGCTAAGGTTCCAGAATTGGATGCATCCAAGGAT")
         "oBar"
-        SliceType.REGULAR
+        SliceType.Regular
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_FUSABLEORF
+        Breed.FusableOrf
 
 /// open reading frame slice
 let oBar2 =
@@ -112,12 +112,12 @@ let oBar2 =
         (Dna
             "ATTGTGATGCTGTACGTGGTTGCGTTGCTGTGTGCGTGCGCGCGTATATTATAGTCGCGGCTAGTTACGTGCGGCGTACTGGTCGTGTCGATGGTAGTCGTCGGCGCGAGTGTCGTATGCGTACGTACTGACGGCGCGCGCAGTTGATAG")
         "oBar"
-        SliceType.REGULAR
+        SliceType.Regular
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_FUSABLEORF
+        Breed.FusableOrf
 
 /// promoter
 let pBaz =
@@ -125,12 +125,12 @@ let pBaz =
         (Dna
             "TTGACTGATGCTGACTGACTGATGCTGACTGACTGGGGGCTAGTGCTACTATCTATCCATCACACACACATCAGTCGTACTTATATTATATGATCTTACGATCTATATTATTACGGATCTGATATATTTACGTTGATTATGCGATCTGAT")
         "pBaz"
-        SliceType.REGULAR
+        SliceType.Regular
         PragmaCollection.empty
         true  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_PROMOTER
+        Breed.Promoter
 
 /// terminator
 let tShaz =
@@ -138,35 +138,35 @@ let tShaz =
         (Dna
             "ATATTATATACTGTCGCGACTTATATATATATCTGACGTCTGTGCTGATGATTATATATTACTGACTGCGTCATGATCTATTATATATATATTATATCTGGTCGTCGTCTGAGTCATGCGTACTGACGTACTATATATATATATATATAG")
         "pBaz"
-        SliceType.REGULAR
+        SliceType.Regular
         PragmaCollection.empty
         false  // from approx
         true  // to approx
         true  // amplified
-        Breed.B_TERMINATOR
+        Breed.Terminator
 
 let marker =
     makeSimpleSlice
         (Dna
             "TGTACTGACGTAGTCGTACACGTAGTCGTATCGATGTGCGACGTACTGAGCGTAGTCTGATGCGTATGCTCGTAGTAGTCGTACGTACGTGTCGTCGTGTGTGTAGTCGTGTACGAGCGTACGATCGATCAGTCTGACGTAGTGTAGTCGTAGTGTCGTAGTACGTA")
         "###"
-        SliceType.MARKER
+        SliceType.Marker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_MARKER
+        Breed.Marker
 /// really short inline (14) which will be implemented with primers
 let shortInline =
     makeSimpleSlice
         (Dna "CACATGTGGAGATT")
         "shortInline1"
-        SliceType.INLINEST
+        SliceType.Inline
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_MARKER
+        Breed.Marker
 
 let rabitStart =
     { Definition = BuiltIn.rabitStartPragmaDef
@@ -193,116 +193,116 @@ let longInline =
     makeSimpleSlice
         (Dna "ATGTCTCAGAACGTTTACATTGTATCGACTGCCAGAACCCCAATTGGTTCATTCCAGGGTTCTCTATCCTCCAAGACAGCAGTGGAATTGGGTGCTGTTATG")
         "longinline"
-        SliceType.INLINEST
+        SliceType.Inline
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_INLINE
+        Breed.Inline
 
 /// 75 bp inline
 let mediumInline =
     makeSimpleSlice
         (Dna "TTTGACGTGTAGTCGTGCGCGGTCGCGCGCGTCTATTTTTGTCGTCGTACGTACGTACGGCTAGCGTACGTACGT")
         "mediuminline"
-        SliceType.INLINEST
+        SliceType.Inline
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_INLINE
+        Breed.Inline
 
 /// small 48 bp inline
 let smallInline =
     makeSimpleSlice
         (Dna "TAGCTATATAGGTAGCTAGACTATCTTTATCTTACTACTTCTCTTTAT")
         "smallinline"
-        SliceType.INLINEST
+        SliceType.Inline
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_INLINE
+        Breed.Inline
 
 let uFooFuse =
     { uFoo with
-          pragmas =
-              uFoo.pragmas
+          Pragmas =
+              uFoo.Pragmas
               |> PragmaCollection.add fusePragma
-          sliceName = uFoo.sliceName + "#fuse" }
+          SliceName = uFoo.SliceName + "#fuse" }
 
 let smallInlineAmp =
     { smallInline with
-          pragmas =
-              smallInline.pragmas
+          Pragmas =
+              smallInline.Pragmas
               |> PragmaCollection.add amp
-          sliceName = smallInline.sliceName + "#amp" }
+          SliceName = smallInline.SliceName + "#amp" }
 
 let smallInlineFuse =
     { smallInline with
-          pragmas =
-              smallInline.pragmas
+          Pragmas =
+              smallInline.Pragmas
               |> PragmaCollection.add fusePragma
-          sliceName = smallInline.sliceName + "#fuse" }
+          SliceName = smallInline.SliceName + "#fuse" }
 
 let mediumInlineAmp =
     { mediumInline with
-          pragmas =
-              mediumInline.pragmas
+          Pragmas =
+              mediumInline.Pragmas
               |> PragmaCollection.add amp
-          sliceName = mediumInline.sliceName + "#amp" }
+          SliceName = mediumInline.SliceName + "#amp" }
 
 let mediumInlineFuse =
     { mediumInline with
-          pragmas =
-              mediumInline.pragmas
+          Pragmas =
+              mediumInline.Pragmas
               |> PragmaCollection.add fusePragma
-          sliceName = mediumInline.sliceName + "#fuse" }
+          SliceName = mediumInline.SliceName + "#fuse" }
 
 let longInlineAmp =
     { longInline with
-          pragmas =
-              longInline.pragmas
+          Pragmas =
+              longInline.Pragmas
               |> PragmaCollection.add amp
-          sliceName = longInline.sliceName + "#amp" }
+          SliceName = longInline.SliceName + "#amp" }
 
 let longInlineAmpFuse =
     { longInlineAmp with
-          pragmas =
-              longInlineAmp.pragmas
+          Pragmas =
+              longInlineAmp.Pragmas
               |> PragmaCollection.add fusePragma
-          sliceName = longInlineAmp.sliceName + "#fuse" }
+          SliceName = longInlineAmp.SliceName + "#fuse" }
 
 let longInlineInline =
     { longInline with
-          pragmas =
-              longInline.pragmas
+          Pragmas =
+              longInline.Pragmas
               |> PragmaCollection.add inlinePragma }
 
 let shortInlineWithRabitStart =
     { shortInline with
-          pragmas =
-              shortInline.pragmas
+          Pragmas =
+              shortInline.Pragmas
               |> PragmaCollection.add rabitStart
-          sliceName = shortInline.sliceName + "#rabitstart" }
+          SliceName = shortInline.SliceName + "#rabitstart" }
 
 let shortInlineWithRabitEnd =
     { shortInline with
-          pragmas =
-              shortInline.pragmas
+          Pragmas =
+              shortInline.Pragmas
               |> PragmaCollection.add rabitEnd
-          sliceName = shortInline.sliceName + "#rabitend" }
+          SliceName = shortInline.SliceName + "#rabitend" }
 
 let linkerAlice =
     makeSimpleSlice
         (Dna "GATCGATTAGATCGATAGGCTACG")
         "linkerAlice"
-        SliceType.LINKER
+        SliceType.Linker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_LINKER
+        Breed.Linker
 (*
 /// 102 bp inline
 let longInline =
@@ -343,64 +343,64 @@ let linkerBob =
     makeSimpleSlice
         (Dna "TTTGGTTTGTAGCGGGGCTTTAGA")
         "linkerBob"
-        SliceType.LINKER
+        SliceType.Linker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_LINKER
+        Breed.Linker
 
 let linkerCharlie =
     makeSimpleSlice
         (Dna "ATGATGGGATCGGGATCGGGGGCAGACTTTG")
         "linkerCharlie"
-        SliceType.LINKER
+        SliceType.Linker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_LINKER
+        Breed.Linker
 
 let linkerDoug =
     makeSimpleSlice
         (Dna "GATCGATTAGCTTAGATCGTGATCGGTCG")
         "linkerDoug"
-        SliceType.LINKER
+        SliceType.Linker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_LINKER
+        Breed.Linker
 
 let linkerEmma =
     makeSimpleSlice
         (Dna "ATCGATTAGATTAGCTACTGTGGTCCAAA")
         "linkerEmma"
-        SliceType.LINKER
+        SliceType.Linker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_LINKER
+        Breed.Linker
 
 let placeholder =
     makeSimpleSlice
         (Dna "")
         "placeholder"
-        SliceType.LINKER
+        SliceType.Linker
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         true  // amplified
-        Breed.B_VIRTUAL
+        Breed.Virtual
 
 let fuse =
     makeSimpleSlice
         (Dna "")
         "fusion"
-        SliceType.FUSIONST
+        SliceType.Fusion
         PragmaCollection.empty
         false  // from approx
         false  // to approx
         false  // amplified
-        Breed.B_X
+        Breed.X

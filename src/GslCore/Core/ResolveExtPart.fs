@@ -79,35 +79,35 @@ module ResolveExtPart =
                     if partId.mods.Length = 0 then
                         let dna = if ppp.fwd then dna else dna.RevComp()
 
-                        { id = None
-                          extId = Some(pid.[1..])
-                          sliceName = sliceName
-                          uri = uri // TODO: use the URI of rabit from hutch here instead?
-                          dna = dna
-                          sourceChr = "library"
-                          sourceFr = 0<ZeroOffset>
-                          sourceTo = (dna.Length - 1) * 1<ZeroOffset>
-                          sourceFwd = ppp.fwd
-                          sourceFrApprox = false
-                          sourceToApprox = false
+                        { Id = None
+                          ExternalId = Some(pid.[1..])
+                          SliceName = sliceName
+                          Uri = uri // TODO: use the URI of rabit from hutch here instead?
+                          Dna = dna
+                          SourceChromosome = "library"
+                          SourceFrom = 0<ZeroOffset>
+                          SourceTo = (dna.Length - 1) * 1<ZeroOffset>
+                          SourceForward = ppp.fwd
+                          SourceFromApprox = false
+                          SourceToApprox = false
                           // Don't assign coordinates to pieces until later when we decide
                           // how they are getting joined up
-                          destFr = 0<ZeroOffset>
-                          destTo = 0<ZeroOffset>
-                          destFwd = ppp.fwd
-                          description = rabit.Name
-                          sliceType = REGULAR
-                          amplified = false
-                          template = Some dna // not amplifying from this
-                          dnaSource =
+                          DestinationFrom = 0<ZeroOffset>
+                          DestinationTo = 0<ZeroOffset>
+                          DestinationForward = ppp.fwd
+                          Description = rabit.Name
+                          Type = SliceType.Regular
+                          IsAmplified = false
+                          Template = Some dna // not amplifying from this
+                          DnaSource =
                               match ppp.pr
                                     |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                               | Some (d) -> d
                               | None -> pid
-                          pragmas = ppp.pr
-                          breed = B_X // will be replaced at final submission
-                          materializedFrom = Some(ppp)
-                          annotations = [] }
+                          Pragmas = ppp.pr
+                          Breed = Breed.X // will be replaced at final submission
+                          MaterializedFrom = Some(ppp)
+                          Annotations = [] }
                     else
                         // Otherwise, they are taking a hutch part and doing something to it,
                         // so the hutch is just another DNA source and they are effectively
@@ -142,67 +142,67 @@ module ResolveExtPart =
 
                         let name2 = if ppp.fwd then name1 else "!" + name1
 
-                        { id = None
-                          extId = None
-                          sliceName = sliceName
-                          uri = uri // TODO: use URI from hutch part?  mint new URI?
-                          dna = finalDNA
-                          amplified = false
-                          template = Some finalDNA
-                          sourceChr = "library"
-                          sourceFr =
+                        { Id = None
+                          ExternalId = None
+                          SliceName = sliceName
+                          Uri = uri // TODO: use URI from hutch part?  mint new URI?
+                          Dna = finalDNA
+                          IsAmplified = false
+                          Template = Some finalDNA
+                          SourceChromosome = "library"
+                          SourceFrom =
                               (finalSlice.left.Position / (1<OneOffset>) - 1)
                               * 1<ZeroOffset>
-                          sourceTo =
+                          SourceTo =
                               (finalSlice.right.Position / (1<OneOffset>) - 1)
                               * 1<ZeroOffset>
-                          sourceFwd = true
-                          sourceFrApprox = false
-                          sourceToApprox = false
+                          SourceForward = true
+                          SourceFromApprox = false
+                          SourceToApprox = false
                           // Don't assign coordinates to pieces until later when we decide how they are getting joined up
-                          destFr = 0<ZeroOffset>
-                          destTo = 0<ZeroOffset>
-                          destFwd = ppp.fwd
-                          description = name2
-                          sliceType = REGULAR
-                          dnaSource =
+                          DestinationFrom = 0<ZeroOffset>
+                          DestinationTo = 0<ZeroOffset>
+                          DestinationForward = ppp.fwd
+                          Description = name2
+                          Type = SliceType.Regular
+                          DnaSource =
                               match ppp.pr
                                     |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                               | Some (d) -> d
                               | None -> pid
-                          pragmas = ppp.pr
-                          breed = B_X // they are hacking rabit, all bets are off
-                          materializedFrom = Some(ppp)
-                          annotations = [] }
+                          Pragmas = ppp.pr
+                          Breed = Breed.X // they are hacking rabit, all bets are off
+                          MaterializedFrom = Some(ppp)
+                          Annotations = [] }
                 else
                     // Part is in the library
                     let dna = library.[libName]
 
-                    { id = None
-                      extId = Some(pid.[1..])
-                      sliceName = sliceName
-                      uri = uri // TODO: mint new URI if None?
-                      dna = dna
-                      template = Some dna
-                      amplified = false
-                      sourceChr = "library"
-                      sourceFr = 0<ZeroOffset>
-                      sourceTo = (dna.Length - 1) * 1<ZeroOffset>
-                      sourceFwd = true
-                      sourceFrApprox = false
-                      sourceToApprox = false
+                    { Id = None
+                      ExternalId = Some(pid.[1..])
+                      SliceName = sliceName
+                      Uri = uri // TODO: mint new URI if None?
+                      Dna = dna
+                      Template = Some dna
+                      IsAmplified = false
+                      SourceChromosome = "library"
+                      SourceFrom = 0<ZeroOffset>
+                      SourceTo = (dna.Length - 1) * 1<ZeroOffset>
+                      SourceForward = true
+                      SourceFromApprox = false
+                      SourceToApprox = false
                       // Don't assign coordinates to pieces until later when we decide
                       // how they are getting joined up
-                      destFr = 0<ZeroOffset>
-                      destTo = 0<ZeroOffset>
-                      destFwd = ppp.fwd
-                      description = libName
-                      sliceType = REGULAR
-                      dnaSource = "library"
-                      pragmas = ppp.pr
-                      breed = B_X
-                      materializedFrom = Some(ppp)
-                      annotations = [] }
+                      DestinationFrom = 0<ZeroOffset>
+                      DestinationTo = 0<ZeroOffset>
+                      DestinationForward = ppp.fwd
+                      Description = libName
+                      Type = SliceType.Regular
+                      DnaSource = "library"
+                      Pragmas = ppp.pr
+                      Breed = Breed.X
+                      MaterializedFrom = Some(ppp)
+                      Annotations = [] }
 
             | x -> failwithf "ERROR: unimplemented external partSpace %s\n" x
 
@@ -284,34 +284,34 @@ module ResolveExtPart =
             let dna =
                 extPart.dna |> DnaOps.revCompIf (not fwd)
 
-            { id = None
-              extId = Some(extPart.id.[1..])
-              sliceName = sliceName
-              uri = uri // TODO: mint new URI if None?
-              dna = dna
-              template = None
-              amplified = false
-              sourceChr = extPart.source
-              sourceFr = 0<ZeroOffset>
-              sourceTo = (extPart.dna.Length - 1) * 1<ZeroOffset>
-              sourceFwd = fwd
-              sourceFrApprox = false
-              sourceToApprox = false
+            { Id = None
+              ExternalId = Some(extPart.id.[1..])
+              SliceName = sliceName
+              Uri = uri // TODO: mint new URI if None?
+              Dna = dna
+              Template = None
+              IsAmplified = false
+              SourceChromosome = extPart.source
+              SourceFrom = 0<ZeroOffset>
+              SourceTo = (extPart.dna.Length - 1) * 1<ZeroOffset>
+              SourceForward = fwd
+              SourceFromApprox = false
+              SourceToApprox = false
               // Don't assign coordinates to pieces until later when we decide how they are getting joined up
-              destFr = 0<ZeroOffset>
-              destTo = 0<ZeroOffset>
-              destFwd = fwd
-              description = extPart.name
-              sliceType = REGULAR
-              dnaSource =
+              DestinationFrom = 0<ZeroOffset>
+              DestinationTo = 0<ZeroOffset>
+              DestinationForward = fwd
+              Description = extPart.name
+              Type = SliceType.Regular
+              DnaSource =
                   pr
                   |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef
                   |> Option.defaultValue extPart.id
 
-              pragmas = pr
-              breed = B_X
-              materializedFrom = None
-              annotations = [] }
+              Pragmas = pr
+              Breed = Breed.X
+              MaterializedFrom = None
+              Annotations = [] }
         else
             // Otherwise, they are taking a hutch part and doing something to it, so the hutch is just another
             // DNA source and they are effectively building a new rabit
@@ -329,34 +329,34 @@ module ResolveExtPart =
 
             let name2 = if fwd then name1 else "!" + name1
 
-            { id = None
-              extId = None
-              sliceName = sliceName
-              uri = uri // TODO: mint new URI if None?
-              dna = finalDNA
-              template = Some finalDNA
-              amplified = true
-              sourceChr = extPart.source
-              sourceFr =
+            { Id = None
+              ExternalId = None
+              SliceName = sliceName
+              Uri = uri // TODO: mint new URI if None?
+              Dna = finalDNA
+              Template = Some finalDNA
+              IsAmplified = true
+              SourceChromosome = extPart.source
+              SourceFrom =
                   (finalSlice.left.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
-              sourceTo =
+              SourceTo =
                   (finalSlice.right.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
-              sourceFwd = true
-              sourceFrApprox = false
-              sourceToApprox = false
+              SourceForward = true
+              SourceFromApprox = false
+              SourceToApprox = false
               // Don't assign coordinates to pieces until later when we decide how they are getting joined up
-              destFr = 0<ZeroOffset>
-              destTo = 0<ZeroOffset>
-              destFwd = fwd
-              description = name2
-              sliceType = REGULAR
-              dnaSource =
+              DestinationFrom = 0<ZeroOffset>
+              DestinationTo = 0<ZeroOffset>
+              DestinationForward = fwd
+              Description = name2
+              Type = SliceType.Regular
+              DnaSource =
                   pr
                   |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef
                   |> Option.defaultValue extPart.id
-              pragmas = pr
-              breed = B_X
-              materializedFrom = None
-              annotations = [] }
+              Pragmas = pr
+              Breed = Breed.X
+              MaterializedFrom = None
+              Annotations = [] }

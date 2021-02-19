@@ -21,7 +21,7 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
             sprintf
                 "%s.%d.cx5"
                 tag
-                (match a.id with
+                (match a.Id with
                  | None -> failwith "ERROR: unassigned assembly id"
                  | Some (i) -> i)
             |> opj outDir
@@ -30,19 +30,19 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
         use outF = new StreamWriter(path)
         let w (s: string) = outF.Write(s)
 
-        let molName = sprintf "%s_%d" tag a.id.Value
+        let molName = sprintf "%s_%d" tag a.Id.Value
 
         let molDescription =
-            sprintf "GSL assembly %s_%d" tag a.id.Value
+            sprintf "GSL assembly %s_%d" tag a.Id.Value
 
         let molSize =
-            a.dnaParts
-            |> List.map (fun p -> p.dna.Length)
+            a.DnaParts
+            |> List.map (fun p -> p.Dna.Length)
             |> Seq.sum
 
         let primersInner =
             match primers with
-            | None -> a.dnaParts |> List.map (fun _ -> None)
+            | None -> a.DnaParts |> List.map (fun _ -> None)
             | Some (p) -> p |> List.map (Some)
 
         let totSequence = a.Sequence()
@@ -59,40 +59,40 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
 <DESCRIPTION>%s </DESCRIPTION>" molName molSize molDescription
         |> w
 
-        for p, dpp in List.zip a.dnaParts primersInner do
+        for p, dpp in List.zip a.DnaParts primersInner do
             let partName =
-                if p.sliceName <> "" then p.sliceName
-                elif p.description <> "" then p.description
-                else (sprintf "part_%s" (Utils.ambId p.id))
+                if p.SliceName <> "" then p.SliceName
+                elif p.Description <> "" then p.Description
+                else (sprintf "part_%s" (Utils.ambId p.Id))
 
             let partType =
-                match p.sliceType with
-                | LINKER -> "Label"
-                | INLINEST -> "Label"
+                match p.Type with
+                | SliceType.Linker -> "Label"
+                | SliceType.Inline -> "Label"
                 | _ -> "Gene"
 
-            let fr = (ZeroOffset.toOne p.destFr)
-            let t = (ZeroOffset.toOne p.destTo)
+            let fr = (ZeroOffset.toOne p.DestinationFrom)
+            let t = (ZeroOffset.toOne p.DestinationTo)
 
             sprintf @"<FEATURE name=""%s"">
                     <TYPE>%s</TYPE>
                     <STARTBP>%A</STARTBP>
                     <ENDBP>%A</ENDBP>
                     <COMPLEMENT>%s</COMPLEMENT>
-                    </FEATURE>" (deGT partName) partType (if p.destFwd then fr else t) (if p.destFwd then t else fr)
-                (if p.destFwd then "0" else "1")
+                    </FEATURE>" (deGT partName) partType (if p.DestinationForward then fr else t) (if p.DestinationForward then t else fr)
+                (if p.DestinationForward then "0" else "1")
             |> w
 
             w "\n"
 
             match dpp with
             | None -> ()
-            | Some (GAP) -> () // Nothing to do here
-            | Some (SANDWICHGAP) -> () // Nothing to do here
-            | Some (DPP (dp)) ->
+            | Some (Gap) -> () // Nothing to do here
+            | Some (SandwichGap) -> () // Nothing to do here
+            | Some (DivergedPrimerPair (dp)) ->
                 // Diverged primer pair off this part, need to show them
 
-                if dp.rev.Primer.Length <> 0 then
+                if dp.Reverse.Primer.Length <> 0 then
                     // Simple example, tail is part of the linker region.
                     // It might not span the entire region
                     // .......[XXXXXXXXXXXXXXXXXXX].........
@@ -104,18 +104,18 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                     //..........[XXXXXXXXXXXXXXXXXXX].........
                     //<bbbbbbsssstttttttttttttttt????  (body and tail of primer)
                     let rec longestPrefix (n: int) =
-                        if p.destFr + ((n - 1) * 1<ZeroOffset>)
+                        if p.DestinationFrom + ((n - 1) * 1<ZeroOffset>)
                            >= totSequence.Length * 1<ZeroOffset> then
                             longestPrefix (n - 1)
-                        else if dp.rev.Primer.[..n - 1].RevComp().arr = totSequence
+                        else if dp.Reverse.Primer.[..n - 1].RevComp().arr = totSequence
                             .ToString()
-                            .Substring(p.destFr / 1<ZeroOffset>, n)
+                            .Substring(p.DestinationFrom / 1<ZeroOffset>, n)
                             .ToCharArray() then
                             n * 1<ZeroOffset>
                         else
                             longestPrefix (n - 1)
 
-                    let prefix = longestPrefix (dp.rev.Primer.Length)
+                    let prefix = longestPrefix (dp.Reverse.Primer.Length)
 
                     sprintf @"
                                 <PRIMER name=""PR"">
@@ -124,17 +124,17 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                                 <SEQHOMOL>%s</SEQHOMOL>
                                 <BINDSITE>%A,1,0,%d,0,%d</BINDSITE>
                                 <DESCRIPTION>PR</DESCRIPTION></PRIMER>
-                                " (dp.rev.Primer.ToString())
+                                " (dp.Reverse.Primer.ToString())
                         // .......[XXXXXXXXXXXXXXXXXXX].........
                         //  <bbbbbbtttttttttttttttttttt  (body and tail of primer)
-                        (ZeroOffset.toOne (* (dp.rev.tail.Length-1) * 1<ZeroOffset>  *) (p.destFr + prefix - 1<ZeroOffset>))  // from
-                        dp.rev.Primer.Length  //length
-                        dp.rev.Primer.Length
+                        (ZeroOffset.toOne (* (dp.rev.tail.Length-1) * 1<ZeroOffset>  *) (p.DestinationFrom + prefix - 1<ZeroOffset>))  // from
+                        dp.Reverse.Primer.Length  //length
+                        dp.Reverse.Primer.Length
                     |> w
 
                     w "\n"
 
-                if dp.fwd.Primer.Length <> 0 then
+                if dp.Forward.Primer.Length <> 0 then
                     // simple example
                     //
                     // ............[XXXXXXXXXXX]...........
@@ -144,18 +144,18 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                     // ............[XXXXXXXXXXX]...........
                     //               ?ttttttttttsssbbbbbbbbbbb>> (tail/sandwich/body)
                     let rec longestPrefixFwd (n: int) =
-                        if p.destTo - ((n - 1) * 1<ZeroOffset>) < 0<ZeroOffset> then
+                        if p.DestinationTo - ((n - 1) * 1<ZeroOffset>) < 0<ZeroOffset> then
                             longestPrefixFwd (n - 1)
-                        else if dp.fwd.Primer.[..n - 1].arr = totSequence
+                        else if dp.Forward.Primer.[..n - 1].arr = totSequence
                             .str
-                            .Substring((p.destTo / 1<ZeroOffset>) - n + 1, n)
+                            .Substring((p.DestinationTo / 1<ZeroOffset>) - n + 1, n)
                             .ToCharArray() then
                             n * 1<ZeroOffset>
                         else
                             longestPrefixFwd (n - 1)
 
                     // TODOTODO - doesn't handle case of prefixFwd = 0 correctly
-                    let prefixFwd = longestPrefixFwd (dp.fwd.Primer.Length)
+                    let prefixFwd = longestPrefixFwd (dp.Forward.Primer.Length)
                     //printf "CM primer fwd prefixFwd=%A prefix = %s\n" prefixFwd (dp.fwd.Primer.[..(prefixFwd/1<ZeroOffset>)-1] |> arr2seq)
 
                     sprintf @"
@@ -164,15 +164,15 @@ let dumpCM (outDir: string) (tag: string) (assemblies: DnaAssembly list) (primer
                                 <SEQHOMOL>%s</SEQHOMOL>
                                 <BINDSITE>%A,0,0,%d,0,%d</BINDSITE>
                                 <DESCRIPTION>PF</DESCRIPTION></PRIMER>
-                                " (dp.fwd.Primer.ToString())
+                                " (dp.Forward.Primer.ToString())
                         //
                         // ............[XXXXXXXXXXX]...........
                         //              ttttttttttttbbbbbbbbbbb>> (tail/body)
 
-                        ((p.destTo
+                        ((p.DestinationTo
                           - (* (dp.fwd.tail.Length-1)*1<ZeroOffset> *) prefixFwd
                           + 1<ZeroOffset>)
-                         |> ZeroOffset.toOne) dp.fwd.Primer.Length dp.fwd.Primer.Length
+                         |> ZeroOffset.toOne) dp.Forward.Primer.Length dp.Forward.Primer.Length
                     |> w
 
         sprintf @"

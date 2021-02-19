@@ -42,7 +42,7 @@ type TestPromTermLen() =
         printfn "XXX name=%s termlen=%d" name lookupTermLen
 
         let part =
-            DnaCreation.translateGenePrefix pragmas gd TERMINATOR
+            DnaCreation.translateGenePrefix pragmas gd StandardSlice.Terminator
 
         same
             "terminator length test"
@@ -50,7 +50,7 @@ type TestPromTermLen() =
             ((part.right.Position - part.left.Position + 1<OneOffset>) / 1<OneOffset>) // +1 since ends are inclusive
 
         let part =
-            DnaCreation.translateGenePrefix pragmas gd PROMOTER
+            DnaCreation.translateGenePrefix pragmas gd StandardSlice.Promoter
 
         same
             "promoter length test"
@@ -59,7 +59,7 @@ type TestPromTermLen() =
              / 1<OneOffset>) // +1 since ends are inclusive
 
         let mRNA =
-            DnaCreation.translateGenePrefix pragmas gd MRNA
+            DnaCreation.translateGenePrefix pragmas gd StandardSlice.MRNA
 
         same
             "termmrna length test"

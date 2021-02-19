@@ -30,39 +30,41 @@ type ParsedOptions =
       IsDeterministic: bool }
 
 type DNAIntervalType =
-    | ANNEAL
-    | RYSELINKER
+    | Anneal
+    | RyseLinker
     | AMP
-    | SANDWICH
+    | Sandwich
 
 type DNAInterval =
-    { il: int
-      ir: int
-      iType: DNAIntervalType }
+    { Left: int
+      Right: int
+      Type: DNAIntervalType }
 
+[<RequireQualifiedAccess>]
 type Breed =
-    | B_PROMOTER
-    | B_TERMINATOR
-    | B_MARKER
-    | B_FUSABLEORF
-    | B_UPSTREAM
-    | B_DOWNSTREAM
-    | B_GST
-    | B_GS
-    | B_INLINE
-    | B_X
-    | B_VIRTUAL
-    | B_LINKER
+    | Promoter
+    | Terminator
+    | Marker
+    | FusableOrf
+    | Upstream
+    | Downstream
+    | GST
+    | GS
+    | Inline
+    | X
+    | Virtual
+    | Linker
 
 /// Used in the grammar of GSL to pick a standard part of a gene (p, t, o etc)
+[<RequireQualifiedAccess>]
 type StandardSlice =
-    | GENE
-    | PROMOTER
-    | TERMINATOR
-    | ORF
-    | FUSABLEORF
-    | UPSTREAM
-    | DOWNSTREAM
+    | Gene
+    | Promoter
+    | Terminator
+    | Orf
+    | FusableOrf
+    | Upstream
+    | Downstream
     | MRNA (* ORF + term *)
 
 module StandardSlice =
@@ -71,31 +73,32 @@ module StandardSlice =
 
     let charToSliceType c =
         match Char.ToLower c with
-        | 'p' -> Some(PROMOTER)
-        | 'u' -> Some(UPSTREAM)
-        | 't' -> Some(TERMINATOR)
-        | 'd' -> Some(DOWNSTREAM)
-        | 'o' -> Some(ORF)
-        | 'f' -> Some(FUSABLEORF)
-        | 'g' -> Some(GENE)
-        | 'm' -> Some(MRNA)
+        | 'p' -> Some(StandardSlice.Promoter)
+        | 'u' -> Some(StandardSlice.Upstream)
+        | 't' -> Some(StandardSlice.Terminator)
+        | 'd' -> Some(StandardSlice.Downstream)
+        | 'o' -> Some(StandardSlice.Orf)
+        | 'f' -> Some(StandardSlice.FusableOrf)
+        | 'g' -> Some(StandardSlice.Gene)
+        | 'm' -> Some(StandardSlice.MRNA)
         | _ -> None
 
+[<RequireQualifiedAccess>]
 type SliceType =
-    | REGULAR
-    | MARKER
-    | LINKER
-    | INLINEST
-    | FUSIONST
+    | Regular
+    | Marker
+    | Linker
+    | Inline
+    | Fusion
 
 module SliceType =
     let toString: SliceType -> string =
         function
-        | REGULAR -> "REG"
-        | MARKER -> "MARKER"
-        | LINKER -> "LINKER"
-        | INLINEST -> "INLINE"
-        | FUSIONST -> "FUSION"
+        | SliceType.Regular -> "REG"
+        | SliceType.Marker -> "MARKER"
+        | SliceType.Linker -> "LINKER"
+        | SliceType.Inline -> "INLINE"
+        | SliceType.Fusion -> "FUSION"
 
 /// Due to slices or other considerations, Orfs may not exactly align with the codon sequence.
 /// Indicate which position in the first codon is represented by the first base in the orf.
@@ -205,40 +208,40 @@ type SliceAnnotation = Orf of OrfAnnotation
 
 /// Represents one piece of DNA for assembly, capturing its origins and relevant details
 type DNASlice =
-    { id: int option
-      extId: string option
-      dna: Dna
-      sourceChr: string
-      sourceFr: int<ZeroOffset>
-      sourceTo: int<ZeroOffset>
-      sourceFwd: bool
-      sourceFrApprox: bool
-      sourceToApprox: bool
-      destFr: int<ZeroOffset>
-      destTo: int<ZeroOffset>
-      destFwd: bool
+    { Id: int option
+      ExternalId: string option
+      Dna: Dna
+      SourceChromosome: string
+      SourceFrom: int<ZeroOffset>
+      SourceTo: int<ZeroOffset>
+      SourceForward: bool
+      SourceFromApprox: bool
+      SourceToApprox: bool
+      DestinationFrom: int<ZeroOffset>
+      DestinationTo: int<ZeroOffset>
+      DestinationForward: bool
       /// is this slice created by PCR
-      amplified: bool
-      template: Dna option
-      sliceName: string
-      uri: Uri option
-      description: string
-      sliceType: SliceType
-      pragmas: PragmaCollection
-      dnaSource: string
-      breed: Breed
+      IsAmplified: bool
+      Template: Dna option
+      SliceName: string
+      Uri: Uri option
+      Description: string
+      Type: SliceType
+      Pragmas: PragmaCollection
+      DnaSource: string
+      Breed: Breed
       /// Keep track of the part this slice was materialized from.
-      materializedFrom: PPP option
-      annotations: SliceAnnotation list }
+      MaterializedFrom: PPP option
+      Annotations: SliceAnnotation list }
     override this.ToString() =
-        sprintf "{ %s - %A - %A }" this.description this.sliceType this.breed
+        sprintf "{ %s - %A - %A }" this.Description this.Type this.Breed
 
 module DNASlice =
     /// Recalculate the offsets of pieces in a list of pieces after new pieces are added in
-    let recalcOffset (pieces: DNASlice list) =
+    let recalculatOffset (pieces: DNASlice list) =
         let lengths =
             pieces
-            |> List.map (fun p -> p.dna.Length * 1<ZeroOffset>)
+            |> List.map (fun p -> p.Dna.Length * 1<ZeroOffset>)
 
         let _, offsets' =
             lengths
@@ -249,82 +252,82 @@ module DNASlice =
         List.zip pieces offsets
         |> List.map (fun (p, o) ->
             { p with
-                  destFr = o
-                  destTo = o + (p.dna.Length - 1) * 1<ZeroOffset> })
+                  DestinationFrom = o
+                  DestinationTo = o + (p.Dna.Length - 1) * 1<ZeroOffset> })
 
 type DnaAssembly =
-    { id: int option
-      dnaParts: DNASlice list
-      name: string
-      uri: Uri option
-      linkerHint: string
-      pragmas: PragmaCollection
-      designParams: DesignParams
-      docStrings: string list
-      materializedFrom: Assembly
-      tags: Set<AssemblyTag>
-      topology: Topology }
+    { Id: int option
+      DnaParts: DNASlice list
+      Name: string
+      Uri: Uri option
+      LinkerHint: string
+      Pragmas: PragmaCollection
+      DesignParams: DesignParams
+      DocStrings: string list
+      MaterializedFrom: Assembly
+      Tags: Set<AssemblyTag>
+      Topology: Topology }
     member x.Sequence() =
-        x.dnaParts
-        |> Seq.map (fun p -> p.dna)
+        x.DnaParts
+        |> Seq.map (fun p -> p.Dna)
         |> DnaOps.concat
 
     interface ISourcePosition with
-        member x.OptionalSourcePosition = x.materializedFrom.sourcePosition
+        member x.OptionalSourcePosition = x.MaterializedFrom.sourcePosition
 
 module DnaAssembly =
     /// DNASlice default for a fusion slidetype
     let fusionSliceConstant =
-        { id = None
-          extId = None
-          sliceName = "fusion"
-          uri = None // TODO: uri for fusion parts?
-          dna = Dna("")
-          sourceChr = ""
-          sourceFr = 0<ZeroOffset>
-          sourceTo = 0<ZeroOffset>
-          sourceFwd = true
-          template = None
-          amplified = false
-          sourceFrApprox = false
-          sourceToApprox = false
-          destFr = 0<ZeroOffset>
-          destTo = 0<ZeroOffset>
-          destFwd = true
-          description = "::"
-          dnaSource = ""
-          sliceType = FUSIONST
-          pragmas = PragmaCollection.empty
-          breed = B_VIRTUAL
-          materializedFrom = None // TODO: should we mark this as associated with this ppp?
-          annotations = [] }
+        { Id = None
+          ExternalId = None
+          SliceName = "fusion"
+          Uri = None // TODO: uri for fusion parts?
+          Dna = Dna("")
+          SourceChromosome = ""
+          SourceFrom = 0<ZeroOffset>
+          SourceTo = 0<ZeroOffset>
+          SourceForward = true
+          Template = None
+          IsAmplified = false
+          SourceFromApprox = false
+          SourceToApprox = false
+          DestinationFrom = 0<ZeroOffset>
+          DestinationTo = 0<ZeroOffset>
+          DestinationForward = true
+          Description = "::"
+          DnaSource = ""
+          Type = SliceType.Fusion
+          Pragmas = PragmaCollection.empty
+          Breed = Breed.Virtual
+          MaterializedFrom = None // TODO: should we mark this as associated with this ppp?
+          Annotations = [] }
 
 /// Model a primer which diverges and has body/tail parts.
 /// The body part anneals to the intended amplification target and the tail
 /// hangs out and anneals for stitching purposes
 type Primer =
-    { tail: Dna
-      body: Dna
-      annotation: DNAInterval list }
-    member x.Primer = DnaOps.append x.tail x.body
+    { Tail: Dna
+      Body: Dna
+      Annotation: DNAInterval list }
+    member x.Primer = DnaOps.append x.Tail x.Body
 
     member x.lenLE(maxOligo) =
-        x.tail.Length + x.body.Length <= maxOligo
+        x.Tail.Length + x.Body.Length <= maxOligo
 
     /// Try to find an interval of type iType, returns Some/None
     member x.Interval(iType: DNAIntervalType) =
-        x.annotation
-        |> List.tryFind (fun i -> i.iType = iType)
+        x.Annotation
+        |> List.tryFind (fun i -> i.Type = iType)
 
 /// Divergend pair of Primers
 type PrimerPair =
-    { fwd: Primer
-      rev: Primer
-      name: string }
+    { Forward: Primer
+      Reverse: Primer
+      Name: string }
 
 type DivergedPrimerPair =
-    | DPP of PrimerPair
-    | SANDWICHGAP
-    | GAP
+    | DivergedPrimerPair of PrimerPair
+    | SandwichGap
+    | Gap
 
-type RYSELinker = { name: string; dna: Dna }
+type RYSELinker = { Name: string; Dna: Dna }

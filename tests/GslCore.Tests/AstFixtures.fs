@@ -12,6 +12,7 @@ open GslCore.Constants
 let bootstrapParseOnly source =
     match LexAndParse.lexAndParse true (GslSourceCode(source)) with
     | Ok (AstTreeHead (Block (b)), _) -> b.Value
+    | x -> failwithf "Illegal: %A" x
 
 
 let wrapInt v = Int(Node.wrapNode v)
@@ -33,6 +34,7 @@ let addPragsToPart prags a =
         Part
             ({ pw with
                    Value = { pw.Value with Pragmas = prags } })
+    | x -> failwithf "Illegal: %A" x
 
 let variableize name v =
     let t =
@@ -42,6 +44,7 @@ let variableize name v =
         | Float _ -> FloatType
         | String _ -> StringType
         | Part _ -> PartType
+        | x -> failwithf "Illegal: %A" x
 
     VariableBinding(Node.wrapNode { Name = name; Type = t; Value = v })
 

@@ -60,6 +60,7 @@ module fixtures =
     let getOutputProvider plugin =
         match plugin.Behaviors with
         | [ { Behavior = OutputFormat (op) } ] -> op :?> TestOutputFormat
+        | x -> failwithf "Illegal: %A" x
 
 [<TestFixture>]
 type TestPluginSystem() =

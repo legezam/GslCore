@@ -22,10 +22,10 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         let unlabeled =
             seq {
                 for a in al do
-                    for d in a.dnaParts do
-                        match d.id with
+                    for d in a.DnaParts do
+                        match d.Id with
                         | Some _ -> ()
-                        | None -> yield d.description
+                        | None -> yield d.Description
             }
             |> Set.ofSeq
 
@@ -36,14 +36,14 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         al
         |> List.map (fun a ->
             { a with
-                  dnaParts =
-                      a.dnaParts
+                  DnaParts =
+                      a.DnaParts
                       |> List.map (fun d ->
-                          match d.id with
+                          match d.Id with
                           | Some _ -> d
                           | None ->
                               { d with
-                                    id = Some(map.[d.description]) }) })
+                                    Id = Some(map.[d.Description]) }) })
 
     let assemblies = assignLinkPartNumbers assembliesIn
 
@@ -53,44 +53,44 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         | Some (x) -> x.WriteLine(s)
 
     for a in assemblies do
-        let aId = Utils.ambId a.id
+        let aId = Utils.ambId a.Id
         sprintf "##### Assembly %s #######" aId |> w
         sprintf "A# %s" aId |> w
-        sprintf "NA %s" a.name |> w
+        sprintf "NA %s" a.Name |> w
 
-        if not a.tags.IsEmpty then
-            sprintf "TA %s" (String.Join(" ", [ for tag in a.tags -> sprintf "%s:%s" tag.nameSpace tag.tag ]))
+        if not a.Tags.IsEmpty then
+            sprintf "TA %s" (String.Join(" ", [ for tag in a.Tags -> sprintf "%s:%s" tag.nameSpace tag.tag ]))
             |> w
 
-        match a.uri with
+        match a.Uri with
         | Some (u) -> sprintf "NU %s" u |> w
         | None -> ()
 
-        sprintf "NP %d" (a.dnaParts.Length) |> w
+        sprintf "NP %d" (a.DnaParts.Length) |> w
         sprintf "AS %s" (a.Sequence().str) |> w
         sprintf "" |> w
 
-        for p in a.dnaParts do
-            sprintf "P# %s" (Utils.ambId p.id) |> w
-            if p.sliceName <> "" then sprintf "SN %s" p.sliceName |> w
+        for p in a.DnaParts do
+            sprintf "P# %s" (Utils.ambId p.Id) |> w
+            if p.SliceName <> "" then sprintf "SN %s" p.SliceName |> w
 
-            match p.uri with
+            match p.Uri with
             | Some (u) -> sprintf "NU %s" u |> w
             | None -> ()
 
-            sprintf "DE %s" p.description |> w
-            sprintf "ST %s" (SliceType.toString p.sliceType) |> w
+            sprintf "DE %s" p.Description |> w
+            sprintf "ST %s" (SliceType.toString p.Type) |> w
             sprintf "PA %s" aId |> w
-            sprintf "DS %s" p.dnaSource |> w
-            sprintf "CH %s" p.sourceChr |> w
-            sprintf "LT %A" p.sourceFr |> w
-            sprintf "RT %A" p.sourceTo |> w
-            sprintf "LE %d" p.dna.Length |> w
+            sprintf "DS %s" p.DnaSource |> w
+            sprintf "CH %s" p.SourceChromosome |> w
+            sprintf "LT %A" p.SourceFrom |> w
+            sprintf "RT %A" p.SourceTo |> w
+            sprintf "LE %d" p.Dna.Length |> w
 
-            sprintf "FW %s" (if p.sourceFwd then "+" else "-")
+            sprintf "FW %s" (if p.SourceForward then "+" else "-")
             |> w
 
-            sprintf "SQ\n%s\n//\n" (format60 p.dna.arr) |> w
+            sprintf "SQ\n%s\n//\n" (format60 p.Dna.arr) |> w
 
         sprintf "" |> w
 
@@ -99,7 +99,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
     |> w
 
     for a in assemblies do
-        let s = sprintf "AI %s -> " (Utils.ambId a.id)
+        let s = sprintf "AI %s -> " (Utils.ambId a.Id)
 
         match outF with
         | None -> stdout.Write(s)
@@ -107,8 +107,8 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
 
         sprintf
             "%s"
-            (a.dnaParts
-             |> List.map (fun p -> Utils.ambId p.id)
+            (a.DnaParts
+             |> List.map (fun p -> Utils.ambId p.Id)
              |> Array.ofList
              |> (fun x -> String.Join(",", x)))
         |> w

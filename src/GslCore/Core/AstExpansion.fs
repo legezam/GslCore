@@ -729,7 +729,7 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
             if (not (gp.part.gene.StartsWith("g")))
             then failwithf "Heterology block must be adjacent to g part, %s not allowed" gp.part.gene
 
-            let s = translateGenePrefix a.pragmas rg' GENE // Start with standard slice
+            let s = translateGenePrefix a.pragmas rg' StandardSlice.Gene // Start with standard slice
 
             let startSlice =
                 ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
@@ -799,7 +799,7 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
                     gp.part.gene
                     gp.part.gene.[0]
 
-            let s = translateGenePrefix a.pragmas rg'' GENE // Start with standard slice
+            let s = translateGenePrefix a.pragmas rg'' StandardSlice.Gene // Start with standard slice
 
             let startSlice =
                 ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
@@ -864,7 +864,7 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
             assert (gp.part.gene.[0] = 'g')
 
             // now build up the slice again and apply from scratch to the gene
-            let s = translateGenePrefix a.pragmas rg' GENE // Start with standard slice
+            let s = translateGenePrefix a.pragmas rg' StandardSlice.Gene // Start with standard slice
 
             let startSlice =
                 ApplySlices.applySlices verbose gp.part.mods s // Apply modifiers
@@ -953,9 +953,9 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
                             Default.MinHBCodonUsage
                             targetAALen
                             a.designParams
-                            sliceSeq1.dna
+                            sliceSeq1.Dna
                             ic
-                            sliceSeq4.dna
+                            sliceSeq4.Dna
 
                     // Build up the slice mods for the upstream part from scratch
                     // Modify upstream slice to account for the part we chopped off
@@ -968,11 +968,11 @@ let private expandHB verbose (rgs: GenomeDefinitions) (codonProvider: ICodonProv
                     let newInline = DnaOps.append alt ic
 
                     assert (alt
-                            <> sliceSeq1.dna.[sliceSeq1.dna.Length - alt.Length..])
+                            <> sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..])
 
                     if verbose then
                         let t =
-                            sliceSeq1.dna.[sliceSeq1.dna.Length - alt.Length..]
+                            sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..]
 
                         let sim =
                             Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr

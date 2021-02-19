@@ -311,17 +311,17 @@ uADH2; dADH2
           Options = CommandLine.defaultOpts }
 
     static member dummyDnaAssembly =
-        { DnaAssembly.id = None
-          dnaParts = []
-          name = "fooslice"
-          uri = None
-          linkerHint = "hint"
-          pragmas = PragmaCollection.create Seq.empty
-          designParams = DesignParams.identity
-          docStrings = []
-          materializedFrom = AssemblyTestBase.emptyAssembly
-          tags = Set.empty
-          topology = Topology.Linear }
+        { DnaAssembly.Id = None
+          DnaParts = []
+          Name = "fooslice"
+          Uri = None
+          LinkerHint = "hint"
+          Pragmas = PragmaCollection.create Seq.empty
+          DesignParams = DesignParams.identity
+          DocStrings = []
+          MaterializedFrom = AssemblyTestBase.emptyAssembly
+          Tags = Set.empty
+          Topology = Topology.Linear }
 
     static member FoldTestCases: IEnumerable =
         seq {
@@ -392,12 +392,12 @@ uADH2; dADH2
 
         let assembly =
             { TestTagging.dummyDnaAssembly with
-                  pragmas = pragmaCollection
-                  tags = input.AssemblyTags |> Set.ofList }
+                  Pragmas = pragmaCollection
+                  Tags = input.AssemblyTags |> Set.ofList }
 
         match TaggingPlugin.foldInTags cliTags context assembly with
         | Ok (result, _) ->
-            result.tags
+            result.Tags
             |> Set.toList
             |> List.map (fun tag -> sprintf "%s:%s" tag.nameSpace tag.tag)
             |> List.sort

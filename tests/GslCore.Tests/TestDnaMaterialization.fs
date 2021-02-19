@@ -86,9 +86,9 @@ type DnaMaterialization() =
 
     /// get dna beetween sourceFr and sourceTo
     let liftDnaFromChrom (dna: DNASlice) =
-        assert (dna.sourceFr <= dna.sourceTo)
-        let left = dna.sourceFr
-        let right = dna.sourceTo
+        assert (dna.SourceFrom <= dna.SourceTo)
+        let left = dna.SourceFrom
+        let right = dna.SourceTo
         testGenome2Chrom1.[left / 1<ZeroOffset>..right / 1<ZeroOffset>]
 
     /// retrieve one part and check the coordinates match the DNA returned independently
@@ -98,7 +98,7 @@ type DnaMaterialization() =
 
         Assert.AreEqual
             (fromDna,
-             (if test.revReference then dna.dna.RevComp() else dna.dna)
+             (if test.revReference then dna.Dna.RevComp() else dna.Dna)
                  .str)
 
     let checkOneWithProcAssembly testName (template: DNASlice list) (test: PartTest) =
@@ -123,7 +123,7 @@ type DnaMaterialization() =
 
         Assert.AreEqual
             (fromDna,
-             (if test.revReference then dna.dna.RevComp() else dna.dna)
+             (if test.revReference then dna.Dna.RevComp() else dna.Dna)
                  .str)
 
     let makeTest gp revPart revReference =
@@ -156,25 +156,25 @@ type DnaMaterialization() =
     /// Check basic sequence
     member __.ChecktADH1StartsWith() =
         let dna = materializeOne test1.gp test1.ppp
-        Assert.AreEqual(tADH1Prefix, dna.dna.[0..tADH1Prefix.Length - 1].str)
+        Assert.AreEqual(tADH1Prefix, dna.Dna.[0..tADH1Prefix.Length - 1].str)
 
     [<Test>]
     /// Check basic sequence
     member __.CheckRevtADH1EndsWith() =
         let dna = materializeOne test3.gp test3.ppp
-        Assert.IsTrue(dna.dna.RevComp().str.StartsWith(tADH1Prefix))
+        Assert.IsTrue(dna.Dna.RevComp().str.StartsWith(tADH1Prefix))
 
     [<Test>]
     /// Check basic sequence
     member __.ChecktABC1StartsWith() =
         let dna = materializeOne test2.gp test2.ppp
-        Assert.AreEqual(tABC1Prefix, dna.dna.[0..tABC1Prefix.Length - 1].str)
+        Assert.AreEqual(tABC1Prefix, dna.Dna.[0..tABC1Prefix.Length - 1].str)
 
     [<Test>]
     /// Check basic sequence
     member __.CheckRevtABC1EndsWith() =
         let dna = materializeOne test4.gp test4.ppp
-        Assert.IsTrue(dna.dna.RevComp().str.StartsWith(tABC1Prefix))
+        Assert.IsTrue(dna.Dna.RevComp().str.StartsWith(tABC1Prefix))
 
     [<Test>]
     /// fwd gene in genome used in fwd orientation
