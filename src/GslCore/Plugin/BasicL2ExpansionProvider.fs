@@ -1,4 +1,4 @@
-﻿module GslCore.BasicL2ExpansionProvider
+﻿module GslCore.Plugin.BasicL2ExpansionProvider
 
 ///
 /// Implementation of GSL Level 2 Expression Lines
@@ -11,7 +11,7 @@ open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Constants
 open System
-open GslCore.PluginTypes
+open GslCore.Core.PluginTypes
 open GslCore.Reference
 
 /// Take a list of expression elements and organize them in a balanced

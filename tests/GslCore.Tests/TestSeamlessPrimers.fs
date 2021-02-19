@@ -1,6 +1,7 @@
 ﻿module GslCore.TestSeamlessPrimers
 
 open System
+open GslCore.Plugin
 open NUnit.Framework
 
 open GslCore.Constants

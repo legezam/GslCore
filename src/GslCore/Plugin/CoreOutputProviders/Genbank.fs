@@ -1,4 +1,4 @@
-﻿module GslCore.Genbank
+﻿module GslCore.Plugin.CoreOutput.Genbank
 /// common routines for emitting Genbank format
 open System.Text
 open System

@@ -1,7 +1,7 @@
 ﻿module GslCore.ProcessCmdLineArgs
 
-open GslCore.CommandConfig
-open GslCore.PluginTypes
+open GslCore.Core.CommandConfig
+open GslCore.Core.PluginTypes
 open GslCore.Core.Types
 open Amyris.Bio.utils
 open System.IO

@@ -1,10 +1,11 @@
 ﻿namespace GslCore
 
 open System.Xml
+open GslCore.Core.SbolExample
 open NUnit.Framework
 open Amyris.Dna
 
-open GslCore.SbolExample
+open GslCore.Core
 
 [<TestFixture>]
 type TestSbolProvider() =
@@ -34,8 +35,8 @@ type TestSbolProvider() =
 
     [<Test>]
     member x.TestSbolEmitting() =
-        let seq = seqFromDna (Dna "ATCG")
-        let subseq = seqFromDna (Dna "AAAA")
+        let seq = Sequence.seqFromDna (Dna "ATCG")
+        let subseq = Sequence.seqFromDna (Dna "AAAA")
 
         let subcd =
             { id =
@@ -58,8 +59,8 @@ type TestSbolProvider() =
               subcomponents = [ subcd.asSubcomponent ([], [ "test role" ]) ]
               gslProg = None }
 
-        let gbom = compileGbom [ cd ]
-        let gbomSub = compileGbom [ cd; subcd ]
+        let gbom = Gbom.compileGbom [ cd ]
+        let gbomSub = Gbom.compileGbom [ cd; subcd ]
         use x = new XmlTextWriter(stdout)
 
         x.Formatting <- Formatting.Indented

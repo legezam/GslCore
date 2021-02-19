@@ -7,7 +7,6 @@ open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.AstAssertions
-open GslCore.AstExpansion
 open GslCore.Constants
 
 [<TestFixture>]

@@ -1,12 +1,12 @@
 ﻿/// Assembly transforming plugin that implements seamless part assembly.
-module GslCore.TaggingPlugin
+module GslCore.Plugin.TaggingPlugin
 
 open System
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Types
-open GslCore.CommandConfig
+open GslCore.Core.CommandConfig
 open GslCore.Pragma
-open GslCore.PluginTypes
+open GslCore.Core.PluginTypes
 open Amyris.ErrorHandling
 
 let taggingArg =

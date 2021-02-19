@@ -1,5 +1,5 @@
 ﻿/// Command line arguments, parsing, and command defaults.
-module GslCore.CommandConfig
+module GslCore.Core.CommandConfig
 
 open System
 open GslCore.Core.Types

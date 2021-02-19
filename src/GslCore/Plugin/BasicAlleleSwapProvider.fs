@@ -1,7 +1,7 @@
-﻿module GslCore.BasicAlleleSwapProvider
+﻿module GslCore.Plugin.BasicAlleleSwapProvider
 
-open GslCore.AlleleSwaps
-open GslCore.PluginTypes
+open GslCore.Core.AlleleSwaps
+open GslCore.Core.PluginTypes
 
 let basicAlleleSwapPlugin =
     { Name = "classic_allele_swap"

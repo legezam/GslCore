@@ -1,5 +1,5 @@
 ﻿/// Code for flat file output format
-module GslCore.DumpFlat
+module GslCore.Plugin.CoreOutput.DumpFlat
 
 open System
 open System.IO

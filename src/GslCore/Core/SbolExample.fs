@@ -1,4 +1,4 @@
-﻿module GslCore.SbolExample
+﻿namespace GslCore.Core.SbolExample
 
 open Amyris.Dna
 open Amyris.ErrorHandling
@@ -143,53 +143,56 @@ type SBOLProvider =
 //, Global=true>
 
 // --- Helper items for generating XML objects ---
-
-let defaultEncoding =
-    "http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html"
-
 type Restriction =
     | Precedes
     | SameOrientationAs
     | OppositeOrientationAs
+    
+module SbolExample =    
+    let defaultEncoding =
+        "http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html"
 
-let restrictionObj restriction =
-    match restriction with
-    | Precedes -> SBOLProvider.Restriction("http://sbols.org/v2#precedes")
-    | SameOrientationAs -> SBOLProvider.Restriction("http://sbols.org/v2#sameOrientationAs")
-    | OppositeOrientationAs -> SBOLProvider.Restriction("http://sbols.org/v2#oppositeOrientationAs")
 
-let SequenceConstraint (uri: Uri) restriction (subj_uri: Uri) (obj_uri: Uri) =
-    let innerSC =
-        SBOLProvider.SequenceConstraint2
-            (uri, (restrictionObj restriction), SBOLProvider.Subject(subj_uri), SBOLProvider.Object(obj_uri))
 
-    SBOLProvider.SequenceConstraint(innerSC)
+    let restrictionObj restriction =
+        match restriction with
+        | Precedes -> SBOLProvider.Restriction("http://sbols.org/v2#precedes")
+        | SameOrientationAs -> SBOLProvider.Restriction("http://sbols.org/v2#sameOrientationAs")
+        | OppositeOrientationAs -> SBOLProvider.Restriction("http://sbols.org/v2#oppositeOrientationAs")
 
-let SequenceAnnotation (uri: Uri) (componentUri: Uri) location (roleUris: seq<Uri>) =
-    let roles =
-        [| for ruri in roleUris -> SBOLProvider.Role3(ruri) |]
+    let SequenceConstraint (uri: Uri) restriction (subj_uri: Uri) (obj_uri: Uri) =
+        let innerSC =
+            SBOLProvider.SequenceConstraint2
+                (uri, (restrictionObj restriction), SBOLProvider.Subject(subj_uri), SBOLProvider.Object(obj_uri))
 
-    let innerSA =
-        SBOLProvider.SequenceAnnotation2(uri, (SBOLProvider.Component3(componentUri)), location, roles)
+        SBOLProvider.SequenceConstraint(innerSC)
 
-    SBOLProvider.SequenceAnnotation(innerSA)
+    let SequenceAnnotation (uri: Uri) (componentUri: Uri) location (roleUris: seq<Uri>) =
+        let roles =
+            [| for ruri in roleUris -> SBOLProvider.Role3(ruri) |]
 
-let dnaType =
-    "http://www.biopax.org/release/biopax-level3.owl#DnaRegion"
+        let innerSA =
+            SBOLProvider.SequenceAnnotation2(uri, (SBOLProvider.Component3(componentUri)), location, roles)
 
-let rnaType =
-    "http://www.biopax.org/release/biopax-level3.owl#RnaRegion"
+        SBOLProvider.SequenceAnnotation(innerSA)
 
-/// Create a properly-wrapped Component reference
-let Component (uri: Uri) (refCompUri: Uri) (roles: Uri list) =
-    SBOLProvider.Component
-        (SBOLProvider.Component2
-            (uri,
-             SBOLProvider.Access("http://sbols.org/v2#private"),
-             SBOLProvider.Definition(refCompUri),
-             roles
-             |> List.map SBOLProvider.Role2
-             |> Array.ofList))
+    let dnaType =
+        "http://www.biopax.org/release/biopax-level3.owl#DnaRegion"
+
+    let rnaType =
+        "http://www.biopax.org/release/biopax-level3.owl#RnaRegion"
+
+    /// Create a properly-wrapped Component reference
+    let Component (uri: Uri) (refCompUri: Uri) (roles: Uri list) =
+        SBOLProvider.Component
+            (SBOLProvider.Component2
+                (uri,
+                 SBOLProvider.Access("http://sbols.org/v2#private"),
+                 SBOLProvider.Definition(refCompUri),
+                 roles
+                 |> List.map SBOLProvider.Role2
+                 |> Array.ofList))
+                     
 
 type TopLevel =
     | CompDef of SBOLProvider.ComponentDefinition
@@ -239,15 +242,16 @@ type Sequence =
     { id: Identity
       elements: string }
     member x.emit() =
-        SBOLProvider.Sequence2(x.id.identity, x.elements, SBOLProvider.Encoding(defaultEncoding))
+        SBOLProvider.Sequence2(x.id.identity, x.elements, SBOLProvider.Encoding(SbolExample.defaultEncoding))
 
-/// Create a new Sequence type from dna.
-let seqFromDna (dna: Dna) =
-    { id =
-          { identity = Uri.createTempUri ()
-            name = None
-            description = None }
-      elements = dna.str }
+module Sequence =
+    /// Create a new Sequence type from dna.
+    let seqFromDna (dna: Dna) =
+        { id =
+              { identity = Uri.createTempUri ()
+                name = None
+                description = None }
+          elements = dna.str }
 
 type Location =
     | Range of RangeLocation
@@ -281,7 +285,7 @@ and ComponentDefinition =
                  (match maybeCompSeq with
                   | Some (s) -> Some(SBOLProvider.Sequence(s.About))
                   | None -> None),
-                 SBOLProvider.Type(dnaType),
+                 SBOLProvider.Type(SbolExample.dnaType),
                  (x.roles
                   |> Seq.map SBOLProvider.Role
                   |> Array.ofSeq),
@@ -320,100 +324,101 @@ and SubcomponentIntegration =
             match location with
             | Range (rl) ->
                 seqAnns <-
-                    (SequenceAnnotation (Uri.createTempUri ()) x.identity (rl.emit ()) (x.roles))
+                    (SbolExample.SequenceAnnotation (Uri.createTempUri ()) x.identity (rl.emit ()) (x.roles))
                     :: seqAnns
             | Precede (si) ->
                 seqCons <-
-                    (SequenceConstraint (Uri.createTempUri ()) Precedes (x.identity) (si.identity))
+                    (SbolExample.SequenceConstraint (Uri.createTempUri ()) Precedes (x.identity) (si.identity))
                     :: seqCons
         // only put roles on the Component if there are no SequenceAnnotations
         let compRoles = if seqAnns.IsEmpty then x.roles else []
 
         let comp =
-            Component x.identity (x.compRef.id.identity) compRoles
+            SbolExample.Component x.identity (x.compRef.id.identity) compRoles
 
         (comp, seqAnns, seqCons)
 
-/// Convert a pile o' ComponentDefinitions into a full-blown GBoM.
-let compileGbom (compDefs: seq<ComponentDefinition>) =
-    let topLevels =
-        compDefs
-        |> Seq.collect (fun cd -> cd.emit ())
-        |> List.ofSeq
 
-    let rec collectTopLevels (tls: TopLevel list) seqs cds =
-        match tls with
-        | tl :: tail ->
-            match tl with
-            | CompDef (cd) -> collectTopLevels tail seqs (cd :: cds)
-            | Seq (s) -> collectTopLevels tail (s :: seqs) cds
-        | [] -> seqs, cds
+module Gbom =
+    /// Convert a pile o' ComponentDefinitions into a full-blown GBoM.
+    let compileGbom (compDefs: seq<ComponentDefinition>) =
+        let topLevels =
+            compDefs
+            |> Seq.collect (fun cd -> cd.emit ())
+            |> List.ofSeq
 
-    let seqs, cds = collectTopLevels topLevels [] []
-    SBOLProvider.Gbom(cds |> Array.ofList, seqs |> Array.ofList)
+        let rec collectTopLevels (tls: TopLevel list) seqs cds =
+            match tls with
+            | tl :: tail ->
+                match tl with
+                | CompDef (cd) -> collectTopLevels tail seqs (cd :: cds)
+                | Seq (s) -> collectTopLevels tail (s :: seqs) cds
+            | [] -> seqs, cds
 
+        let seqs, cds = collectTopLevels topLevels [] []
+        SBOLProvider.Gbom(cds |> Array.ofList, seqs |> Array.ofList)  
 
 
 // --- Roles ---
+module Uris =
+    let roleUriBase =
+        Uri.addNamespaces Uri.AmyrisUriBase [ "Role" ]
+        |> returnOrFail
 
-let roleUriBase =
-    Uri.addNamespaces Uri.AmyrisUriBase [ "Role" ]
-    |> returnOrFail
+    let addTermToNamespaceStatic ns term =
+        Uri.addTermToNamespace ns term
+        |> returnOrFail
 
-let addTermToNamespaceStatic ns term =
-    Uri.addTermToNamespace ns term
-    |> returnOrFail
+    // --- static URI definitions ---
+    let ryseLinkerRoleUri =
+        addTermToNamespaceStatic roleUriBase "RYSELinker"
 
-// --- static URI definitions ---
-let ryseLinkerRoleUri =
-    addTermToNamespaceStatic roleUriBase "RYSELinker"
+    let fivePrimeLinkerRoleUri =
+        addTermToNamespaceStatic roleUriBase "RYSELinker_5prime"
 
-let fivePrimeLinkerRoleUri =
-    addTermToNamespaceStatic roleUriBase "RYSELinker_5prime"
+    let threePrimeLinkerRoleUri =
+        addTermToNamespaceStatic roleUriBase "RYSELinker_3prime"
 
-let threePrimeLinkerRoleUri =
-    addTermToNamespaceStatic roleUriBase "RYSELinker_3prime"
+    let primerTailRoleUri =
+        addTermToNamespaceStatic roleUriBase "PrimerTail"
 
-let primerTailRoleUri =
-    addTermToNamespaceStatic roleUriBase "PrimerTail"
+    let primerBodyRoleUri =
+        addTermToNamespaceStatic roleUriBase "PrimerBody"
 
-let primerBodyRoleUri =
-    addTermToNamespaceStatic roleUriBase "PrimerBody"
+    let ampPrimerRoleUri =
+        addTermToNamespaceStatic roleUriBase "AmplificationPrimer"
 
-let ampPrimerRoleUri =
-    addTermToNamespaceStatic roleUriBase "AmplificationPrimer"
+    let quickchangePrimerRoleUri =
+        addTermToNamespaceStatic roleUriBase "QuickchangePrimer"
 
-let quickchangePrimerRoleUri =
-    addTermToNamespaceStatic roleUriBase "QuickchangePrimer"
+    let fivePrimePrimerRoleUri =
+        addTermToNamespaceStatic roleUriBase "Primer_5prime"
 
-let fivePrimePrimerRoleUri =
-    addTermToNamespaceStatic roleUriBase "Primer_5prime"
-
-let threePrimePrimerRoleUri =
-    addTermToNamespaceStatic roleUriBase "Primer_3prime"
+    let threePrimePrimerRoleUri =
+        addTermToNamespaceStatic roleUriBase "Primer_3prime"
 
 
-// --- legacy top-level-component-related roles
+    // --- legacy top-level-component-related roles
 
-let rabitRoleUri =
-    addTermToNamespaceStatic roleUriBase "Rabit"
+    let rabitRoleUri =
+        addTermToNamespaceStatic roleUriBase "Rabit"
 
-let rabitDnaRoleUri =
-    addTermToNamespaceStatic roleUriBase "RabitDNAElement"
+    let rabitDnaRoleUri =
+        addTermToNamespaceStatic roleUriBase "RabitDNAElement"
 
-let stitchRoleUri =
-    addTermToNamespaceStatic roleUriBase "Stitch"
+    let stitchRoleUri =
+        addTermToNamespaceStatic roleUriBase "Stitch"
 
-let stitchRabitRoleUri =
-    addTermToNamespaceStatic roleUriBase "StitchRabit"
+    let stitchRabitRoleUri =
+        addTermToNamespaceStatic roleUriBase "StitchRabit"
 
-let megastitchRoleUri =
-    addTermToNamespaceStatic roleUriBase "Megastitch"
+    let megastitchRoleUri =
+        addTermToNamespaceStatic roleUriBase "Megastitch"
 
-let rabitBreedUriBase =
-    Uri.addNamespaces roleUriBase [ "RabitBreed" ]
-    |> returnOrFail
+    let rabitBreedUriBase =
+        Uri.addNamespaces roleUriBase [ "RabitBreed" ]
+        |> returnOrFail
 
-let rabitBreedRole breed =
-    Uri.addTermToNamespace rabitBreedUriBase breed
-    |> returnOrFail
+    let rabitBreedRole breed =
+        Uri.addTermToNamespace rabitBreedUriBase breed
+        |> returnOrFail

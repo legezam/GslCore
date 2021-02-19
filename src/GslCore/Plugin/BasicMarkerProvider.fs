@@ -1,11 +1,11 @@
-﻿module GslCore.BasicMarkerProvider
+﻿module GslCore.Plugin.BasicMarkerProvider
 
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Types
 open Amyris.Dna
-open GslCore.PluginTypes
-open GslCore.DnaCreation
+open GslCore.Core.PluginTypes
+open GslCore.Core.DnaCreation
 
 /// Default marker provider if nothing else better
 let jobScorerBasicMarkerProvider _ = Some 0.0<PluginScore>

@@ -8,7 +8,7 @@ open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.AstExpansion
+open GslCore.Core.AstExpansion
 open GslCore.AstAssertions
 open GslCore.Ast.LegacyParseTypes
 

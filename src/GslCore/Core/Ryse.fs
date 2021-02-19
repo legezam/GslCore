@@ -1,4 +1,4 @@
-﻿module GslCore.Ryse
+﻿module GslCore.Core.Ryse
 
 open System.IO
 open System
@@ -11,7 +11,7 @@ open GslCore.Constants
 open GslCore.Uri
 open GslCore.Pragma
 open GslCore.Core.Types
-open GslCore.SbolExample
+open GslCore.Core.SbolExample
 open GslCore.Ast.Types
 
 // ==================================================================
@@ -682,7 +682,7 @@ let sbolLinker (linker: RYSELinker) =
           { identity = cdUri
             name = Some("RYSE linker " + linker.name)
             description = None }
-      roles = [ ryseLinkerRoleUri ]
+      roles = [ Uris.ryseLinkerRoleUri ]
       sequence =
           Some
               ({ id =
@@ -706,31 +706,31 @@ let sbolPrimer (name: string) (tail: Dna) (body: Dna) (kind: PrimerType) =
               { identity = Uri.createTempUri ()
                 name = Some(name + "_tail")
                 description = None }
-          roles = [ primerTailRoleUri ]
-          sequence = Some(seqFromDna tail)
+          roles = [ Uris.primerTailRoleUri ]
+          sequence = Some(Sequence.seqFromDna tail)
           subcomponents = []
           gslProg = None }
 
     let tailSubcomp =
-        tailComp.asSubcomponent ([], [ primerTailRoleUri ])
+        tailComp.asSubcomponent ([], [ Uris.primerTailRoleUri ])
 
     let bodyComp =
         { id =
               { identity = Uri.createTempUri ()
                 name = Some(name + "_body")
                 description = None }
-          roles = [ primerBodyRoleUri ]
-          sequence = Some(seqFromDna body)
+          roles = [ Uris.primerBodyRoleUri ]
+          sequence = Some(Sequence.seqFromDna body)
           subcomponents = []
           gslProg = None }
 
     let bodySubcomp =
-        bodyComp.asSubcomponent ([], [ primerBodyRoleUri ])
+        bodyComp.asSubcomponent ([], [ Uris.primerBodyRoleUri ])
 
     let primerRole =
         match kind with
-        | Amplification -> ampPrimerRoleUri
-        | Quickchange -> quickchangePrimerRoleUri
+        | Amplification -> Uris.ampPrimerRoleUri
+        | Quickchange -> Uris.quickchangePrimerRoleUri
 
     let fullComp =
         { id =
@@ -738,7 +738,7 @@ let sbolPrimer (name: string) (tail: Dna) (body: Dna) (kind: PrimerType) =
                 name = Some(name)
                 description = None }
           roles = [ primerRole ]
-          sequence = Some(seqFromDna (DnaOps.append tail body))
+          sequence = Some(Sequence.seqFromDna (DnaOps.append tail body))
           subcomponents = [ tailSubcomp; bodySubcomp ]
           gslProg = None }
 
@@ -758,9 +758,9 @@ let sbolDnaElement (name: string)
 
     let mutable subcomps =
         [ (fst ampPrimers)
-            .asSubcomponent([], [ fivePrimePrimerRoleUri ])
+            .asSubcomponent([], [ Uris.fivePrimePrimerRoleUri ])
           (snd ampPrimers)
-              .asSubcomponent([], [ threePrimePrimerRoleUri ]) ]
+              .asSubcomponent([], [ Uris.threePrimePrimerRoleUri ]) ]
 
     match quickchangePrimers with
     | Some (qc5p, qc3p) ->
@@ -768,12 +768,12 @@ let sbolDnaElement (name: string)
             subcomps
             @ [ qc5p.asSubcomponent
                     ([],
-                     [ fivePrimePrimerRoleUri
-                       quickchangePrimerRoleUri ])
+                     [ Uris.fivePrimePrimerRoleUri
+                       Uris.quickchangePrimerRoleUri ])
                 qc3p.asSubcomponent
                     ([],
-                     [ threePrimePrimerRoleUri
-                       quickchangePrimerRoleUri ]) ]
+                     [ Uris.threePrimePrimerRoleUri
+                       Uris.quickchangePrimerRoleUri ]) ]
     | None -> ()
 
     { id =
@@ -783,8 +783,8 @@ let sbolDnaElement (name: string)
                  | None -> Uri.createTempUri ())
             name = Some(name)
             description = desc }
-      roles = [ rabitDnaRoleUri ]
-      sequence = Some(seqFromDna dna)
+      roles = [ Uris.rabitDnaRoleUri ]
+      sequence = Some(Sequence.seqFromDna dna)
       subcomponents = subcomps
       gslProg = None }
 
@@ -822,19 +822,19 @@ let sbolRabit (name: string)
         comp.asSubcomponent ([ loc ], roles), endbp
 
     let linker5pSC, lastbp =
-        rangeSubcomp linker5p 0 FWD [ fivePrimeLinkerRoleUri ]
+        rangeSubcomp linker5p 0 FWD [ Uris.fivePrimeLinkerRoleUri ]
 
     /// assign explicit locations to all dna elements
     let rec createDnaSubcomps comps lastbp =
         match comps with
         | [ comp ] ->
             let sc, endbp =
-                rangeSubcomp comp lastbp orientation [ rabitDnaRoleUri ]
+                rangeSubcomp comp lastbp orientation [ Uris.rabitDnaRoleUri ]
 
             [ sc ], endbp
         | comp :: tail ->
             let sc, endbp =
-                rangeSubcomp comp lastbp orientation [ rabitDnaRoleUri ]
+                rangeSubcomp comp lastbp orientation [ Uris.rabitDnaRoleUri ]
 
             let others, finalbp = createDnaSubcomps tail endbp
             sc :: others, finalbp
@@ -843,7 +843,7 @@ let sbolRabit (name: string)
     let dnaSubcomps, lastbp = createDnaSubcomps dnaElements lastbp
 
     let linker3pSC, lastbp =
-        rangeSubcomp linker3p lastbp FWD [ threePrimeLinkerRoleUri ]
+        rangeSubcomp linker3p lastbp FWD [ Uris.threePrimeLinkerRoleUri ]
 
     if lastbp <> dna.Length then
         failwithf
@@ -859,8 +859,8 @@ let sbolRabit (name: string)
                  | None -> Uri.createTempUri ())
             name = Some(name)
             description = Some(desc) }
-      roles = [ rabitRoleUri; (rabitBreedRole breed) ]
-      sequence = Some(seqFromDna dna)
+      roles = [ Uris.rabitRoleUri; (Uris.rabitBreedRole breed) ]
+      sequence = Some(Sequence.seqFromDna dna)
       subcomponents = linker5pSC :: linker3pSC :: dnaSubcomps
       gslProg = None }
 
@@ -873,14 +873,14 @@ let sbolStitch (name: string) (desc: string) (compUri: Uri option) (rabits: Comp
         match rlist with
         | [ r ] ->
             let rsc =
-                r.asSubcomponent ([], [ stitchRabitRoleUri ])
+                r.asSubcomponent ([], [ Uris.stitchRabitRoleUri ])
 
             rsc, rsc :: rabitScs
         | r :: nr :: tl ->
             let nrsc, rabitScs = rabitSubcomponents (nr :: tl) rabitScs
 
             let rsc =
-                r.asSubcomponent ([ Precede(nrsc) ], [ stitchRabitRoleUri ])
+                r.asSubcomponent ([ Precede(nrsc) ], [ Uris.stitchRabitRoleUri ])
 
             rsc, rsc :: rabitScs
         | [] -> failwith "Unreachable match condition in rabit subcomponent construction."
@@ -895,7 +895,7 @@ let sbolStitch (name: string) (desc: string) (compUri: Uri option) (rabits: Comp
                  | None -> Uri.createTempUri ())
             name = Some(name)
             description = Some(desc) }
-      roles = [ stitchRoleUri ]
+      roles = [ Uris.stitchRoleUri ]
       sequence = None
       subcomponents = rabitScs
       gslProg = None }
@@ -911,11 +911,11 @@ let sbolMegastitch (name: string)
     let subcomps =
         match stitchB with
         | Some (s) ->
-            let sBsc = s.asSubcomponent ([], [ stitchRoleUri ])
+            let sBsc = s.asSubcomponent ([], [ Uris.stitchRoleUri ])
 
-            [ stitchA.asSubcomponent ([ Precede(sBsc) ], [ stitchRoleUri ])
+            [ stitchA.asSubcomponent ([ Precede(sBsc) ], [ Uris.stitchRoleUri ])
               sBsc ]
-        | None -> [ stitchA.asSubcomponent ([], [ stitchRoleUri ]) ]
+        | None -> [ stitchA.asSubcomponent ([], [ Uris.stitchRoleUri ]) ]
 
     // actually make the ComponentDefinition
     { id =
@@ -925,7 +925,7 @@ let sbolMegastitch (name: string)
                  | None -> Uri.createTempUri ())
             name = Some(name)
             description = Some(desc) }
-      roles = [ megastitchRoleUri ]
+      roles = [ Uris.megastitchRoleUri ]
       sequence = None
       subcomponents = subcomps
       gslProg = None }

@@ -7,7 +7,7 @@ open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.AstAssertions
 open GslCore.Ast.Algorithms
-open GslCore.AstExpansion
+open GslCore.Core.AstExpansion
 open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 

@@ -1,4 +1,4 @@
-﻿module GslCore.CloneManager
+﻿module GslCore.Plugin.CoreOutput.CloneManager
 
 open System.IO
 open GslCore.Core.Types

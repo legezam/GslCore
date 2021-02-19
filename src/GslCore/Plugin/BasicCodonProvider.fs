@@ -1,4 +1,4 @@
-﻿module GslCore.BasicCodonProvider
+﻿module GslCore.Plugin.BasicCodonProvider
 
 open System
 open Amyris.Bio.utils
@@ -11,7 +11,7 @@ open Amyris.Bio.biolib
 open Amyris.Bio.IO.CodonUsage
 open Amyris.Bio.SuffixTree
 open Amyris.Dna
-open GslCore.PluginTypes
+open GslCore.Core.PluginTypes
 (*
 
 UUU 26.1(170666)  UCU 23.5(153557)  UAU 18.8(122728)  UGU  8.1( 52903)

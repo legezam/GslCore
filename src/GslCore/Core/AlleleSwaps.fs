@@ -1,4 +1,4 @@
-﻿module GslCore.AlleleSwaps
+﻿module GslCore.Core.AlleleSwaps
 
 ///
 /// Support for introducing mutations into genes
@@ -15,9 +15,9 @@ open GslCore.Reference
 open IO.CodonUsage
 open biolib
 open primercore
-open GslCore.Ryse // for getrabit
+open GslCore.Core.Ryse // for getrabit
 
-open GslCore.PluginTypes
+open GslCore.Core.PluginTypes
 
 (*
 

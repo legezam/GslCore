@@ -1,4 +1,4 @@
-﻿module GslCore.Snapgene
+﻿module GslCore.Plugin.CoreOutput.Snapgene
 
 open System.IO
 open System
@@ -6,7 +6,7 @@ open GslCore.Core.Types
 open GslCore.Constants
 open Amyris.Bio.utils
 open GslCore
-open GslCore.Genbank
+open GslCore.Plugin.CoreOutput.Genbank
 open GslCore.Pragma
 
 

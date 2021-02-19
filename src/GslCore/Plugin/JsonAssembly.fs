@@ -1,11 +1,11 @@
-﻿module GslCore.JsonAssembly
+﻿module GslCore.Plugin.JsonAssembly
 
 open System.IO
 open System
 open GslCore.Core.Types
+open GslCore.Plugin.CoreOutput.Provider
 open Newtonsoft.Json
-open GslCore.PluginTypes
-open GslCore.CoreOutputProviders
+open GslCore.Core.PluginTypes
 
 /// A few key fields of a DNA slice for JSON representation.
 type DNASliceJson =

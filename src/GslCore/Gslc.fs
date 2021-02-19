@@ -9,7 +9,7 @@ open GslCore.Reference
 open Microsoft.FSharp.Core.Printf
 
 open GslCore.Core.Types
-open GslCore.CommandConfig
+open GslCore.Core.CommandConfig
 open GslCore.Ast
 open GslCore.GslcProcess // Top-level compiler operations
 open GslCore.Ast.Algorithms
@@ -20,7 +20,7 @@ open GslCore.Ast.ErrorHandling
 open Amyris.Bio
 open primercore
 open GslCore.Constants
-open PluginTypes
+open GslCore.Core.PluginTypes
 open GslCore.Ast.Types
 open ProcessCmdLineArgs
 

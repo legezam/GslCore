@@ -1,9 +1,9 @@
 ﻿/// Definitions of plug-in types and interfaces.
-module GslCore.PluginTypes
+module GslCore.Core.PluginTypes
 
 open Amyris.ErrorHandling
 open GslCore.Core.Types
-open GslCore.CommandConfig
+open GslCore.Core.CommandConfig
 open Amyris.Bio
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes

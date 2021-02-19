@@ -3,6 +3,7 @@ namespace GslCore.Tests
 open System
 open GslCore
 open GslCore.Pragma
+open GslCore.Primer
 open NUnit.Framework
 open GslCore.GslcProcess
 open GslCore.Core.Types

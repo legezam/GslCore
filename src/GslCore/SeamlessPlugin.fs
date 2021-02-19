@@ -1,10 +1,10 @@
 ﻿/// Assembly transforming plugin that implements seamless part assembly.
-module GslCore.SeamlessPlugin
+module GslCore.Plugin.SeamlessPlugin
 
 open System
 open GslCore.Core.Types
-open GslCore.CommandConfig
-open GslCore.PluginTypes
+open GslCore.Core.CommandConfig
+open GslCore.Core.PluginTypes
 open GslCore.Constants
 open Amyris.ErrorHandling
 open GslCore.GslcProcess

@@ -1,4 +1,4 @@
-﻿module GslCore.PrimerCreation
+﻿module GslCore.Primer.PrimerCreation
 /// Support routines for primer design scenarios and primer generation for stitches
 open GslCore.Core.Types
 open System

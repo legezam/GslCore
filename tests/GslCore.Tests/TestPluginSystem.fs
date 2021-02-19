@@ -1,11 +1,11 @@
 ﻿namespace GslCore
 
+open GslCore.Plugin
 open NUnit.Framework
 
-open GslCore.CommandConfig
+open GslCore.Core.CommandConfig
 open GslCore.ProcessCmdLineArgs
-open GslCore.PluginTypes
-open GslCore.BasicCodonProvider
+open GslCore.Core.PluginTypes
 
 [<AutoOpen>]
 module fixtures =
@@ -33,7 +33,6 @@ module fixtures =
                               data = Some(parsedArg.values.[0]) }
                     else
                         x
-
                 revised :> IOutputFormat
 
             member x.ConfigureFromOptions(_) = x :> IOutputFormat
@@ -89,7 +88,10 @@ type TestPluginSystem() =
         let top =
             testOutputPlugin "testArg" "testArgAlias" "I'm a test argument."
 
-        let plugins = [ top; basicCodonProviderPlugin ]
+        let plugins =
+            [ top
+              BasicCodonProvider.basicCodonProviderPlugin ]
+
         let argSpecs = collectCommandLineArgs plugins
         let fakeArgs = [ "--testArg"; "foo" ]
 

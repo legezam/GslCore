@@ -1,6 +1,7 @@
 ﻿module GslCore.TestPromTermLen
 /// Test #promoterlen #terminatorlen work
 
+open GslCore.Core
 open GslCore.Reference
 open NUnit.Framework
 open GslCore.Ast.LegacyParseTypes

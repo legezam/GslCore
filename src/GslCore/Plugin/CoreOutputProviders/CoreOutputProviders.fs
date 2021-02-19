@@ -1,11 +1,12 @@
-﻿module GslCore.CoreOutputProviders
+﻿module GslCore.Plugin.CoreOutput.Provider
 
-open GslCore.PluginTypes
-open GslCore.CommandConfig
-open GslCore.CloneManager
-open GslCore.Ape
-open GslCore.Snapgene
-open GslCore.DumpFlat
+open GslCore.Core.PluginTypes
+open GslCore.Core.CommandConfig
+open GslCore.Plugin.CoreOutput
+open GslCore.Plugin.CoreOutput.CloneManager
+open GslCore.Plugin.CoreOutput.Ape
+open GslCore.Plugin.CoreOutput.Snapgene
+open GslCore.Plugin.CoreOutput.DumpFlat
 open GslCore.Core.Types
 open System.IO
 

@@ -3,14 +3,14 @@ module GslCore.GslcProcess
 
 open System
 open Amyris.Bio
-open GslCore.AstExpansion
+open GslCore.Core.AstExpansion
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Types
-open GslCore.DnaCreation
+open GslCore.Core.DnaCreation
 open GslCore.Pragma
-open GslCore.PrimerCreation
+open GslCore.Primer
 open GslCore.ProcessCmdLineArgs
-open GslCore.PluginTypes
+open GslCore.Core.PluginTypes
 open GslCore.Ast
 open Amyris.ErrorHandling
 
@@ -203,7 +203,7 @@ let doPrimerDesign opts assemblyOuts =
     if opts.NoPrimers then
         None, assemblyOuts
     else
-        let p, t = designPrimers opts assemblyOuts
+        let p, t = PrimerCreation.designPrimers opts assemblyOuts
         Some(p), t
 
 

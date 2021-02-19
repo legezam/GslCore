@@ -1,5 +1,5 @@
 ﻿/// AST versions of biological expansions
-module GslCore.AstExpansion
+module GslCore.Core.AstExpansion
 
 open System
 open GslCore.Ast.Process
@@ -11,15 +11,15 @@ open GslCore.Ast.Algorithms
 open Amyris.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 open Amyris.Dna
-open GslCore.DnaCreation
+open GslCore.Core.DnaCreation
 open GslCore.Pragma
-open GslCore.AlleleSwaps
+open GslCore.Core.AlleleSwaps
 open Amyris.Bio.utils
 open GslCore.Core
 open GslCore.Core.Types
 open GslCore.Reference
-open GslCore.ResolveExtPart
-open GslCore.PluginTypes
+open GslCore.Core.ResolveExtPart
+open GslCore.Core.PluginTypes
 
 
 // ==================

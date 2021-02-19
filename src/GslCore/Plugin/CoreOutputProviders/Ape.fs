@@ -1,4 +1,4 @@
-﻿module GslCore.Ape
+﻿module GslCore.Plugin.CoreOutput.Ape
 
 open System.IO
 open System
@@ -7,7 +7,7 @@ open GslCore.Constants
 open Amyris.Bio.utils
 open GslCore
 open GslCore.Pragma
-open GslCore.Genbank
+open GslCore.Plugin.CoreOutput.Genbank
 
 /// Emit APE (genbank) format
 ///  outDir : string   tag: string  prefix for files  assemblies : List of AssemblyOut

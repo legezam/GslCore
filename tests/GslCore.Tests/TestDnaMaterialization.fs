@@ -2,7 +2,9 @@
 
 open System.IO
 open GslCore
+open GslCore.Core
 open GslCore.Pragma
+open GslCore.Primer
 open GslCore.Reference
 open NUnit.Framework
 open Amyris.Bio.biolib

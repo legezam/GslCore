@@ -1,4 +1,4 @@
-﻿module GslCore.PrimerValidation
+﻿module GslCore.Primer.PrimerValidation
 
 open GslCore.Core.Types
 open Amyris.Bio.utils

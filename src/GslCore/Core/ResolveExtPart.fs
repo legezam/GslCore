@@ -1,9 +1,9 @@
-﻿module GslCore.ResolveExtPart
+﻿module GslCore.Core.ResolveExtPart
 
 open GslCore.Core.Types
 open GslCore.Pragma
 open GslCore.Ast.LegacyParseTypes
-open GslCore.Ryse
+open GslCore.Core.Ryse
 open GslCore.Core
 open GslCore.Constants
 open Amyris.Dna

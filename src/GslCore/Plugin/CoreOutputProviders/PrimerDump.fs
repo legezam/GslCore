@@ -1,5 +1,5 @@
 /// IO routine for emitting simple primer details
-module GslCore.PrimerDump
+module GslCore.Plugin.CoreOutput.PrimerDump
 
 open System.IO
 open GslCore.Core.Types

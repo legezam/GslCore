@@ -1,4 +1,4 @@
-﻿module GslCore.RycodExample
+﻿module GslCore.Core.RycodExample
 
 /// Example XMLto train FSharp type provider.  NB: not a valid rycod example, has been simplified for brevity
 type ThumperRycod =

@@ -1,4 +1,4 @@
-﻿module GslCore.DnaCreation
+﻿module GslCore.Core.DnaCreation
 
 open System
 
@@ -12,8 +12,8 @@ open Amyris.Bio
 open Amyris.ErrorHandling
 open Amyris.Dna
 open GslCore.Reference
-open GslCore.Ryse
-open GslCore.PluginTypes
+open GslCore.Core.Ryse
+open GslCore.Core.PluginTypes
 
 // ================================================================================================
 // Slice manipulation routines for getting from gene notation down to specific genomics coordinates

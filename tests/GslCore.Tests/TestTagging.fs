@@ -3,6 +3,8 @@
 open System.Collections
 open GslCore
 open GslCore.Ast
+open GslCore.Core
+open GslCore.Plugin
 open GslCore.Reference
 open GslCore.Tests
 open GslCore.Ast.LegacyParseTypes
@@ -10,11 +12,10 @@ open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.AstAssertions
-open GslCore.AstExpansion
-open GslCore.PluginTypes
+open GslCore.Core.PluginTypes
 open GslCore.Core.Types
 open GslCore.Constants
-open GslCore.BasicCodonProvider
+open GslCore.Plugin.BasicCodonProvider
 open GslCore.Pragma
 open GslCore.DesignParams
 
