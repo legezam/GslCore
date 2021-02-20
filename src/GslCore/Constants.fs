@@ -96,7 +96,7 @@ type GeneEnd =
     | FivePrime
     | ThreePrime
 
-type RelPos =
+type RelativePosition =
     { Position: int<OneOffset>
       RelativeTo: GeneEnd }
 

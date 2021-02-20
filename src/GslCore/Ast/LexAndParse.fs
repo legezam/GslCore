@@ -54,12 +54,12 @@ let lexTest verbose inputText =
 
     nextToken ()
 
-let private doLexParse verbose inBuffer =
+let private doLexParse (verbose: bool) (inBuffer: LexBuffer<char>): AstTreeHead =
     if verbose then printfn "Starting tree parse...\n"
     let tokenizer = createGslTokenizer verbose
-    let t = start tokenizer inBuffer
+    let result = start tokenizer inBuffer
     if verbose then printfn "Parsed tree!"
-    t
+    result
 
 // =====================
 // handling of parse errors
@@ -183,7 +183,7 @@ let lexAndParse verbose (source: GslSourceCode) =
         let errNode = createErrorNode inBuffer
 
         match parseExceptionToError errNode exn with
-        | Some (msg) -> msg
+        | Some msg -> msg
         | None -> AstMessage.exceptionToError ParserError errNode exn
 
     let doLexParseCaptureException =

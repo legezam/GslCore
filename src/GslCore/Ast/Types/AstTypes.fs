@@ -29,8 +29,16 @@ type Linker =
     { Linker1: string
       Linker2: string
       Orient: string }
+with
+    override this.ToString() =
+        sprintf "[Linker O=%s; %s-%s]" this.Orient this.Linker1 this.Linker2
 
 type ParseGene = { Gene: string; Linker: Linker option }
+with
+    override this.ToString () =
+        match this.Linker with
+        | None -> sprintf "[Gene=%s]" this.Gene
+        | Some linker -> sprintf "[Gene=%s;Linker=%O]" this.Gene linker
 
 /// Supported binary operations on nodes.
 type BinaryOperator =
@@ -88,8 +96,8 @@ and AstNode =
     | BinaryOperation of Node<BinaryOperation>
     | Negation of Node<AstNode>
     // Slicing
-    | ParseRelPos of Node<ParseRelPos>
-    | RelPos of Node<RelPos>
+    | ParseRelPos of Node<ParseRelativePosition>
+    | RelPos of Node<RelativePosition>
     | Slice of Node<ParseSlice>
     // non-slice part mods
     | Mutation of Node<Mutation>
@@ -213,8 +221,20 @@ and ParsePart =
       Modifiers: AstNode list
       Pragmas: AstNode list
       IsForward: bool }
+    
+    with
+    
+    override this.ToString() =
+        let modifiers = this.Modifiers |> List.map (sprintf "%O") |> String.concat ","
+        let pragmas = this.Pragmas |> List.map (sprintf "%O") |> String.concat ","
+        sprintf "[Base: %O; Mod: %s; Prag: %s]" this.BasePart modifiers pragmas
 
 /// Qualifiers on relative positioning specifications.
+/// S = Start
+/// E = End
+/// A = Amino acid (coordinates are considered in Amino Acid coordinate space)
+/// AS = SA = A
+/// ES = SE
 and RelPosQualifier =
     | S
     | E
@@ -228,13 +248,22 @@ and RelPosQualifier =
 and RelPosPosition =
     | Left
     | Right
+    with
+        override this.ToString() =
+            match this with
+            | Left -> "L"
+            | Right -> "R"
 
-/// Relative positioning.
-/// i should reduce to an integer
-and ParseRelPos =
+/// Raw Relative Position from parsing. Becomes `RelativePosition`
+and ParseRelativePosition =
     { Item: AstNode
       Qualifier: RelPosQualifier option
       Position: RelPosPosition }
+    
+    with
+        override this.ToString() =
+            
+            sprintf "[RelPos P:%O Q:%A %O]" this.Position this.Qualifier this.Item
 
 /// Slicing.
 and ParseSlice =
@@ -242,6 +271,12 @@ and ParseSlice =
       LeftApprox: bool
       Right: AstNode
       RightApprox: bool }
+    
+    with
+        override this.ToString() =
+            let leftApprox = if this.LeftApprox then "~" else ""
+            let rightApprox = if this.RightApprox then "~" else ""
+            sprintf "[Slice {%s%O-%s%O}]" leftApprox this.Left rightApprox this.Right
 
 // ------ GSL level 2 syntax ------
 

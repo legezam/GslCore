@@ -25,6 +25,7 @@
     <Compile Include="TestProcAssembly.fs" />
     <Compile Include="TestMapRyseLinkers.fs" />
     <Compile Include="TestDnaMaterialization.fs" />
+    <Compile Include="RunCompilerTest.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\GslCore\GslCore.fsproj" />

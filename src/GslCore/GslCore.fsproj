@@ -6,6 +6,8 @@
     <AssemblyName>Dmx.GslCore</AssemblyName>
     <Name>Dmx.GslCore</Name>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
   </PropertyGroup>
   <!--  Don't know how to do this for new sdk style project files
         Run manually as (remove space from - - )
@@ -13,6 +15,12 @@
         <FsLexYacc Include="GslParser.fsy"> </FsLexYacc>
   -->
   <ItemGroup>
+    <PropertyGroup >
+      <DefineConstants>TRACE</DefineConstants>
+      <PlatformTarget>AnyCPU</PlatformTarget>
+      <OtherFlags>--sig:test.fsi</OtherFlags>
+    </PropertyGroup>
+    <None Include="paket.template"/>
     <Compile Include="AssemblyInfo.fs" />
 
     <Compile Include="Constants.fs" />
@@ -61,7 +69,7 @@
     <Compile Include="Ast\Process\VariableResolution.fs" />
     <Compile Include="Ast\Process\Inlining.fs" />
     <Compile Include="Ast\Process\ExpressionReduction.fs" />
-    <Compile Include="Ast\Process\RelativePosition.fs" />
+    <Compile Include="Ast\Process\RelativePositionTranslation.fs" />
     <Compile Include="Ast\Process\PragmaBuilding.fs" />
     <Compile Include="Ast\Process\AssemblyFlattening.fs" />
     <Compile Include="Ast\Process\AssemblyStuffing.fs" />

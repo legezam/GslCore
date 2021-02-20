@@ -12,9 +12,9 @@ open GslCore.Ast.ErrorHandling
 open GslCore.DesignParams
 
 type Slice =
-    { left: RelPos
+    { left: RelativePosition
       lApprox: bool
-      right: RelPos
+      right: RelativePosition
       rApprox: bool }
 
 type SliceContext =
@@ -126,7 +126,7 @@ type L2Line =
 // ========================
 
 /// Pretty print a RelPos
-let printRP (l: RelPos) =
+let printRP (l: RelativePosition) =
     sprintf
         "%A/%s"
         l.Position

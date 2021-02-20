@@ -38,7 +38,7 @@ let validateMods errorRef (where: SourcePosition list) (mods: Mod list) =
 /// coordinate for the position.
 /// Determine range of DNA needed, translating into physical coordinates
 /// Final start of the piece.  Determine which end we are working relative to
-let adjustToPhysical (feat: sgd.Feature) (f: RelPos) =
+let adjustToPhysical (feat: sgd.Feature) (f: RelativePosition) =
     let featOffset =
         match f.RelativeTo, feat.fwd with
         | FivePrime, true
@@ -528,7 +528,7 @@ let expandGenePart verbose
             { Position = 150<OneOffset>
               RelativeTo = ThreePrime }
 
-        let near (a: RelPos) (b: RelPos) (tolerance) =
+        let near (a: RelativePosition) (b: RelativePosition) (tolerance) =
             a.RelativeTo = b.RelativeTo
             && abs ((a.Position - b.Position) / 1<OneOffset>) < tolerance
 

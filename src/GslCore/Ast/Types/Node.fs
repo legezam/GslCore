@@ -22,6 +22,10 @@ type Node<'T when 'T: equality> =
         | _ -> false
 
     override this.GetHashCode() = this.Value.GetHashCode()
+    
+    override this.ToString() =
+        let positions = this.Positions |> List.map (fun position -> position.ToString()) |> String.concat "; "
+        sprintf "%O: %s" this.Value positions
 
 
 /// Generic helper functions for wrapping node payloads.

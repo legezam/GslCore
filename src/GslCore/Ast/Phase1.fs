@@ -31,7 +31,7 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> Result<AstTreeHead, As
     >=> ExpressionReduction.reduceMathExpressions
     >=> PragmaBuilding.buildPragmas parameters
     >=> PragmaWarning.collect
-    >=> RelativePosition.compute
+    >=> RelativePositionTranslation.compute
     >=> RoughageExpansion.expandRoughageLines // inline roughage expansion is pretty simple so we always do it
     >=> AssemblyFlattening.flattenAssemblies parameters
     >=> (Validation.validate Validation.checkMods)

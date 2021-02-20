@@ -25,7 +25,7 @@ let relPosQualifierToString (rpq: RelPosQualifier): string =
 /// Use the position from the number as the position of this token.
 let createParseRelPos (number: AstNode) (maybeQualifier: PString option) (position: RelPosPosition): AstNode =
     let parseRelPos =
-        { ParseRelPos.Item = number
+        { ParseRelativePosition.Item = number
           Qualifier = None
           Position = position }
 
