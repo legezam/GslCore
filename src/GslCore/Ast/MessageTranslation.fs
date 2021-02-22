@@ -4,7 +4,7 @@ open GslCore.Ast.ErrorHandling
 
 module RelativePositionTranslationMessage =
     open GslCore.Ast.Process.RelativePositionTranslation
-    
+
     let toAstMessage (error: RelativePositionTranslationMessage): AstMessage =
         match error with
         | CalculationError (node, calcError) ->
@@ -20,4 +20,7 @@ module RelativePositionTranslationMessage =
                     ValueError
                     (sprintf "Cannot offset negative amino acids from start: %d" position)
                     node
+            | PositionCannotBeZero ->
+                AstMessage.createErrorWithStackTrace ValueError (sprintf "Slice index cannot be zero") node
+
         | PositionIsNotInteger node -> AstResult.internalTypeMismatchMsg (Some "relative position building") "Int" node
