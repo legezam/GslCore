@@ -6,8 +6,10 @@ open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.Constants
 open GslCore.Core.Types
+open GslCore.GslResult
 open GslCore.Pragma
 open Amyris.Dna
+
 
 let defaultPhase1Parameters =
     { Phase1Parameters.PragmaBuilder = PragmaBuilder.builtin
@@ -27,9 +29,9 @@ let rec extractAssemblies (n: AstNode): AstNode list =
           yield! result
       | Part p ->
           match p.Value.BasePart with
-          | Assembly a as x -> yield x
+          | Assembly _ as x -> yield x
           | _ -> ()
-      | Assembly a as x -> yield x
+      | Assembly _ as x -> yield x
       | _ -> () ]
 
 
@@ -38,7 +40,7 @@ let compileOne source =
     source
     |> GslSourceCode
     |> compile (Phase1.phase1 defaultPhase1Parameters)
-    |> returnOrFail
+    |> GslResult.valueOr (failwithf "%A")
     |> fun x -> extractAssemblies x.wrappedNode
 
 /// Simple slice creator with just the parameters

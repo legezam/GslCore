@@ -2,6 +2,7 @@
 
 open System
 open GslCore.Ast.Process
+open GslCore.GslResult
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.Ast.Types
@@ -193,7 +194,7 @@ do
 end
 """
         // just smoke test that this round-trips for now
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     [<Test>]
     member x.TestDocstrings() =
@@ -204,33 +205,33 @@ do
     /// I'm a docstring for an assembly in an inner scope.
     pBAR
 end"""
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     // Attempts at starting some L2 parsing tests
     [<Test>]
     member x.TestL2ImplicitPromoterSwap() =
         let source = "pTDH3>gADH1"
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     [<Test>]
     member x.TestL2ExplicitPromoterSwap() =
         let source = "gHO^ ; pTDH3>gADH1"
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     [<Test>]
     member x.TestL2ExplicitMultiplePromoterSwap() =
         let source = "gHO^ ; pTDH3>gADH1 ; pSLN1>gADH6"
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     [<Test>]
     member x.TestL2Knockout() =
         let source = "gHO^"
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     [<Test>]
     member x.TestL2ImplicitPromoterSwapRabit() =
         let source = "@R41811>gADH1"
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source
 
     //    [<Test>]
 //    member x.TestL2ImplicitPromoterSwapAssembly() =
@@ -243,4 +244,4 @@ end"""
 let prom = /GTGGTGACTATAGCTATGCTAGTGCTCGCTAAATAGCCTGA/
 &prom>gADH1
 """
-        sourceCompareTest (promote id) source source
+        sourceCompareTest (GslResult.promote id) source source

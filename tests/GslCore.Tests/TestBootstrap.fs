@@ -3,10 +3,10 @@
 open GslCore
 open GslCore.Ast
 open GslCore.Core.Expansion
+open GslCore.GslResult
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.Constants
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -42,9 +42,9 @@ type TestBootstrapping() =
 
         source
         |> bootstrapPhase1NoCapas []
-        |> lift bootstrapToTree
+        |> GslResult.map bootstrapToTree
         |> failIfBad (Some(source))
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> assertDecompilesTo source.String
 
 
@@ -72,12 +72,12 @@ type TestBootstrapping() =
         let compiledTree =
             compilePhase1NoCapas source
             |> failIfBad (Some(GslSourceCode source))
-            |> returnOrFail
+            |> GslResult.valueOr (failwithf "%A")
 
         compiledTree
         |> testPhase1
         |> failIfBad None
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> assertDecompilesTo source
 
         printfn "Source in: %s" source
@@ -88,7 +88,7 @@ type TestBootstrapping() =
 
         compilePhase1NoCapas source
         |> failIfBad (Some(GslSourceCode source))
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> testCaptureException
         |> assertFail (GeneralError) (Some "Expansion failed with an exception.")
         |> ignore

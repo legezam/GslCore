@@ -89,6 +89,9 @@ type AstResult<'a> = GslResult<'a, AstMessage>
 module AstResult =
     let warn msg result: AstResult<'a> =
         GslResult.warn msg result
+        
+    let warns msgs result: AstResult<'a> =
+        GslResult.warns msgs result        
 
     let ok result: AstResult<'a> =
         GslResult.ok result

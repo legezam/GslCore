@@ -5,6 +5,7 @@ open GslCore
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core
 open GslCore.Core.Ryse
+open GslCore.GslResult
 open NUnit.Framework
 open GslCore.Core.Types
 open GslCore.AssemblyTestSupport
@@ -19,13 +20,12 @@ type TestMapRyseLinkers() =
 
 
     let makePragma name values =
-        match PragmaBuilder.createPragmaFromNameValue name values PragmaBuilder.builtin with
-        | Ok (p, []) ->
-            let map =
-                { Pragmas = [ p.Name, p ] |> Map.ofList }
+        let p =
+            PragmaBuilder.createPragmaFromNameValue name values PragmaBuilder.builtin
+            |> GslResult.valueOr (fun _ -> failwith "building pragma")
 
-            map
-        | _ -> failwith "building pragma"
+        { Pragmas = [ p.Name, p ] |> Map.ofList }
+
     /// perform one test and check output pattern and sequences
     let runOne (name: string) isMegastitch (linkersIn: (DNASlice list * DNASlice list)) slicesIn expected =
         /// Boring default options

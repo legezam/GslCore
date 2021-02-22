@@ -4,7 +4,7 @@ open GslCore
 open GslCore.Ast.Process
 open GslCore.Pragma
 open NUnit.Framework
-open Amyris.ErrorHandling
+open GslCore.GslResult
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast
@@ -59,7 +59,7 @@ type TestValidation() =
     [<Test>]
     member x.NoModsAllowed() =
         let source = GslSourceCode("###[2:20]")
-        let tree = lexparse source |> returnOrFail
+        let tree = lexparse source |> GslResult.valueOr (failwithf "%A")
 
         assertValidationFail
             PartError
@@ -71,7 +71,7 @@ type TestValidation() =
     [<Test>]
     member x.NoModsOnAssemblies() =
         let source = GslSourceCode("(pFOO; gFOO)[2:20]")
-        let tree = lexparse source |> returnOrFail
+        let tree = lexparse source |> GslResult.valueOr (failwithf "%A")
 
         assertValidationFail
             PartError

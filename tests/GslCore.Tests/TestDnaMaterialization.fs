@@ -10,8 +10,7 @@ open NUnit.Framework
 open Amyris.Bio.biolib
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Types
-open GslCore.Pragma
-open Amyris.ErrorHandling
+open GslCore.GslResult
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.AssemblyTestSupport
@@ -34,12 +33,13 @@ type DnaMaterialization() =
         if Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
 
     let refGenomePragma =
-        match PragmaBuilder.createPragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaBuilder.builtin with
-        | Result.Ok (p, _) -> p
-        | _ -> failwithf "Failure to build refgenome TestGenome2"
+        PragmaBuilder.createPragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaBuilder.builtin
+        |> GslResult.valueOr (fun _ -> failwith "Failure to build refgenome TestGenome2")
 
-    let pc = PragmaCollection.create [ refGenomePragma ]
-        
+
+    let pc =
+        PragmaCollection.create [ refGenomePragma ]
+
 
     /// We don't need much from an assembly so ok to leave it mostly empty
     let emptyAssembly =
@@ -65,10 +65,16 @@ type DnaMaterialization() =
           where = [] }
 
     // general retrieval parameters that are gene agnostic
-    let gd = GenomeDefinition.createEager testLibDir "TestGenome2"
+    let gd =
+        GenomeDefinition.createEager testLibDir "TestGenome2"
 
     let verbose = false
-    let rgs: GenomeDefinitions = [ ("TestGenome2", gd) ] |> Map.ofList |> GenomeDefinitions.create
+
+    let rgs: GenomeDefinitions =
+        [ ("TestGenome2", gd) ]
+        |> Map.ofList
+        |> GenomeDefinitions.create
+
     let library: SequenceLibrary = Map.empty
     let a: Assembly = emptyAssembly
     let dnaSource = "TestGenome2"

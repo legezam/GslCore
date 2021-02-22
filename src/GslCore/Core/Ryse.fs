@@ -675,11 +675,11 @@ module Ryse =
     let linkerUris linkCode =
         let componentLinker =
             Uri.buildUri [ "Component"; "Linker" ] linkCode
-            |> Result.valueOr failwith
+            |> GslResult.valueOr (failwithf "%A")
             
         let componentSequenceLinker =
             Uri.buildUri [ "ComponentSequence"; "Linker" ] linkCode
-            |> Result.valueOr failwith
+            |> GslResult.valueOr (failwithf "%A")
         componentLinker, componentSequenceLinker
 
     /// Return the SBOL specification of a RYSE linker.

@@ -2,6 +2,7 @@
 
 open System
 open GslCore
+open GslCore.GslResult
 open GslCore.Ast
 open NUnit.Framework
 open Amyris.ErrorHandling
@@ -48,7 +49,7 @@ type TestLineNumbers() =
         source
         |> GslSourceCode
         |> compile (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters)
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> fun x -> extractAssemblies x.wrappedNode
 
     let tripleNestedCallExample = """#refgenome cenpk

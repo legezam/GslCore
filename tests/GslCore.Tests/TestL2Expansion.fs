@@ -2,6 +2,7 @@
 
 
 open GslCore
+open GslCore.GslResult
 open GslCore.Ast
 open GslCore.Ast.Types
 open GslCore.Core.Expansion
@@ -65,7 +66,7 @@ gHO^ ; pGAL1>mERG10"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> ignore
 
     [<Test>]
@@ -78,7 +79,7 @@ pTDH3>gADH1"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> ignore
 
 
@@ -93,7 +94,7 @@ gHO^ ; @R52888>mERG10"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> ignore
 
 
@@ -110,5 +111,5 @@ gDIT1^; /$PLQVGSASKYWALKERMYYQACLPH/>gACS1"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> ignore

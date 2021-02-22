@@ -1,6 +1,8 @@
 ﻿namespace GslCore.Tests
 
 open System.Collections
+open GslCore.GslResult
+
 open GslCore
 open GslCore.Ast
 open GslCore.Core.CommandConfig
@@ -9,7 +11,6 @@ open GslCore.Reference
 open GslCore.Tests
 open GslCore.Ast.LegacyParseTypes
 open NUnit.Framework
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.Core.PluginTypes
@@ -42,10 +43,11 @@ type TestTagging() =
         let parameters =
             { Phase1Parameters.LegalCapabilities = Set.empty
               PragmaBuilder = pragmaBuilder }
+
         source
         |> GslSourceCode
         |> compile (Phase1.phase1 parameters)
-        |> returnOrFail
+        |> GslResult.valueOr (failwithf "%A")
         |> fun x -> extractParts x.wrappedNode
 
     /// example with no #tag
@@ -382,14 +384,13 @@ uADH2; dADH2
         let cliTags = input.CliTags
 
         let pragmaCollection =
-            PragmaCollection.create
-                [ for pragma in input.PragmaTags do
-                    { Pragma.Arguments = [ pragma ]
-                      Definition = TaggingPlugin.tagPragmaDef }
+            PragmaCollection.create [ for pragma in input.PragmaTags do
+                                          { Pragma.Arguments = [ pragma ]
+                                            Definition = TaggingPlugin.tagPragmaDef }
 
-                  for pragma in input.GlobalPragmaTags do
-                      { Pragma.Arguments = [ pragma ]
-                        Definition = TaggingPlugin.gTagPragmaDef } ]
+                                      for pragma in input.GlobalPragmaTags do
+                                          { Pragma.Arguments = [ pragma ]
+                                            Definition = TaggingPlugin.gTagPragmaDef } ]
 
         let context = TestTagging.dummyContext
 
@@ -398,10 +399,11 @@ uADH2; dADH2
                   Pragmas = pragmaCollection
                   Tags = input.AssemblyTags |> Set.ofList }
 
-        match TaggingPlugin.foldInTags cliTags context assembly with
-        | Ok (result, _) ->
+        match TaggingPlugin.foldInTags cliTags context assembly
+              |> GslResult.GetValue with
+        | Ok { Result = result; Warnings = _ } ->
             result.Tags
             |> Set.toList
             |> List.map (fun tag -> sprintf "%s:%s" tag.nameSpace tag.tag)
             |> List.sort
-        | Bad _err -> failwith "Unexpected error"
+        | Error _err -> failwith "Unexpected error"

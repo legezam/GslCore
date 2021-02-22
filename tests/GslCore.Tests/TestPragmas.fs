@@ -2,9 +2,9 @@
 
 open GslCore.Ast.Process
 open GslCore.DesignParams
+open GslCore.GslResult
 open GslCore.Pragma
 open NUnit.Framework
-open Amyris.ErrorHandling
 open Amyris.Bio.primercore
 open GslCore.Ast.Types
 open GslCore.AstFixtures
@@ -26,7 +26,8 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            returnOrFail (PragmaBuilder.createPragmaFromNameValue badName [ badOption ] pragmaBuilder)
+            (PragmaBuilder.createPragmaFromNameValue badName [ badOption ] pragmaBuilder)
+            |> GslResult.valueOr (failwithf "%A")
             |> ignore)
         |> ignore
 
@@ -39,9 +40,10 @@ type TestPragmas() =
     /// Smoke test parsing PCR parameters.
     member x.TestPcrParamsParsing() =
         let doParse ifGood ifBad args =
-            match DesignParams.revise defaultParams args with
-            | Ok (r, _) -> ifGood r
-            | Bad (msgs) -> ifBad msgs
+            match DesignParams.revise defaultParams args
+                  |> GslResult.GetValue with
+            | Ok success -> ifGood success.Result
+            | Error msgs -> ifBad msgs
 
         let shouldPass =
             doParse ignore (fun errs -> Assert.Fail(String.concat ", " errs))
@@ -78,7 +80,7 @@ type TestPragmasAST() =
     let checkPragmaIsBuilt node =
         match node with
         | Pragma _ -> Validation.good
-        | ParsePragma (p) -> AstMessage.createErrorf Error "Pragma '%s' was not built." p.Value.Name node
+        | ParsePragma (p) -> AstResult.errStringF GeneralError "Pragma '%s' was not built." p.Value.Name node
         | _ -> Validation.good
 
     let pragmaBuildTest source =
@@ -158,9 +160,8 @@ bar("qux")
             Some("#stitch is deprecated")
            ]
         // test the deprecation warning deduplication mechanism
-        |> snd
-        |> GslParseErrorContext.deduplicateMessages
-        |> (fun msgs -> Ok((), msgs))
+        |> fun success -> GslParseErrorContext.deduplicateMessages success.Warnings
+        |> (fun msgs -> AstResult.warns msgs ())
         |> assertWarn DeprecationWarning (Some("appear only once per file"))
         |> ignore
 
@@ -184,7 +185,8 @@ gBAZ"""
         sourceCompareTest stuffPragmasPipeline source source
 
         let reducedAst =
-            returnOrFail (compile stuffPragmasPipeline (source |> GslSourceCode))
+            (compile stuffPragmasPipeline (source |> GslSourceCode))
+            |> GslResult.valueOr (failwithf "%A")
 
         // we need to dive into the AST to check this
         let namePrag =
@@ -256,7 +258,7 @@ gBAZ"""
 
         let tree =
             compile stuffPragmasPipeline (GslSourceCode(source))
-            |> returnOrFail
+            |> GslResult.valueOr (failwithf "%A")
         // now replace the outer name pragma and make sure the second pass triggers the collision error
         match tree.wrappedNode with
         | Block ({ Value = [ Pragma (npw); assem ]

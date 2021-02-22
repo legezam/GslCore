@@ -39,10 +39,10 @@ module Uri =
 
 
     /// Construct a local URI from a list of namespaces and an instance term.
-    let buildUri (namespaces: string list) (term: string): Result<string, string> =
+    let buildUri (namespaces: string list) (term: string): GslResult<string, string> =
         // TODO: type constraint on stringifyable term?
         match checkTermsForIssues (term :: namespaces) with
-        | Some errorMessage -> Error errorMessage
+        | Some errorMessage -> GslResult.err errorMessage
         | None ->
             let ub = System.Text.StringBuilder()
             ub.Append(AmyrisUriBase) |> ignore
@@ -52,7 +52,7 @@ module Uri =
 
             ub.Append(UriTermDelimiter) |> ignore
             ub.Append(term) |> ignore
-            Ok (ub.ToString())
+            GslResult.ok (ub.ToString())
 
     /// Construct a URI namespace extension.
     let addNamespaces (baseNamespace: string) (namespaces: string list): GslResult<string, string> =

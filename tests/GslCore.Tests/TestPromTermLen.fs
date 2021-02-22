@@ -1,5 +1,4 @@
 ﻿module GslCore.TestPromTermLen
-/// Test #promoterlen #terminatorlen work
 
 open GslCore.Core
 open GslCore.Reference
@@ -8,7 +7,7 @@ open GslCore.Ast.LegacyParseTypes
 open GslCore.Constants
 open GslCore.Core.Types
 open GslCore.Pragma
-open Amyris.ErrorHandling
+open GslCore.GslResult
 
 /// location of test gslc_lib fixtures
 let testLibDir1 = @"../../../../TestGslcLib"
@@ -16,9 +15,8 @@ let testLibDir2 = @"../../../../../TestGslcLib"
 
 [<TestFixture>]
 type TestPromTermLen() =
-    
-    let emptyPragmas =
-        PragmaCollection.empty
+
+    let emptyPragmas = PragmaCollection.empty
 
     let testLibDir =
         if System.IO.Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
@@ -28,15 +26,23 @@ type TestPromTermLen() =
         then failwithf "%s: expected= %d and actual=%d not equal" context expected actual
 
     let checkOneGenome pragmas name promLen termLen termLenMRNA =
-        let gd = GenomeDefinition.createLazy testLibDir name
+        let gd =
+            GenomeDefinition.createLazy testLibDir name
 
-        
-        let (envLookup, gd) = gd |> GenomeDefinition.envLenLookupLazy "termlen" 666
+
+        let (envLookup, gd) =
+            gd
+            |> GenomeDefinition.envLenLookupLazy "termlen" 666
+
         printfn "XXX envlookup=%d" envLookup
         let (lookupTermLen, gd) = gd |> GenomeDefinition.getTermLenLazy
         printfn "XXX name=%s termlen=%d" name lookupTermLen
         let gd = gd |> GenomeDefinition.load
-        let (envLookup, gd) = gd |> GenomeDefinition.envLenLookupLazy "termlen" 666
+
+        let (envLookup, gd) =
+            gd
+            |> GenomeDefinition.envLenLookupLazy "termlen" 666
+
         printfn "XXX envlookup=%d" envLookup
         let (lookupTermLen, gd) = gd |> GenomeDefinition.getTermLenLazy
         printfn "XXX name=%s termlen=%d" name lookupTermLen
@@ -47,7 +53,9 @@ type TestPromTermLen() =
         same
             "terminator length test"
             termLen
-            ((part.right.Position - part.left.Position + 1<OneOffset>) / 1<OneOffset>) // +1 since ends are inclusive
+            ((part.right.Position - part.left.Position
+              + 1<OneOffset>)
+             / 1<OneOffset>) // +1 since ends are inclusive
 
         let part =
             DnaCreation.translateGenePrefix pragmas gd StandardSlice.Promoter
@@ -55,7 +63,8 @@ type TestPromTermLen() =
         same
             "promoter length test"
             promLen
-            ((part.right.Position - part.left.Position + 1<OneOffset>)
+            ((part.right.Position - part.left.Position
+              + 1<OneOffset>)
              / 1<OneOffset>) // +1 since ends are inclusive
 
         let mRNA =
@@ -64,28 +73,32 @@ type TestPromTermLen() =
         same
             "termmrna length test"
             termLenMRNA
-            (((mRNA.right.Position - 1<OneOffset>) + 1<OneOffset>)
+            (((mRNA.right.Position - 1<OneOffset>)
+              + 1<OneOffset>)
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
-        match PragmaBuilder.createPragmaFromNameValue name [ value ] PragmaBuilder.builtin with
-        | Ok (p, []) ->
-            let map =
-                { PragmaCollection.Pragmas =
-                    [ p.Name, p ] |> Map.ofList }
+        let pragma =
+            PragmaBuilder.createPragmaFromNameValue name [ value ] PragmaBuilder.builtin
+            |> GslResult.valueOr (fun _ -> failwith "building promlen pragma")
 
-            checkOneGenome map refGenome expProm expTerm expTermMRNA
-        | _ -> failwith "building promlen pragma"
+        let map =
+            { PragmaCollection.Pragmas = [ pragma.Name, pragma ] |> Map.ofList }
+
+        checkOneGenome map refGenome expProm expTerm expTermMRNA
+
 
     [<Test>]
     member __.TestGenomesLoadable() =
-        GenomeDefinition.createEager testLibDir "TestGenome" |> ignore
+        GenomeDefinition.createEager testLibDir "TestGenome"
+        |> ignore
 
     [<Test>]
     member __.TestPragmasExist() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
-                returnOrFail (PragmaBuilder.createPragmaFromNameValue name [ "250" ] PragmaBuilder.builtin)
+                (PragmaBuilder.createPragmaFromNameValue name [ "250" ] PragmaBuilder.builtin)
+                |> GslResult.valueOr (failwith "illegal")
                 |> ignore)
 
         checkPragmaExists "promlen"
@@ -94,7 +107,12 @@ type TestPromTermLen() =
 
     [<Test>]
     member __.TestDefaultTerminatorLen() =
-        checkOneGenome emptyPragmas "TestGenome" Default.PromoterLength Default.TerminatorLength Default.MRNATerminatorLength
+        checkOneGenome
+            emptyPragmas
+            "TestGenome"
+            Default.PromoterLength
+            Default.TerminatorLength
+            Default.MRNATerminatorLength
 
     [<Test>]
     member __.TestCustomTerminatorLen() =

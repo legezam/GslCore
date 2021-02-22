@@ -51,6 +51,13 @@ module GslResult =
         |> Success.withWarning msg
         |> Ok
         |> GslResult.Create
+        
+    let inline warns msgs result: GslResult<'a, 'b> =
+        result
+        |> Success.create
+        |> Success.withWarnings msgs
+        |> Ok
+        |> GslResult.Create        
 
     let inline ok result: GslResult<'a, 'b> =
         result |> Success.create |> Ok |> GslResult.Create

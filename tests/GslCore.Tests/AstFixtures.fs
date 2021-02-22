@@ -1,17 +1,20 @@
 ﻿/// Fixtures and fixture creation for testing the AST.
 module GslCore.AstFixtures
 
-open Amyris.ErrorHandling
+
 open GslCore.Ast.Types
 open GslCore.Ast
 open GslCore.Constants
+open GslCore.GslResult
 
 
 /// Parse text and return the contents of the top-level block.
 /// Raise an exception if this fails.
 let bootstrapParseOnly source =
-    match LexAndParse.lexAndParse true (GslSourceCode(source)) with
-    | Ok (AstTreeHead (Block (b)), _) -> b.Value
+    match LexAndParse.lexAndParse true (GslSourceCode(source))
+          |> GslResult.GetValue with
+    | Ok { Result = AstTreeHead (Block (b))
+           Warnings = _ } -> b.Value
     | x -> failwithf "Illegal: %A" x
 
 

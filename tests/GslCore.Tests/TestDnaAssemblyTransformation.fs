@@ -2,6 +2,7 @@
 
 open GslCore
 open GslCore.DesignParams
+open GslCore.GslResult
 open NUnit.Framework
 open Amyris.ErrorHandling
 open GslCore.GslcProcess
@@ -65,7 +66,7 @@ module AssemblyTestBase =
 type Test() =
     let runTest assembly expectedSource =
         let transformed =
-            cleanLongSlices () assembly |> returnOrFail
+            cleanLongSlices () assembly |> GslResult.valueOr (fun _ -> failwith "illegal")
 
         let source =
             transformed.DnaParts
