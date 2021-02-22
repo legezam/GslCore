@@ -55,7 +55,7 @@ let private checkGeneNamesInAssembly (reference: GenomeDefinitions)
     | _ -> Validation.good
 
 /// Validate all gene names.
-let checkGeneNames (reference: GenomeDefinitions) (library: Map<string, Dna>): AstTreeHead -> TreeTransformResult =
+let checkGeneNames (reference: GenomeDefinitions) (library: Map<string, Dna>): AstTreeHead -> TreeTransformResult<AstMessage> =
     Validation.validate (checkGeneNamesInAssembly reference library)
 
 
@@ -119,5 +119,5 @@ let private nameAssembly (node: AstNode): AstNode =
 /// Also prepend a name pragma, accomplished by replacing the assembly with a subblock that includes
 /// the new name pragma.
 ///</summary>
-let nameAssemblies =
+let nameAssemblies: AstTreeHead -> TreeTransformResult<AstMessage> =
     FoldMap.map Serial TopDown (GslResult.promote nameAssembly)

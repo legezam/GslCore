@@ -72,6 +72,7 @@
     <Compile Include="Ast\Process\RoughageExpansion.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
     <Compile Include="Ast\LegacyParseTypes.fs" />
+    <Compile Include="Ast\MessageTranslation.fs" />
     <Compile Include="Ast\Phase1.fs" />
     <Compile Include="Core\Types.fs" />
     <Compile Include="Core\ApplySlices.fs" />

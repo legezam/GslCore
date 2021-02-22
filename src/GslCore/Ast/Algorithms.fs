@@ -365,9 +365,9 @@ module AstNode =
 // foldmap, the workhorse of AST manipulation
 // =========================
 
-type NodeTransformResult = AstResult<AstNode>
+type NodeTransformResult<'a> = GslResult<AstNode, 'a>
 
-type TreeTransformResult = AstResult<AstTreeHead>
+type TreeTransformResult<'a> = GslResult<AstTreeHead, 'a>
 
 type FoldMapDirection =
     | TopDown
@@ -399,19 +399,19 @@ type FoldmapMode =
     | Serial
     | Parallel
 
-type FoldMapParameters<'State> =
+type FoldMapParameters<'State, 'Msg> =
     { Mode: FoldmapMode
       Direction: FoldMapDirection
       StateUpdate: StateUpdateMode -> 'State -> AstNode -> 'State
-      Map: 'State -> AstNode -> NodeTransformResult }
+      Map: 'State -> AstNode -> NodeTransformResult<'Msg> }
 
 module FoldMap =
 
     /// Inner recursive call.
     let rec private loop (state: 'State)
                          (node: AstNode)
-                         (parameters: FoldMapParameters<'State>)
-                         : 'State * AstResult<AstNode> =
+                         (parameters: FoldMapParameters<'State, 'Msg>)
+                         : 'State * GslResult<AstNode, 'Msg> =
 
         /// Fold over this node and produce an updated state.
         let updatedState =
@@ -443,13 +443,16 @@ module FoldMap =
     /// The only recursive call which should not use this variant is that made
     /// in processBlock, to ensure that state only accumulates over top-level nodes inside
     /// blocks.
-    and private foldDropState (state: 'State) (parameters: FoldMapParameters<'State>) (node: AstNode): AstResult<AstNode> =
+    and private foldDropState (state: 'State)
+                              (parameters: FoldMapParameters<'State, 'Msg>)
+                              (node: AstNode)
+                              : GslResult<AstNode, 'Msg> =
         snd (loop state node parameters)
     // Parts have quite a few children, so break this out as a function for cleanliness.
     and private processPart (state: 'State)
-                            (parameters: FoldMapParameters<'State>)
+                            (parameters: FoldMapParameters<'State, 'Msg>)
                             (partWrapper: Node<ParsePart>)
-                            : AstResult<AstNode> =
+                            : GslResult<AstNode, 'Msg> =
         let parsePart = partWrapper.Value
 
         let updatedBasePart =
@@ -478,9 +481,9 @@ module FoldMap =
 
     // L2 expressions are a bit complicated, so break this out for cleanliness.
     and private processL2Expression (state: 'State)
-                                    (parameters: FoldMapParameters<'State>)
+                                    (parameters: FoldMapParameters<'State, 'Msg>)
                                     (level2Wrapper: Node<L2Expression>)
-                                    : AstResult<AstNode> =
+                                    : GslResult<AstNode, 'Msg> =
         let level2Expression = level2Wrapper.Value
 
         let updatedLocus =
@@ -509,9 +512,9 @@ module FoldMap =
     /// and no further.  So, simple rule: anything that needs to involve block-scoped state update
     /// needs to be a rule that operates on an immediate child of a block.</summary>
     and private processBlock (state: 'State)
-                             (parameters: FoldMapParameters<'State>)
+                             (parameters: FoldMapParameters<'State, 'Msg>)
                              (blockWrapper: Node<AstNode list>)
-                             : AstResult<AstNode> =
+                             : GslResult<AstNode, 'Msg> =
         /// Folding function that collects the results of node transformation while accumulating state.
         /// The resulting list of nodes needs to be reversed.
         let foldAndAccum (s, transformedNodes) n =
@@ -530,9 +533,9 @@ module FoldMap =
 
     /// Performs processing of each node in a block in parallel, with the same semantics as serial.
     and private processBlockParallel (state: 'State)
-                                     (parameters: FoldMapParameters<'State>)
+                                     (parameters: FoldMapParameters<'State, 'Msg>)
                                      (blockWrapper: Node<AstNode list>)
-                                     : AstResult<AstNode> =
+                                     : GslResult<AstNode, 'Msg> =
         let nodeArray = blockWrapper.Value |> Array.ofList
         // We need to compute all of the block-accumulated state up-front and pass it in to each step.
         // This implies a bit of redundent computation as each inner call will recompute.
@@ -567,9 +570,9 @@ module FoldMap =
         >>= fun newLines -> GslResult.ok (Block({ blockWrapper with Value = newLines }))
     /// Recursive into the children of a node.
     and private transformChildren (state: 'State)
-                                  (parameters: FoldMapParameters<'State>)
+                                  (parameters: FoldMapParameters<'State, 'Msg>)
                                   (node: AstNode)
-                                  : AstResult<AstNode> =
+                                  : GslResult<AstNode, 'Msg> =
         // recurse into children of the revised node
         match node with
         | Leaf leaf -> GslResult.ok leaf // leaf nodes need no recursion
@@ -727,7 +730,10 @@ module FoldMap =
     ///</summary>
     // FIXME: this function really needs a drawing to be clear.  Document this using a graph example.
     // IMPORTANT: please take great care if editing this algorithmn!
-    let foldMap (initialState: 'State) (parameters: FoldMapParameters<'State>) (tree: AstTreeHead): TreeTransformResult =
+    let foldMap (initialState: 'State)
+                (parameters: FoldMapParameters<'State, 'Msg>)
+                (tree: AstTreeHead)
+                : TreeTransformResult<'Msg> =
         let _, newTree =
             loop initialState tree.wrappedNode parameters
 

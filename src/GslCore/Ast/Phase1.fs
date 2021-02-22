@@ -1,5 +1,6 @@
 module GslCore.Ast.Phase1
 
+open GslCore.Ast.Process.RelativePositionTranslation
 open GslCore.GslResult
 open GslCore.Ast.Process
 open GslCore.Ast.Types
@@ -7,6 +8,7 @@ open GslCore.Ast
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Pragma
+open GslCore.Ast.MessageTranslation
 
 // ==================
 // phase 1 of AST reduction
@@ -31,7 +33,7 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
     >=> ExpressionReduction.reduceMathExpressions
     >=> PragmaBuilding.buildPragmas parameters
     >=> PragmaWarning.collect
-    >=> RelativePositionTranslation.compute
+    >=> (RelativePositionTranslation.compute >> GslResult.mapError RelativePositionTranslationMessage.toAstMessage)
     >=> RoughageExpansion.expandRoughageLines // inline roughage expansion is pretty simple so we always do it
     >=> AssemblyFlattening.flattenAssemblies parameters
     >=> (Validation.validate Validation.checkMods)

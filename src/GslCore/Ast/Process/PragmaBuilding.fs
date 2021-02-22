@@ -133,7 +133,7 @@ module PragmaBuilding =
         | _ -> GslResult.ok node
 
     /// Build genuine pragmas from reduced parsed pragmas.
-    let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =
+    let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult<AstMessage> =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial

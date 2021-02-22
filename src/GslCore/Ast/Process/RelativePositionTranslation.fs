@@ -1,8 +1,7 @@
-module GslCore.Ast.Process.RelativePositionTranslation
+namespace GslCore.Ast.Process.RelativePositionTranslation
 
 
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Constants
 open GslCore.GslResult
@@ -11,100 +10,99 @@ open GslCore.GslResult
 // computing relative positions
 // ======================
 
+/// Represents an arithmetic issue during the relative position calculation
+type CalculationMessage =
+    /// Occurs when a negative left value appears in amino acid slicing syntax (foo[A-20:15])
+    | NegativeLeftAminoAcidStartPosition of position: int<OneOffset>
+    /// Occurs when a negative right value appears in amino acid slicing syntax (foo[A20:-15])
+    | NegativeRightAminoAcidStartPosition of position: int<OneOffset>
 
-let private buildNode (positions: SourcePosition list) (position: int<OneOffset>) (relativeTo: GeneEnd): AstNode =
-    RelPos
-        { Node.Value =
-              { RelativePosition.Position = position
-                RelativeTo = relativeTo }
-          Positions = positions }
+/// Represents an overall issue during the relative positon calculation
+type RelativePositionTranslationMessage =
+    /// Arithmetic error happened during the calculation
+    | CalculationError of node: AstNode * err: CalculationMessage
+    /// The provided position cannot be parsed as a valid integer value
+    | PositionIsNotInteger of node: AstNode
 
+/// Functions related to <see cref="T:GslCore.Ast.Process.RelativePositionTranslation.RelativePositionTranslationMessage">RelativePositionTranslationMessage</see>
+module RelativePositionTranslationMessage =
+    let makeCalculationError (node: AstNode) (err: CalculationMessage) = CalculationError(node, err)
 
-let private defaultRelPosQualifier = S
+module RelativePositionTranslation =
+    let private buildNode (positions: SourcePosition list) (position: int<OneOffset>) (relativeTo: GeneEnd): AstNode =
+        RelPos
+            { Node.Value =
+                  { RelativePosition.Position = position
+                    RelativeTo = relativeTo }
+              Positions = positions }
 
-type private TransformationError =
-    | NegativeLeftAminoAcidStartPosition
-    | NegativeRightAminoAcidStartPosition
+    let private defaultRelPosQualifier = S
 
-module private TransformationError =
-    let toAstMessage (node: AstNode) (position: int<OneOffset>) (error: TransformationError): AstMessage =
-        match error with
-        | NegativeLeftAminoAcidStartPosition ->
-            AstMessage.createErrorWithStackTrace
-                ValueError
-                (sprintf "Cannot begin with a negative amino acid offset: %d" position)
-                node
-
-        | NegativeRightAminoAcidStartPosition ->
-            AstMessage.createErrorWithStackTrace
-                ValueError
-                (sprintf "Cannot offset negative amino acids from start: %d" position)
-                node
-
-
-
-let private calculatePosition (position: int<OneOffset>)
-                              (maybeQualifier: RelPosQualifier option)
-                              (relPosition: RelPosPosition)
-                              : Result<int<OneOffset> * GeneEnd, TransformationError> =
+    let private calculatePosition (position: int<OneOffset>)
+                                  (maybeQualifier: RelPosQualifier option)
+                                  (relPosition: RelPosPosition)
+                                  : GslResult<int<OneOffset> * GeneEnd, CalculationMessage> =
 
 
-    let qualifier =
-        maybeQualifier
-        |> Option.defaultValue defaultRelPosQualifier
+        let qualifier =
+            maybeQualifier
+            |> Option.defaultValue defaultRelPosQualifier
 
-    match qualifier, relPosition with
-    | S, _ -> (position, FivePrime) |> Ok
-    | E, _ -> (position, ThreePrime) |> Ok
-    | A, Left
-    | AS, Left
-    | SA, Left ->
-        if position > 0<OneOffset>
-        then (position * 3 - 2<OneOffset>, FivePrime) |> Ok
-        else Result.Error NegativeLeftAminoAcidStartPosition
-    | AE, Left
-    | EA, Left ->
-        let aminoAcidIndex =
-            if position > 0<OneOffset> then position * 3 - 2<OneOffset> else position * 3
+        match qualifier, relPosition with
+        | S, _ -> (position, FivePrime) |> GslResult.ok
+        | E, _ -> (position, ThreePrime) |> GslResult.ok
+        | A, Left
+        | AS, Left
+        | SA, Left ->
+            if position > 0<OneOffset> then
+                (position * 3 - 2<OneOffset>, FivePrime)
+                |> GslResult.ok
+            else
+                GslResult.err (NegativeLeftAminoAcidStartPosition position)
+        | AE, Left
+        | EA, Left ->
+            let aminoAcidIndex =
+                if position > 0<OneOffset> then position * 3 - 2<OneOffset> else position * 3
 
-        (aminoAcidIndex, ThreePrime) |> Ok
-    | A, Right
-    | AS, Right
-    | SA, Right ->
-        if position > 0<OneOffset>
-        then ((position * 3), FivePrime) |> Ok
-        else Result.Error NegativeRightAminoAcidStartPosition
-    | AE, Right
-    | EA, Right ->
-        let aminoAcidIndex =
-            if position > 0<OneOffset> then position * 3 else position * 3 + 2<OneOffset>
+            (aminoAcidIndex, ThreePrime) |> GslResult.ok
+        | A, Right
+        | AS, Right
+        | SA, Right ->
+            if position > 0<OneOffset>
+            then ((position * 3), FivePrime) |> GslResult.ok
+            else GslResult.err (NegativeRightAminoAcidStartPosition position)
+        | AE, Right
+        | EA, Right ->
+            let aminoAcidIndex =
+                if position > 0<OneOffset> then position * 3 else position * 3 + 2<OneOffset>
 
-        (aminoAcidIndex, ThreePrime) |> Ok
+            (aminoAcidIndex, ThreePrime) |> GslResult.ok
 
-let private getProvidedPosition (relativePosition: ParseRelativePosition): AstResult<int> =
-    match relativePosition.Item with
-    | Int ({ Node.Value = providedPosition
-             Positions = _ }) -> GslResult.ok providedPosition
-    | x -> AstResult.internalTypeMismatch (Some "relative position building") "Int" x
+    let private getProvidedPosition (relativePosition: ParseRelativePosition)
+                                    : GslResult<int, RelativePositionTranslationMessage> =
+        match relativePosition.Item with
+        | Int ({ Node.Value = providedPosition
+                 Positions = _ }) -> GslResult.ok providedPosition
+        | otherNode -> PositionIsNotInteger otherNode |> GslResult.err
 
-/// Compute relative positions for slices.
-/// Replaces `ParseRelativePosition` items with `RelativePosition` items
-let private buildRelativePosition (node: AstNode): AstResult<AstNode> =
-    match node with
-    | ParseRelPos relativePositionWrapper ->
-        let parseRelativePosition = relativePositionWrapper.Value
+    /// Compute relative positions for slices.
+    /// Replaces `ParseRelativePosition` items with `RelativePosition` items
+    let private buildRelativePosition (node: AstNode): GslResult<AstNode, RelativePositionTranslationMessage> =
+        match node with
+        | ParseRelPos relativePositionWrapper ->
+            let parseRelativePosition = relativePositionWrapper.Value
 
-        let buildNode =
-            buildNode relativePositionWrapper.Positions
-        // make sure we have a real value to work with
-        parseRelativePosition
-        |> getProvidedPosition
-        |> GslResult.map (fun position -> position * 1<OneOffset>)
-        >>= fun position ->
-                calculatePosition position parseRelativePosition.Qualifier parseRelativePosition.Position
-                |> GslResult.fromResult (TransformationError.toAstMessage node position)
-                |> GslResult.map (fun (position, geneEnd) -> buildNode position geneEnd)
-    | _ -> GslResult.ok node
+            let buildNode =
+                buildNode relativePositionWrapper.Positions
+            // make sure we have a real value to work with
+            parseRelativePosition
+            |> getProvidedPosition
+            |> GslResult.map (fun position -> position * 1<OneOffset>)
+            >>= fun position ->
+                    calculatePosition position parseRelativePosition.Qualifier parseRelativePosition.Position
+                    |> GslResult.mapError (RelativePositionTranslationMessage.makeCalculationError node)
+                    |> GslResult.map (fun (position, geneEnd) -> buildNode position geneEnd)
+        | _ -> GslResult.ok node
 
-let compute =
-    FoldMap.map Serial TopDown buildRelativePosition
+    let compute =
+        FoldMap.map Serial TopDown buildRelativePosition

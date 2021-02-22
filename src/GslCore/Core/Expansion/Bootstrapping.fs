@@ -80,7 +80,7 @@ let private replaceMessagePositions pos =
 /// block that results from compilation and re-packs it as a Splice, to indicate
 /// to a subsequent expansion pass that this node needs to be unpacked into its outer context.
 ///</summary>
-let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source: GslSourceCode) =
+let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult<AstMessage>) (source: GslSourceCode) =
     /// Unpack a bootstrapped AST to a block or fail.
     let asBlock tree =
         match tree with
@@ -160,7 +160,7 @@ let bootstrapExpandLegacyAssembly errorMsgType
                                   bootstrapOperation
                                   assemblyConversionContext
                                   node
-                                  : NodeTransformResult =
+                                  : NodeTransformResult<AstMessage> =
     /// Perform the expansion operation, capturing any exception as an error.
     let expandCaptureException assembly =
         try

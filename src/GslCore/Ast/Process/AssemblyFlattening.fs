@@ -171,5 +171,5 @@ let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): AstR
     | _ -> GslResult.ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
-let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =
+let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult<AstMessage> =
     FoldMap.map Serial BottomUp (flattenAssembly parameters)

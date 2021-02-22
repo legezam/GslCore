@@ -87,13 +87,18 @@ type AstResult<'a> = GslResult<'a, AstMessage>
 
 
 module AstResult =
-
-    let errString msgType msg node: AstResult<'a> =
+    let errStringMsg msgType msg node: AstMessage =
         AstMessage.createErrorWithStackTrace msgType msg node
+    
+    let errString msgType msg node: AstResult<'a> =
+        errStringMsg msgType msg node
         |> GslResult.err
 
+    let errStringFMsg msgType msgfmt fmtVal node: AstMessage =
+        AstMessage.createErrorWithStackTrace msgType (sprintf msgfmt fmtVal) node    
+    
     let errStringF msgType msgfmt fmtVal node: AstResult<'a> =
-        AstMessage.createErrorWithStackTrace msgType (sprintf msgfmt fmtVal) node
+        errStringFMsg msgType msgfmt fmtVal node
         |> GslResult.err
 
     ///Create an error representing a type mismatch resulting from a bugged GSL program.
@@ -113,7 +118,7 @@ module AstResult =
     ///This is a common pattern when unpacking AST entities, and implies
     ///a bug in compiler logic rather than an error in parsed source code.
     ///</summary>
-    let internalTypeMismatch (maybeContext: string option) (expectedType: string) (actualNode: AstNode): AstResult<'a> =
+    let internalTypeMismatchMsg (maybeContext: string option) (expectedType: string) (actualNode: AstNode): AstMessage =
         let message =
             sprintf
                 "Expected a '%s'%s, but got a '%s'"
@@ -121,8 +126,12 @@ module AstResult =
                 (AstMessage.optionalContextStr maybeContext)
                 (actualNode.TypeName)
 
-        errString (InternalError(TypeError)) message actualNode
+        errStringMsg (InternalError(TypeError)) message actualNode
 
+    let internalTypeMismatch (maybeContext: string option) (expectedType: string) (actualNode: AstNode): AstResult<'a> =
+        internalTypeMismatchMsg maybeContext expectedType actualNode
+        |> GslResult.err
+    
     ///Create an internal error if we encounter a pragma that hasn't been built.
     let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): AstResult<'a> =
         let message =
