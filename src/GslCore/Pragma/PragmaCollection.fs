@@ -2,6 +2,7 @@ namespace GslCore.Pragma
 
 open System
 open FsToolkit.ErrorHandling
+open GslCore.GslResult
 open GslCore.Pragma
 
 // ===========================
@@ -42,12 +43,13 @@ module PragmaCollection =
                 match this.Pragmas |> Map.tryFind pragma.Name with
                 | None -> this.Pragmas |> Map.add pragma.Name pragma
                 | Some existing ->
-                    let newArgs = existing.Arguments @ pragma.Arguments // new args go on the end
-
-                    match existing.Definition
-                          |> Pragma.fromDefinition newArgs with
-                    | Ok newPragma -> this.Pragmas |> Map.add pragma.Name newPragma
-                    | Error messages -> failwithf "%s" (String.Join(";", messages))
+                    let newPragma =
+                        let newArgs = existing.Arguments @ pragma.Arguments
+                        existing.Definition
+                        |> Pragma.fromDefinition newArgs
+                        |> GslResult.valueOr (fun messages -> failwithf "%s" (String.Join(";", messages)))
+                    this.Pragmas |> Map.add pragma.Name newPragma                                              
+                    
             | _ -> this.Pragmas |> Map.add pragma.Name pragma
 
         { this with Pragmas = pragmas }
@@ -139,6 +141,6 @@ module PragmaCollection =
         match maybePlatformDefinition with
         | Some platformPragma ->
             Platform.parsePlatform platformPragma.Arguments
-            |> Result.valueOr failwith
+            |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
         | None -> Megastitch
 

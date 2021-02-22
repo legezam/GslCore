@@ -50,13 +50,13 @@ type TestBootstrapping() =
 
     let testPhase1 node =
         let bootstrapOperation =
-            Bootstrapping.bootstrapExpandLegacyAssembly Error reprintAssembly bootstrapPhase1NoCapas
+            Bootstrapping.bootstrapExpandLegacyAssembly GeneralError reprintAssembly bootstrapPhase1NoCapas
 
         Bootstrapping.executeBootstrap bootstrapOperation Serial node
 
     let testCaptureException node =
         let bootstrapOperation =
-            Bootstrapping.bootstrapExpandLegacyAssembly Error expansionFail bootstrapPhase1NoCapas
+            Bootstrapping.bootstrapExpandLegacyAssembly GeneralError expansionFail bootstrapPhase1NoCapas
 
         Bootstrapping.executeBootstrap bootstrapOperation Serial node
 
@@ -90,5 +90,5 @@ type TestBootstrapping() =
         |> failIfBad (Some(GslSourceCode source))
         |> returnOrFail
         |> testCaptureException
-        |> assertFail (Error) (Some "Expansion failed with an exception.")
+        |> assertFail (GeneralError) (Some "Expansion failed with an exception.")
         |> ignore

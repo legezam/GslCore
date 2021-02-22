@@ -2,6 +2,7 @@
 
 open Amyris.Dna
 open FsToolkit.ErrorHandling
+open GslCore.GslResult
 open GslCore.Uri
 
 type SBOLProvider =
@@ -363,11 +364,11 @@ module Gbom =
 module Uris =
     let roleUriBase =
         Uri.addNamespaces Uri.AmyrisUriBase [ "Role" ]
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
 
     let addTermToNamespaceStatic ns term =
         Uri.addTermToNamespace ns term
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
 
     // --- static URI definitions ---
     let ryseLinkerRoleUri =
@@ -417,8 +418,8 @@ module Uris =
 
     let rabitBreedUriBase =
         Uri.addNamespaces roleUriBase [ "RabitBreed" ]
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
 
     let rabitBreedRole breed =
         Uri.addTermToNamespace rabitBreedUriBase breed
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)

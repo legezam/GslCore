@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Uri
 
 open FsToolkit.ErrorHandling
+open GslCore.GslResult
 
 type Uri = string
 
@@ -54,9 +55,9 @@ module Uri =
             Ok (ub.ToString())
 
     /// Construct a URI namespace extension.
-    let addNamespaces (baseNamespace: string) (namespaces: string list): Result<string, string> =
+    let addNamespaces (baseNamespace: string) (namespaces: string list): GslResult<string, string> =
         match checkTermsForIssues namespaces with
-        | Some errorMessage -> Error errorMessage
+        | Some errorMessage -> GslResult.err errorMessage
         | None ->
             let ub = System.Text.StringBuilder()
             ub.Append(baseNamespace) |> ignore
@@ -64,27 +65,27 @@ module Uri =
             for ns in namespaces do
                 ub.Append(UriPathDelimiter + ns) |> ignore
 
-            Ok (ub.ToString())
+            GslResult.ok (ub.ToString())
 
     /// Add a term entry into a namespace.
-    let addTermToNamespace (baseNamespace: string) (term: string): Result<string, string> =
+    let addTermToNamespace (baseNamespace: string) (term: string): GslResult<string, string> =
         match checkTermsForIssues [ term ] with
-        | Some errorMessage -> Error errorMessage
-        | None -> Ok (baseNamespace + UriTermDelimiter + term)
+        | Some errorMessage -> GslResult.err errorMessage
+        | None -> GslResult.ok (baseNamespace + UriTermDelimiter + term)
 
     // TODO: possibly move these definitions into the appropriate module
     let private linkerBase =
         addNamespaces AmyrisUriBase [ "Component"; "Linker" ]
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
 
     /// Construct a RYSE linker URI from a link code.
     /// Since this is entirely programmatic we expect it should never fail at
     /// runtime; thus, raises an exception on error.
-    let linkerUri (linkCode: string): Result<string, string> = addTermToNamespace linkerBase linkCode
+    let linkerUri (linkCode: string): GslResult<string, string> = addTermToNamespace linkerBase linkCode
 
     let private gslcTempUriBase =
         addNamespaces AmyrisUriBase [ "GSLC"; "TEMP" ]
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
 
     // heap-allocated counter
     let private globalUriCounter: int ref = ref 0
@@ -95,4 +96,4 @@ module Uri =
         globalUriCounter := value + 1
 
         addTermToNamespace gslcTempUriBase (sprintf "%d" value)
-        |> Result.valueOr failwith
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)

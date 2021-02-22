@@ -3,6 +3,7 @@ namespace GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 open GslCore.Pragma
 
 // =====================
@@ -121,7 +122,7 @@ module PragmaBuilding =
             >>= (fun values ->
                 parameters.PragmaBuilder
                 |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
-                |> AstResult.ofResult wrapPragmaErrorString)
+                |> GslResult.mapError wrapPragmaErrorString)
             >>= (checkDeprecated node)
             >>= (checkScope contexts node)
             >>= (checkCapa parameters.LegalCapabilities node)

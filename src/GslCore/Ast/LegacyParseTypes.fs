@@ -4,6 +4,7 @@ open Amyris.Dna
 open GslCore.Ast.Process
 open GslCore.Constants
 open System
+open GslCore.GslResult
 open GslCore.Uri
 open GslCore.Pragma
 open GslCore.Ast.Types
@@ -314,7 +315,7 @@ let convertAssembly (context: AssemblyConversionContext)
 
     let parameters =
         DesignParams.fromPragmas DesignParams.identity assemblyPragmas
-        |> AstResult.ofResult (fun message ->
+        |> GslResult.mapError (fun message ->
             AstMessage.createErrorWithStackTrace PragmaError message (Part(partWrapper)))
 
     let parts =

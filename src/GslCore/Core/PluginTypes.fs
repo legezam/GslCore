@@ -6,6 +6,7 @@ open GslCore.Core.CommandConfig
 open Amyris.Bio
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Ast.Types
 open Amyris.Bio.IO.CodonUsage
@@ -201,7 +202,7 @@ type IAssemblyTransform =
     inherit IConfigurable<IAssemblyTransform>
     /// Perform a transformation of an assembly.
     abstract TransformAssembly: ATContext
-     -> DnaAssembly -> Result<DnaAssembly, AssemblyTransformationMessage<DnaAssembly>>
+     -> DnaAssembly -> GslResult<DnaAssembly, AssemblyTransformationMessage<DnaAssembly>>
 
 // =======================
 // plugin behavior defintion for output file generation

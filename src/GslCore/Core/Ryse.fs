@@ -9,6 +9,7 @@ open Amyris.Dna
 open FsToolkit.ErrorHandling
 open GslCore.Constants
 open GslCore.Core.Rycod
+open GslCore.GslResult
 open GslCore.Uri
 open GslCore.Pragma
 open GslCore.Core.Types
@@ -302,7 +303,7 @@ module Ryse =
                 let dna =
                     linker.Dna
                     |> fun x -> if phase then x else x.RevComp()
-                let linkerUri = linker.Name |> Uri.linkerUri |> Result.valueOr failwith
+                let linkerUri = linker.Name |> Uri.linkerUri |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
                 // Build the linker entry
                 { Id = None
                   ExternalId = None

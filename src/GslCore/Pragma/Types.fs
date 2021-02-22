@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Pragma
 
 open GslCore
+open GslCore.GslResult
 
 /// Accumulate named capabilities from #capa pragmas
 type Capabilities = Set<string>
@@ -20,7 +21,7 @@ type PragmaArgShape =
     /// numbers of arguments, possibly to dictate behavior.
     | ExactlySet of int list
 
-type PragmaValidationResult = Result<unit, string>
+type PragmaValidationResult = GslResult<unit, string>
 
 type PragmaPersistence =
     | Persistent

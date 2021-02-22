@@ -1,8 +1,8 @@
 namespace GslCore.Pragma
 
 open System
+open GslCore.GslResult
 
-open FsToolkit.ErrorHandling.Operator.Result
 /// Instance of a pragma directive.
 [<CustomEquality; CustomComparison>]
 type Pragma =
@@ -29,7 +29,7 @@ type Pragma =
 
     override this.ToString() =
         sprintf "#%s %s" this.Name (String.concat " " this.Arguments)
-        
+
 
 module Pragma =
     let getName (this: Pragma): string = this.Definition.Name
@@ -60,54 +60,52 @@ module Pragma =
 
 
     /// Validated pragma construction during parsing
-    let fromDefinition (values: string list) (pDef: PragmaDefinition): Result<Pragma, string> =
-        let name = pDef.Name
+    let fromDefinition (arguments: string list) (pragmaDefinition: PragmaDefinition): GslResult<Pragma, string> =
+        let name = pragmaDefinition.Name
 
         // check that the right number of arguments were supplied
-        let nArg = values.Length
+        let nArg = arguments.Length
 
         let checkNArgs n =
             if nArg <> n
-            then Error (sprintf "Pragma #%s expected %d argument(s) but got %d: %A" name n nArg values)
-            else Ok ()
+            then GslResult.err (sprintf "Pragma #%s expected %d argument(s) but got %d: %A" name n nArg arguments)
+            else GslResult.ok ()
 
         let checkMinArgs min =
             if nArg < min
-            then Error (sprintf "Pragma #%s expected at least %d argument(s) but got %d: %A" name min nArg values)
-            else Ok ()
+            then GslResult.err
+                     (sprintf "Pragma #%s expected at least %d argument(s) but got %d: %A" name min nArg arguments)
+            else GslResult.ok ()
 
         let checkMaxArgs max _ =
             if nArg > max
-            then Error (sprintf "Pragma #%s expected at most %d argument(s) but got %d: %A" name max nArg values)
-            else Ok ()
+            then GslResult.err
+                     (sprintf "Pragma #%s expected at most %d argument(s) but got %d: %A" name max nArg arguments)
+            else GslResult.ok ()
 
-        let checkArgShape (): Result<unit, string> =
-            match pDef.Shape with
+        let checkArgShape (): GslResult<unit, string> =
+            match pragmaDefinition.Shape with
             | Zero -> checkNArgs 0
             | One -> checkNArgs 1
-            | Exactly (n) -> checkNArgs n
-            | AtLeast (n) -> checkMinArgs n
+            | Exactly n -> checkNArgs n
+            | AtLeast n -> checkMinArgs n
             | Range (min, max) -> checkMinArgs min >>= checkMaxArgs max
-            | ExactlySet (vals) ->
+            | ExactlySet vals ->
                 if not (vals |> List.contains nArg) then
-                    Error
+                    GslResult.err
                         (sprintf
                             "Pragma %s expected any number of arguments in the set %A but got %d: %A"
                              name
                              vals
                              nArg
-                             values)
+                             arguments)
                 else
-                    Ok ()
+                    GslResult.ok ()
 
-        let validateArgs (): PragmaValidationResult = pDef.Validate values
+        let validateArgs (): PragmaValidationResult = pragmaDefinition.Validate arguments
 
-        // validation pipeline
         checkArgShape ()
         >>= validateArgs
-        >>= (fun () ->
-            Ok
-                { Definition = pDef
-                  Arguments = values })
-
-       
+        |> GslResult.map (fun () ->
+            { Pragma.Definition = pragmaDefinition
+              Arguments = arguments })

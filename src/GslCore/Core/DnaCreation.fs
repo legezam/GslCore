@@ -7,6 +7,7 @@ open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.ResolveExtPart
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Core.Types
 open GslCore.Core
@@ -207,12 +208,16 @@ let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDefinitio
         lookupGenePart errorDesc (gp.part.gene.[0]) (gp.part.mods)
 
     // Lookup gene location
-    let feat = rg |> GenomeDefinition.getFeature gp.part.gene.[1..]
+    let feat =
+        rg
+        |> GenomeDefinition.getFeature gp.part.gene.[1..]
 
     // Come up with an initial slice based on the gene prefix type
     let s = translateGenePrefix pragmas rg genePart
 
-    let finalSlice = ApplySlices.applySlices verbose gp.part.mods s
+    let finalSlice =
+        ApplySlices.applySlices verbose gp.part.mods s
+
     let left = adjustToPhysical feat finalSlice.left
     let right = adjustToPhysical feat finalSlice.right
 
@@ -319,8 +324,11 @@ let expandGenePart verbose
             // Come up with an initial slice based on the gene prefix type
 
             // Get standard slice range for a gene
-            let s = translateGenePrefix a.pragmas rg' StandardSlice.Gene
-            let finalSlice = ApplySlices.applySlices verbose gp.part.mods s
+            let s =
+                translateGenePrefix a.pragmas rg' StandardSlice.Gene
+
+            let finalSlice =
+                ApplySlices.applySlices verbose gp.part.mods s
 
             // Ban approx slices to stay sane for now
             if finalSlice.lApprox || finalSlice.rApprox
@@ -417,7 +425,8 @@ let expandGenePart verbose
         if verbose then printf "log: processing %A\n" a
 
         // finalSlice is the consolidated gene relative coordinate of desired piece
-        let finalSlice = ApplySlices.applySlices verbose gp.part.mods s
+        let finalSlice =
+            ApplySlices.applySlices verbose gp.part.mods s
 
         // Gene relative coordinates for the gene slice we want
         let finalSliceWithApprox =
@@ -597,7 +606,10 @@ let expandGenePart verbose
 let private determineTopology (pragmas: PragmaCollection): Topology =
     match pragmas
           |> PragmaCollection.tryFind BuiltIn.topologyPragmaDef with
-    | Some pragma -> pragma.Arguments |> Topology.parse |> Result.valueOr failwith
+    | Some pragma ->
+        pragma.Arguments
+        |> Topology.parse
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
     | None -> Linear
 
 /// Take a parsed assembly definition and translate it

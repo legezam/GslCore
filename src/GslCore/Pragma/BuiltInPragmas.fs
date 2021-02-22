@@ -2,51 +2,51 @@ namespace GslCore.Pragma
 
 open System
 open FsToolkit.ErrorHandling
+open GslCore.GslResult
 open GslCore.PcrParamParse
 
 
 module Parse =
     // Helper functions for generic validation of simple parameters.
-    let parseNumber parseFunc kind (args: string list): Result<unit, string> =
+    let parseNumber parseFunc kind (args: string list): GslResult<unit, string> =
         match args with
         | [ i ] ->
             match parseFunc i with
-            | true, _ -> Ok ()
-            | false, _ -> Error (sprintf "Could not parse %s as an %s." i kind)
+            | true, _ -> GslResult.ok ()
+            | false, _ -> GslResult.err (sprintf "Could not parse %s as an %s." i kind)
         // We shouldn't ever hit this clause as we should have already blown up with
         // a different error.
-        | x -> Error (sprintf "parse number expected one argument but got %d" x.Length)
+        | x -> GslResult.err (sprintf "parse number expected one argument but got %d" x.Length)
 
     let parseInt = parseNumber (Int64.TryParse) "int"
     let parseDouble = parseNumber (Double.TryParse) "float"
 
 module Validation =
     /// Pass-through placeholder validator.
-    let noValidate _ = Ok ()
+    let noValidate _ = GslResult.ok ()
 
     let validatePcrParams (args: string list) =
         args
         |> Seq.map PcrParameterParser.parseArg
-        |> Seq.map (Result.map ignore)
         |> Seq.toList
-        |> List.sequenceResultA
-        |> Result.ignore
+        |> GslResult.collectA
+        |> GslResult.ignore
 
 type Platform =
     | Stitch
     | Megastitch
 
 module Platform =
-    let parsePlatform: string list -> Result<Platform, string> =
+    let parsePlatform: string list -> GslResult<Platform, string> =
         function
         | [ singleItem ] ->
             match singleItem with
-            | "stitch" -> Ok Stitch
-            | "megastitch" -> Ok Megastitch
-            | _ -> Error (sprintf "Invalid platform '%s'.  Options are 'stitch' and 'megastitch'." singleItem)
+            | "stitch" -> GslResult.ok Stitch
+            | "megastitch" -> GslResult.ok Megastitch
+            | _ -> GslResult.err (sprintf "Invalid platform '%s'.  Options are 'stitch' and 'megastitch'." singleItem)
         // We shouldn't ever hit this clause as we should have already blown up with
         // a different error.
-        | x -> Error (sprintf "platform expected one argument but got %d" x.Length)
+        | x -> GslResult.err (sprintf "platform expected one argument but got %d" x.Length)
 
 /// Represents topology information about constructs
 type Topology =
@@ -63,14 +63,14 @@ module Topology =
     [<Literal>]
     let PragmaName = "topology"
 
-    let parse: string list -> Result<Topology, string> =
+    let parse: string list -> GslResult<Topology, string> =
         function
         | [ arg ] ->
             match arg with
-            | LinearValue -> Ok Linear
-            | CircularValue -> Ok Circular
-            | _ -> Error (sprintf "Invalid topology '%s'.  Options are 'linear' and 'circular'." arg)
-        | x -> Error (sprintf "topology expected one argument but got %d" x.Length)
+            | LinearValue -> GslResult.ok Linear
+            | CircularValue -> GslResult.ok Circular
+            | _ -> GslResult.err (sprintf "Invalid topology '%s'.  Options are 'linear' and 'circular'." arg)
+        | x -> GslResult.err (sprintf "topology expected one argument but got %d" x.Length)
 
     let toString: Topology -> string =
         function
@@ -109,7 +109,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Specify an assembly platform to target, current options: 'stitch', 'megastitch'."
           InvertsTo = None
-          Validate = Platform.parsePlatform >> (Result.map ignore) }
+          Validate = Platform.parsePlatform >> GslResult.ignore }
 
     let markersetPragmaDef =
         { PragmaDefinition.Name = "markerset"
@@ -149,7 +149,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "The design has either linear or circular topology"
           InvertsTo = None
-          Validate = Topology.parse >> (Result.map ignore) }
+          Validate = Topology.parse >> GslResult.ignore }
 
     let linkersPragmaDef =
         { PragmaDefinition.Name = "linkers"
@@ -224,7 +224,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Max length of primer that can be designed."
           InvertsTo = None
-          Validate = Parse.parseInt }
+          Validate = Parse.parseInt >> GslResult.ignore }
 
     let primerMinPragmaDef =
         { PragmaDefinition.Name = "primermin"
@@ -241,7 +241,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Set various parts of PCR conditions."
           InvertsTo = None
-          Validate = Validation.validatePcrParams >> Result.mapError (String.concat Environment.NewLine) }
+          Validate = Validation.validatePcrParams }
 
     let [<Literal>] TargetTmName = "targettm"
     let targetTmPragmaDef =
@@ -287,7 +287,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Set melting conditions for the overlap junction in a seamless design."
           InvertsTo = None
-          Validate = Validation.validatePcrParams >> Result.mapError (String.concat Environment.NewLine) }
+          Validate = Validation.validatePcrParams }
 
     let [<Literal>] MinOverlapLenName = "minoverlaplen"
     let minOverlapLenPragmaDef =

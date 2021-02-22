@@ -4,6 +4,8 @@ open System.IO
 open System
 open System.Text
 open System.Reflection
+open GslCore.Ast.LegacyParseTypes
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference
 open Microsoft.FSharp.Core.Printf
@@ -87,7 +89,7 @@ let basicExceptionHandler verbose f =
             if s.StartsWith("ERROR") then s else sprintf "ERROR: %s" s
 
         let msg =
-            if verbose then prettyPrintException e else prependERROR (fullExceptionMessage e)
+            if verbose then Utils.prettyPrintException e else prependERROR (fullExceptionMessage e)
 
         Exit(1, Some(msg))
 
@@ -112,7 +114,8 @@ let maybeDumpLoci (s: ConfigurationState) =
         if not (Directory.Exists(p)) then
             Exit(1, Some(sprintf "ERROR: unable to find genome reference dir %s\n" p))
         else
-            let gd = GenomeDefinition.createEager s.Options.LibDir ref
+            let gd =
+                GenomeDefinition.createEager s.Options.LibDir ref
 
             for f in gd |> GenomeDefinition.getAllFeatures do
                 printfn "%s\t%s\t%s" f.sysName f.gene f.description
@@ -180,75 +183,96 @@ let configureGslc unconfiguredPlugins argv =
 
 
             // fulfill this request only after we've processed all the plugins and determined full list of pragmas
-            if s.Options.DoHelpPragmas then PragmaBuilder.printPragmaUsage s.GlobalAssets.PragmaBuilder
+            if s.Options.DoHelpPragmas
+            then PragmaBuilder.printPragmaUsage s.GlobalAssets.PragmaBuilder
 
             Continue(s)
         with e -> Exit(1, Some(sprintf "An error occurred during configuration:\n%s" e.Message))
 
-let runCompiler (s: ConfigurationState) =
+let runCompiler (configurationState: ConfigurationState)
+                : FlowControl<AstResult<Assembly list * AstTreeHead> * GslSourceCode * ConfigurationState> =
 
     // Start with input from the users supplied file
     let input =
-        File.ReadAllText s.InputFile |> GslSourceCode
+        File.ReadAllText configurationState.InputFile
+        |> GslSourceCode
 
     // Run GSLC on the input file.
     // No exception handler necessary here as processGSL never raises an exception.
-    let compileResult = processGSL s input
+    let compileResult = processGSL configurationState input
 
-    Continue(compileResult, input, s)
+    Continue(compileResult, input, configurationState)
 
 
-let handleCompileResult (result, input: GslSourceCode, s) =
-    match result with
-    | Ok ((assemblies, tree: AstTreeHead), warnings) ->
+let handleCompileResult (result: AstResult<Assembly list * AstTreeHead>,
+                         input: GslSourceCode,
+                         configurationState: ConfigurationState)
+                        : FlowControl<Assembly list * GslSourceCode * ConfigurationState> =
+
+    match result.Value with
+    | Ok success ->
+        let (assemblies, tree) = success.Result
         // print any warnings from compilation
-        for w in GslParseErrorContext.deduplicateMessages warnings do
+        for w in GslParseErrorContext.deduplicateMessages success.Warnings do
             printfn "%s\n" w.Summary
         // if we just want one expansion step, reprint expanded source and done
-        if not s.Options.Iter || s.Options.OnlyPhase1
-        then Exit(0, Some(AstNode.decompile tree.wrappedNode))
+        if not configurationState.Options.Iter
+           || configurationState.Options.OnlyPhase1 then
+            Exit(0, Some(AstNode.decompile tree.wrappedNode))
         // do output generation
-        else Continue(assemblies, input, s)
-    | Bad (errors) ->
+        else
+            Continue(assemblies, input, configurationState)
+    | Error errors ->
         // convert messages into strings for printing
+        let messages =
+            [ for msg in GslParseErrorContext.deduplicateMessages errors ->
+                msg
+                |> AstResult.getLongForm (configurationState.Options.Verbose, input) ]
+
+        Exit(1, Some(messages |> String.concat "\n\n"))
+
+let doDnaMaterialization (assemblies: Assembly seq, input: GslSourceCode, configurationState: ConfigurationState) =
+    Continue(materializeDna configurationState assemblies, input, configurationState)
+
+let doAssemblyTransform (assemblies: DnaAssembly list, input: GslSourceCode, configurationState: ConfigurationState) =
+    Continue(transformAssemblies configurationState assemblies, input, configurationState)
+
+let handleTransformResult (phase: string)
+                          (transformResult: GslResult<DnaAssembly list, AssemblyTransformationMessage<_>>,
+                           input: GslSourceCode,
+                           configurationState: ConfigurationState)
+                          =
+    match transformResult.Value with
+    | Ok success ->
+        let transformedAssemblies = success.Result
+
+        for warning in success.Warnings do
+            printfn "%s\n" (warning.Format(phase, input, configurationState.Options.Verbose))
+
+        Continue(transformedAssemblies, input, configurationState)
+    | Error errors ->
         let msgs =
-            [ for msg in GslParseErrorContext.deduplicateMessages errors -> msg |> AstMessage.getLongForm (s.Options.Verbose, input) ]
-
-        Exit(1, Some(msgs |> String.concat "\n\n"))
-
-let doDnaMaterialization (assemblies, input, s) =
-    Continue(materializeDna s assemblies, input, s)
-
-let doAssemblyTransform (assemblies, input, s) =
-    Continue(transformAssemblies s assemblies, input, s)
-
-let handleTransformResult phase (r, input, s) =
-    match r with
-    | Ok (transformedAssemblies, warnings: AssemblyTransformationMessage<_> list) ->
-        for w in warnings do
-            printfn "%s\n" (w.Format(phase, input, s.Options.Verbose))
-
-        Continue(transformedAssemblies, input, s)
-    | Bad (errors) ->
-        let msgs =
-            [ for msg in errors -> msg.Format(phase, input, s.Options.Verbose) ]
+            [ for msg in errors -> msg.Format(phase, input, configurationState.Options.Verbose) ]
 
         Exit(1, Some(msgs |> String.concat "\n\n"))
 
 /// Design primers for assemblies, if requested, and write all output formats.
-let doOutput (assemblies, input, s): FlowControl<unit> =
+let doOutput (assemblies: DnaAssembly list, _input: GslSourceCode, configurationState: ConfigurationState)
+             : FlowControl<unit> =
     let doOutput () =
-        let primers, modifiedAssemblies = doPrimerDesign s.Options assemblies
-        doOutputGeneration s primers modifiedAssemblies
+        let primers, modifiedAssemblies =
+            doPrimerDesign configurationState.Options assemblies
+
+        doOutputGeneration configurationState primers modifiedAssemblies
         Exit(0, None)
 
-    basicExceptionHandler s.Options.Verbose doOutput
+    basicExceptionHandler configurationState.Options.Verbose doOutput
 
 /// Infix version of bind for flow control.  If controlResult is Continue, execute the
 /// operation.  Otherwise, fall through.
-let (>?>) controlResult (f: 'a -> FlowControl<'b>) =
+let (>?>) controlResult (nextOperation: 'a -> FlowControl<'b>): FlowControl<'b> =
     match controlResult with
-    | Continue (x) -> f x
+    | Continue x -> nextOperation x
     | Exit (returnCode, msg) -> Exit(returnCode, msg)
 
 /// Main function call to run GSLc from the command line.

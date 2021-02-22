@@ -10,9 +10,10 @@
 
   </PropertyGroup>
   <ItemGroup>
-    <None Include="paket.template"/>
+    <None Include="paket.template" />
     <None Include="paket.references" />
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="GslResult.fs" />
 
     <Compile Include="Constants.fs" />
 

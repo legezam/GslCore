@@ -2,10 +2,11 @@
 module GslCore.Plugin.TaggingPlugin
 
 open System
-open GslCore.Ast.ErrorHandling
+open FsToolkit.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Types
 open GslCore.Core.CommandConfig
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Core.PluginTypes
 
@@ -15,21 +16,19 @@ let taggingArg =
       Aliases = []
       Description = "Add default tag to every assembly." }
 
-let parseTag (single: string) state =
+let parseTag (single: string): GslResult<AssemblyTag, string> =
     match single.IndexOf(":") with
-    | -1 -> fail (sprintf "--tag value %s missing expected colon" single)
+    | -1 -> GslResult.err (sprintf "--tag value %s missing expected colon" single)
     | colonPosition ->
-        AstResult.ok
-            ({ nameSpace = single.[..colonPosition - 1].Trim()
-               tag = single.[colonPosition + 1..].Trim() }
-             :: state)
+        GslResult.ok
+            { AssemblyTag.nameSpace = single.[..colonPosition - 1].Trim()
+              tag = single.[colonPosition + 1..].Trim() }
 
 let parseTags (args: string list) =
-    args
-    |> List.fold (fun (state: Result<_, _>) (arg: string) -> state >>= (parseTag arg)) (AstResult.ok [])
+    args |> List.map parseTag |> GslResult.collectA
 
 /// do a trial parse and return ok unit if successful
-let validateTag args = parseTags args >>= (fun _ -> AstResult.ok ())
+let validateTag (args: string list): GslResult<unit, string> = parseTags args |> GslResult.ignore
 
 let tagPragmaDef =
     { Name = "tag"
@@ -51,8 +50,7 @@ let gTagPragmaDef =
 let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly) =
     // gtag is global tag, tag is dna assembly tag
     match List.collect (fun pragma -> pragma.Arguments)
-              ([ a.Pragmas
-                 |> PragmaCollection.tryFind tagPragmaDef
+              ([ a.Pragmas |> PragmaCollection.tryFind tagPragmaDef
                  a.Pragmas
                  |> PragmaCollection.tryFind gTagPragmaDef ]
                |> List.choose id) with
@@ -60,23 +58,23 @@ let foldInTags (cmdlineTags: AssemblyTag list) (_at: ATContext) (a: DnaAssembly)
         let newTags =
             cmdlineTags |> Set.ofList |> Set.union a.Tags
 
-        ok { a with Tags = newTags }
+        GslResult.ok { a with Tags = newTags }
     | args ->
-        match parseTags args with
-        | Ok (newTags, _) ->
+        parseTags args
+        |> GslResult.map (fun newTags ->
             let newTags =
                 (cmdlineTags @ newTags)
                 |> Set.ofList
                 |> Set.union a.Tags
 
-            ok { a with Tags = newTags }
-        | Bad msg ->
-            fail
-                { Message = String.Join(";", msg)
-                  Kind = ATError
-                  Assembly = a
-                  StackTrace = None
-                  FromException = None }
+            { a with Tags = newTags })
+        |> GslResult.mapErrors (fun parseErrors ->
+            { AssemblyTransformationMessage.Message = String.Join(";", parseErrors)
+              Kind = ATError
+              Assembly = a
+              StackTrace = None
+              FromException = None }
+            |> List.singleton)
 
 type TaggingProvider =
     { cmdlineTags: AssemblyTag list
@@ -87,22 +85,21 @@ type TaggingProvider =
     interface IAssemblyTransform with
         member __.ProvidedArgs() = [ taggingArg ]
 
-        member x.Configure(arg) =
+        member this.Configure(arg) =
             if arg.Specification = taggingArg then
-                match parseTags arg.Values with
-                | Ok (v, _) ->
-                    { x with
-                          cmdlineTags = v @ x.cmdlineTags }
-                | Result.Bad messages -> failwithf "%s" (String.Join("; ", messages))
-
+                parseTags arg.Values
+                |> GslResult.map (fun parsed ->
+                    { this with
+                          cmdlineTags = parsed @ this.cmdlineTags })
+                |> GslResult.valueOr (fun messages -> failwithf "%s" (String.Join("; ", messages)))
             else
-                x
-            |> x.processExtraArgs arg :> IAssemblyTransform
+                this
+            |> this.processExtraArgs arg :> IAssemblyTransform
 
-        member x.ConfigureFromOptions(_opts) = x :> IAssemblyTransform
+        member this.ConfigureFromOptions(_opts) = this :> IAssemblyTransform
 
-        member x.TransformAssembly context assembly =
-            foldInTags x.cmdlineTags context assembly
+        member this.TransformAssembly context assembly =
+            foldInTags this.cmdlineTags context assembly
 
 /// Produce an instance of the seamless assembly plugin with the provided extra argument processor.
 let createTaggingPlugin extraArgProcessor =

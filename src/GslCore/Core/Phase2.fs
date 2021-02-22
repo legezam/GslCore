@@ -33,7 +33,7 @@ module Phase2 =
             match parameters.MaxPasses with
             | Some (limit) when passNumber > limit -> // if we're past a limit passed in, fail.
                 AstResult.errStringF
-                    (InternalError(Error))
+                    (InternalError(GeneralError))
                     "Compiler phase 2 hit recursion limit of %d."
                     limit
                     tree.wrappedNode

@@ -6,12 +6,13 @@ open GslCore.Core.Types
 open GslCore.Core.CommandConfig
 open GslCore.Core.PluginTypes
 open GslCore.Constants
+open GslCore.GslResult
 open GslCore.GslcProcess
 open GslCore.Pragma
 open GslCore.Uri
 
 let mt =
-    let mtLinkerUri = Uri.linkerUri "MT" |> returnOrFail
+    let mtLinkerUri = Uri.linkerUri "MT" |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
     { Id = None
       ExternalId = None
       SliceName = ""
@@ -101,7 +102,7 @@ let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
 
     if linkered then
         printVerbose "placeFuseForSeamless: skipping, since linkers present"
-        ok a // we don't touch cases where linkers are already placed
+        GslResult.ok a // we don't touch cases where linkers are already placed
     else
         printVerbose "placeFuseForSeamless: examining need for fuse slices"
         printVerbose (sprintf "placeFuseForSeamless: starting layout: %s" (dumpSliceLayout a.DnaParts))
@@ -112,7 +113,7 @@ let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
 
         printVerbose (sprintf "placeFuseForSeamless: final layout: %s" (dumpSliceLayout dnaPartsProcessed))
 
-        ok { a with DnaParts = dnaPartsProcessed }
+        GslResult.ok { a with DnaParts = dnaPartsProcessed }
 
 let seamlessArg =
     { Name = "seamless"
@@ -154,7 +155,7 @@ type SeamlessAssembler =
                 // Is this necessary or does the seamless logic already account for this?
                 >>= preProcessFuse context
             else
-                ok assembly
+                GslResult.ok assembly
 
 /// Produce an instance of the seamless assembly plugin with the provided extra argument processor.
 let createSeamlessPlugin defaultRun extraArgProcessor =

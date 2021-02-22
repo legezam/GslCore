@@ -1,5 +1,7 @@
 namespace GslCore.Pragma
 
+open GslCore.GslResult
+
 
 type PragmaBuilder(pragmas: Map<string, PragmaDefinition>) =
     member this.Pragmas = pragmas
@@ -62,7 +64,7 @@ module PragmaBuilder =
             printfn "%s" (PragmaDefinition.format p)
         
     /// Try to build a pragma from a name and values.
-    let createPragmaFromNameValue (name: string) (values: string list) (cache: PragmaBuilder): Result<Pragma, string> =
+    let createPragmaFromNameValue (name: string) (values: string list) (cache: PragmaBuilder): GslResult<Pragma, string> =
         match cache.Pragmas |> Map.tryFind name with
         | Some definition -> definition |> Pragma.fromDefinition values
-        | None -> Error (sprintf "Unknown or invalid pragma: '#%s'" name)         
+        | None -> GslResult.err (sprintf "Unknown or invalid pragma: '#%s'" name)         

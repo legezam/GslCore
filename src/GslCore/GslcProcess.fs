@@ -15,6 +15,7 @@ open GslCore.Primer
 open GslCore.ProcessCmdLineArgs
 open GslCore.Core.PluginTypes
 open GslCore.Ast
+open GslCore.GslResult
 
 /// Run GSLC on string input.
 let rec processGSL (s: ConfigurationState) gslText =
@@ -87,10 +88,10 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
     |> Seq.mapi (fun index dnaAssembly ->
         try
             expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
-            |> AstResult.ok
-        with ex ->
-            AstResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
-    |> AstResult.collectA
+            |> GslResult.ok
+        with ex -> GslResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
+    |> Seq.toList
+    |> GslResult.collectA
     >>= (fun assemblies ->
 
         if opts.Verbose then
@@ -119,7 +120,7 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
             { a with
                   DnaParts = List.map (fun (p: DNASlice) -> { p with Id = Some(partIDs.[p.Dna]) }) a.DnaParts })
             assemblies
-        |> ok)
+        |> GslResult.ok)
 
 
 /// Promote long slices to regular rabits to avoid trying to build
@@ -159,8 +160,8 @@ let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
 
 /// Promote long slices to regular rabits to avoid trying to build
 /// impossibly long things with oligos.
-let cleanLongSlices _ (a: DnaAssembly) =
-    ok
+let cleanLongSlices _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
+    GslResult.ok
         { a with
               DnaParts = cleanLongSlicesInPartsList a.Pragmas a.DnaParts }
 
@@ -168,7 +169,7 @@ let cleanLongSlices _ (a: DnaAssembly) =
 /// we run into trouble during primer generation if a virtual part (fuse) gets between two parts that
 /// would otherwise get fused anyway (a dna slice and a linker for example).   Strip out the fuse diective
 /// in this case, otherwise primer doesn't get built against the real target
-let preProcessFuse _ (a: DnaAssembly) =
+let preProcessFuse _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
     let rec proc (l: DNASlice list) res =
         match l with
         | [] -> List.rev res
@@ -176,23 +177,25 @@ let preProcessFuse _ (a: DnaAssembly) =
                                   && middle.Type = SliceType.Inline -> proc tl (middle :: res)
         | hd :: tl -> proc tl (hd :: res)
 
-    ok
+    GslResult.ok
         { a with
               DnaParts = (proc a.DnaParts []) }
 
 /// Once GSL is expanded as far as possible,
 /// go into more target-specific activities like assigning parts, reusing parts, etc.
-let transformAssemblies (s: ConfigurationState) (assemblies: DnaAssembly list) =
+let transformAssemblies (configurationState: ConfigurationState)
+                        (assemblies: DnaAssembly list)
+                        : GslResult<DnaAssembly list, AssemblyTransformationMessage<DnaAssembly>> =
 
     let atContext: ATContext =
-        { Options = s.Options
-          GlobalAssets = s.GlobalAssets }
+        { Options = configurationState.Options
+          GlobalAssets = configurationState.GlobalAssets }
 
     let builtinAssemblyTransforms = [ cleanLongSlices; preProcessFuse ]
 
     let assemblyTransformers =
         builtinAssemblyTransforms
-        @ (Behavior.getAllProviders Behavior.getAssemblyTransformers s.Plugins)
+        @ (Behavior.getAllProviders Behavior.getAssemblyTransformers configurationState.Plugins)
 
     // do all the assembly transformation steps
     // the transformations are done in the order in which plugins were passed in, and in order
@@ -203,12 +206,12 @@ let transformAssemblies (s: ConfigurationState) (assemblies: DnaAssembly list) =
     /// use all assembly transformers to transform an assembly
     let transformAssembly a =
         assemblyTransformers
-        |> List.fold (fun r transformer -> r >>= (transformer atContext)) (ok a)
+        |> List.fold (fun r transformer -> r >>= (transformer atContext)) (GslResult.ok a)
 
     /// Attempt to transform all of the assemblies
     assemblies
     |> List.map transformAssembly
-    |> collect
+    |> GslResult.collectA
 
 let doPrimerDesign opts assemblyOuts =
     if opts.NoPrimers then
