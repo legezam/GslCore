@@ -10,6 +10,7 @@ open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open System.Diagnostics
 open System
+open GslCore.GslResult
 
 /// Create an instance of a GSL tokenizer, which internally stores
 /// the actual tokenizer backend it is currently using.
@@ -188,5 +189,5 @@ let lexAndParse verbose (source: GslSourceCode) =
 
 
     try
-        AstResult.ok (doLexParse verbose inBuffer)
-    with e -> AstResult.err (convertException e)
+        GslResult.ok (doLexParse verbose inBuffer)
+    with e -> GslResult.err (convertException e)

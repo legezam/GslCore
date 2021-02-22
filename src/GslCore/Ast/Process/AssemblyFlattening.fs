@@ -5,6 +5,7 @@ open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 open GslCore.Pragma
 
 
@@ -63,7 +64,7 @@ let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): AstResu
             "Found a trailing #fuse in an assembly that needs to flip."
             (Part(List.head shiftedParts))
     else
-        AstResult.ok shiftedParts
+        GslResult.ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
 let private invertPragma (pragmaBuilder: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
@@ -93,7 +94,7 @@ let private explodeAssembly (pragmaBuilder: PragmaBuilder)
 
     let correctlyOrientedParts =
         if assemblyPart.Value.IsForward then
-            AstResult.ok subParts
+            GslResult.ok subParts
         else
             subParts
             |> List.map (fun subPart ->
@@ -108,8 +109,8 @@ let private explodeAssembly (pragmaBuilder: PragmaBuilder)
     >>= fun parts ->
             parts
             |> List.map (fun parsePart -> ParsePart.mergePragmas parsePart (ParsePart.getPragmas assemblyPart))
-            |> AstResult.collectA
-            |> AstResult.map (List.map Part)
+            |> GslResult.collectA
+            |> GslResult.map (List.map Part)
 
 /// Collapse a part whose base part is another part.
 // FIXME: we should probably be more careful with mods here
@@ -126,7 +127,7 @@ let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<
              <> outerPart.Value.IsForward) // should be rev if one or the other is rev.
 
     ParsePart.mergePragmas innerPart outerPragmas
-    |> AstResult.map (fun newInner ->
+    |> GslResult.map (fun newInner ->
         let newInnerWithOuterMods =
             { newInner with
                   Value =
@@ -150,10 +151,10 @@ let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): AstR
             match part with
             | AssemblyPart (assemblyPart, assemblyBasePart) ->
                 explodeAssembly parameters.PragmaBuilder assemblyPart assemblyBasePart
-            | x -> AstResult.ok [ x ])
+            | x -> GslResult.ok [ x ])
         |> Seq.toList
-        |> AstResult.collectA
-        |> AstResult.map (fun partLists ->
+        |> GslResult.collectA
+        |> GslResult.map (fun partLists ->
             let newBasePart =
                 Assembly
                     ({ assemblyBasePart with
@@ -167,7 +168,7 @@ let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): AstR
     | RecursivePart (outer, inner) ->
         // flatten parts that have another part as their base part due to using a single-part variable in an assembly
         collapseRecursivePart outer inner
-    | _ -> AstResult.ok node
+    | _ -> GslResult.ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
 let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =

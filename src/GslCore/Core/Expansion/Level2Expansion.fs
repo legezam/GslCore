@@ -8,6 +8,7 @@ open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Expansion
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference
 open GslCore.Core.PluginTypes
@@ -127,16 +128,16 @@ let expandLevel2 (parameters: Phase1Parameters) (providers: L2Provider list) (rg
         /// Perform the expansion operation, capturing any exception as an error.
         let expandCaptureException construct =
             try
-                expandL2Expression providers rgs construct |> AstResult.ok
+                expandL2Expression providers rgs construct |> GslResult.ok
             with e ->
-                AstResult.exceptionToError L2ExpansionError node e |> AstResult.err
+                AstResult.exceptionToError L2ExpansionError node e |> GslResult.err
 
         match node with
         | L2Expression (l2e) ->
             convertL2Line pragmaContext l2e
             >>= expandCaptureException
             >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions)
-        | _ -> AstResult.ok node
+        | _ -> GslResult.ok node
 
     let foldmapParameters =
         { FoldMapParameters.Direction = TopDown

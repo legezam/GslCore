@@ -213,7 +213,7 @@ let prettyPrintAssembly (assembly: Assembly) =
 let private sliceFromAstSlice (s: ParseSlice) =
     match s.Left, s.Right with
     | RelPos (lw), RelPos (rw) ->
-        AstResult.ok
+        GslResult.ok
             (SLICE
                 ({ left = lw.Value
                    lApprox = s.LeftApprox
@@ -228,21 +228,21 @@ let private sliceFromAstSlice (s: ParseSlice) =
 let private astNodeToLegacyMod node =
     match node with
     | Slice (sw) -> sliceFromAstSlice sw.Value
-    | Mutation (mw) -> AstResult.ok (MUTATION(mw.Value))
-    | DotMod (dm) -> AstResult.ok (DOTMOD(dm.Value))
+    | Mutation (mw) -> GslResult.ok (MUTATION(mw.Value))
+    | DotMod (dm) -> GslResult.ok (DOTMOD(dm.Value))
     | _ -> AstResult.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
 
 let private convertMods mods =
     mods
     |> List.map astNodeToLegacyMod
-    |> AstResult.collectA
+    |> GslResult.collectA
 
 /// Convert an AST base part into a legacy Part.
 let private createLegacyPart (part: Node<ParsePart>): AstResult<Part> =
     match part.Value.BasePart with
     | Gene geneWrapper ->
         convertMods part.Value.Modifiers
-        |> AstResult.map (fun mods ->
+        |> GslResult.map (fun mods ->
             let genePart =
                 { gene = geneWrapper.Value.Gene
                   mods = mods
@@ -251,20 +251,20 @@ let private createLegacyPart (part: Node<ParsePart>): AstResult<Part> =
             GENEPART
                 { part = genePart
                   linker = geneWrapper.Value.Linker })
-    | Marker _ -> AstResult.ok MARKERPART
-    | InlineDna dnaSequence -> AstResult.ok (INLINEDNA(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
-    | InlineProtein proteinSequence -> AstResult.ok (INLINEPROT proteinSequence.Value)
-    | HetBlock _ -> AstResult.ok HETBLOCK
+    | Marker _ -> GslResult.ok MARKERPART
+    | InlineDna dnaSequence -> GslResult.ok (INLINEDNA(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
+    | InlineProtein proteinSequence -> GslResult.ok (INLINEPROT proteinSequence.Value)
+    | HetBlock _ -> GslResult.ok HETBLOCK
     | PartId partId ->
         convertMods part.Value.Modifiers
-        |> AstResult.map (fun mods -> PARTID { id = partId.Value; mods = mods })
+        |> GslResult.map (fun mods -> PARTID { id = partId.Value; mods = mods })
     | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
 let private createPPP part =
     match part with
     | Part p ->
         createLegacyPart p
-        |> AstResult.map (fun legacyPart ->
+        |> GslResult.map (fun legacyPart ->
             { part = legacyPart
               pr = ParsePart.getPragmas p
               fwd = p.Value.IsForward })
@@ -321,10 +321,10 @@ let convertAssembly (context: AssemblyConversionContext)
     let parts =
         aplw.Value
         |> List.map createPPP
-        |> AstResult.collectA
+        |> GslResult.collectA
 
     (parts, parameters)
-    ||> AstResult.map2 (fun parts designParams ->
+    ||> GslResult.map2 (fun parts designParams ->
             { Assembly.parts = parts
               name = name
               uri = uri
@@ -346,7 +346,7 @@ let private buildL2Element node =
         match nw.Value.Promoter, nw.Value.Target with
         | L2Id _, L2Id (tw)
         | Part _, L2Id (tw) ->
-            AstResult.ok
+            GslResult.ok
                 { promoter = nw.Value.Promoter
                   target = tw.Value }
 
@@ -359,21 +359,21 @@ let private buildL2Element node =
 
 let private unpackLocus nodeopt =
     match nodeopt with
-    | Some (L2Id (lw)) -> AstResult.ok (Some(lw.Value))
+    | Some (L2Id (lw)) -> GslResult.ok (Some(lw.Value))
     | Some (x) -> AstResult.internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
-    | None -> AstResult.ok None
+    | None -> GslResult.ok None
 
 /// Build a concrete L2 expression from an AST node.
 let private buildL2Expression (ew: Node<L2Expression>): AstResult<BuiltL2Expression> =
     let parts =
         ew.Value.Parts
         |> List.map buildL2Element
-        |> AstResult.collectA
+        |> GslResult.collectA
 
     let locus = unpackLocus ew.Value.Locus
 
     (locus, parts)
-    ||> AstResult.map2 (fun locus parts -> { l2Locus = locus; parts = parts })
+    ||> GslResult.map2 (fun locus parts -> { l2Locus = locus; parts = parts })
 
 /// Build a L2Line from an AST node and pragma environment.
 let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expression>): AstResult<L2Line> =
@@ -390,7 +390,7 @@ let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expressio
         |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
     buildL2Expression l2Expression
-    |> AstResult.map (fun l2Design ->
+    |> GslResult.map (fun l2Design ->
         { L2Line.l2Design = l2Design
           name = name
           uri = uri

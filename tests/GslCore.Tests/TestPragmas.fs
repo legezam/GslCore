@@ -161,7 +161,7 @@ bar("qux")
            ]
         // test the deprecation warning deduplication mechanism
         |> fun success -> GslParseErrorContext.deduplicateMessages success.Warnings
-        |> (fun msgs -> AstResult.warns msgs ())
+        |> (fun msgs -> GslResult.warns msgs ())
         |> assertWarn DeprecationWarning (Some("appear only once per file"))
         |> ignore
 

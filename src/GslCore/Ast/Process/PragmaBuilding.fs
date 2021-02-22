@@ -39,9 +39,9 @@ module PragmaBuilding =
 
     let private checkPragmaArg: AstNode -> AstResult<string> =
         function
-        | String stringWrapper -> AstResult.ok stringWrapper.Value
-        | Int intWrapper -> AstResult.ok (intWrapper.Value.ToString())
-        | Float floatWrapper -> AstResult.ok (floatWrapper.Value.ToString())
+        | String stringWrapper -> GslResult.ok stringWrapper.Value
+        | Int intWrapper -> GslResult.ok (intWrapper.Value.ToString())
+        | Float floatWrapper -> GslResult.ok (floatWrapper.Value.ToString())
         | TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
             AstResult.errStringF (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name astNode
         | x -> AstResult.internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
@@ -54,8 +54,8 @@ module PragmaBuilding =
                 AstMessage.create None DeprecationWarning depreciation.WarningMessage node
 
             let replacedPragma = depreciation.Replace pragma
-            AstResult.warn warningMsg replacedPragma
-        | None -> AstResult.ok pragma
+            GslResult.warn warningMsg replacedPragma
+        | None -> GslResult.ok pragma
 
     // check if this pragma is a capability declaration.
     // if so, validate it.
@@ -76,9 +76,9 @@ module PragmaBuilding =
 
                 AstResult.errString PragmaError msg node
             else
-                AstResult.ok pragma
+                GslResult.ok pragma
         else
-            AstResult.ok pragma
+            GslResult.ok pragma
 
     let private checkScope (contexts: PragmaConstructionContext list) (node: AstNode) (pragma: Pragma): AstResult<Pragma> =
         match contexts with
@@ -97,7 +97,7 @@ module PragmaBuilding =
                     sprintf "#%s is used at %s, but is restricted to %s." pragma.Name usedIn allowedScope
 
                 AstResult.errString PragmaError msg node
-            | None -> AstResult.ok pragma
+            | None -> GslResult.ok pragma
         | [] -> AstResult.errString (InternalError(PragmaError)) "Pragma scope context is empty." node
 
 
@@ -118,7 +118,7 @@ module PragmaBuilding =
 
             pragma.Values
             |> List.map checkPragmaArg
-            |> AstResult.collectA
+            |> GslResult.collectA
             >>= (fun values ->
                 parameters.PragmaBuilder
                 |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
@@ -126,11 +126,11 @@ module PragmaBuilding =
             >>= (checkDeprecated node)
             >>= (checkScope contexts node)
             >>= (checkCapa parameters.LegalCapabilities node)
-            |> AstResult.map (fun builtPragma ->
+            |> GslResult.map (fun builtPragma ->
                 Pragma
                     { Value = builtPragma
                       Positions = pragmaWrapper.Positions })
-        | _ -> AstResult.ok node
+        | _ -> GslResult.ok node
 
     /// Build genuine pragmas from reduced parsed pragmas.
     let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =

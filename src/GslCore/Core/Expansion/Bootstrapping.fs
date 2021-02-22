@@ -7,6 +7,7 @@ open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Ast.Process
 open GslCore.Ast.LegacyParseTypes
+open GslCore.GslResult
 
 // ==================
 // bootstrapping literal source into an AST node
@@ -66,11 +67,11 @@ let private replaceSourcePosition pos node =
 /// Replace all source positions in a bootstrapped expanded tree with the position of the node
 /// that was expanded into source.
 let private replaceSourcePositions pos =
-    FoldMap.map Serial TopDown (AstResult.promote (replaceSourcePosition pos))
+    FoldMap.map Serial TopDown (GslResult.promote (replaceSourcePosition pos))
 
 /// If any messages emanated from a bootstrapped parsing, replace their positions with the input position.
 let private replaceMessagePositions pos =
-    AstResult.mapMessages (fun (msg: AstMessage) -> { msg with SourcePosition = pos })
+    GslResult.mapMessages (fun (msg: AstMessage) -> { msg with SourcePosition = pos })
 
 ///<summary>
 /// Later phases of the compiler currently output literal source code which is parsed again.
@@ -83,14 +84,14 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
     /// Unpack a bootstrapped AST to a block or fail.
     let asBlock tree =
         match tree with
-        | AstTreeHead (Block (nw)) -> AstResult.ok (Splice(Array.ofList nw.Value))
+        | AstTreeHead (Block (nw)) -> GslResult.ok (Splice(Array.ofList nw.Value))
         | AstTreeHead (node) -> bootstrapError "Block" None node
 
     let contextMsg =
         sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
 
     LexAndParse.lexAndParse false source
-    |> AstResult.appendMessageToError
+    |> GslResult.addMessageToError
         (AstMessage.createErrorWithStackTrace
             (InternalError(ParserError))
              contextMsg
@@ -144,7 +145,7 @@ let private healSplice node =
 
 /// Explode all Splices into their enclosing context.
 let healSplices =
-    FoldMap.map Serial TopDown (AstResult.promote healSplice)
+    FoldMap.map Serial TopDown (GslResult.promote healSplice)
 
 
 // ==================================
@@ -163,17 +164,17 @@ let bootstrapExpandLegacyAssembly errorMsgType
     /// Perform the expansion operation, capturing any exception as an error.
     let expandCaptureException assembly =
         try
-            expansionFunction assembly |> AstResult.ok
+            expansionFunction assembly |> GslResult.ok
         with e ->
             AstResult.exceptionToError errorMsgType node e
-            |> AstResult.err
+            |> GslResult.err
 
     match node with
     | AssemblyPart (apUnpack) ->
         convertAssembly assemblyConversionContext apUnpack
         >>= expandCaptureException
         >>= (bootstrapOperation ((fst apUnpack).Positions))
-    | _ -> AstResult.ok node
+    | _ -> GslResult.ok node
 
 /// Execute a complete bootstrapped expansion on an AST.
 /// Runs foldmap on the provided expansion function, followed by

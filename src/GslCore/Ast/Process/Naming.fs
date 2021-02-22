@@ -6,6 +6,7 @@ open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference
 
@@ -28,7 +29,7 @@ let private checkGeneName (reference: GenomeDefinitions)
 
 
         GenomeDefinitions.getReferenceGenome reference [ partPragmas; assemblyPragmas ]
-        |> AstResult.ofResult (fun message -> AstMessage.createErrorWithStackTrace RefGenomeError message node)
+        |> GslResult.fromResult (fun message -> AstMessage.createErrorWithStackTrace RefGenomeError message node)
         >>= fun reference ->
                 if reference
                    |> GenomeDefinition.isValidFeature geneName
@@ -49,8 +50,8 @@ let private checkGeneNamesInAssembly (reference: GenomeDefinitions)
 
         assemblyWrapper.Value
         |> List.map (checkGeneName reference library assemblyPragmas)
-        |> AstResult.collectA
-        |> AstResult.ignore
+        |> GslResult.collectA
+        |> GslResult.ignore
     | _ -> Validation.good
 
 /// Validate all gene names.
@@ -119,4 +120,4 @@ let private nameAssembly (node: AstNode): AstNode =
 /// the new name pragma.
 ///</summary>
 let nameAssemblies =
-    FoldMap.map Serial TopDown (AstResult.promote nameAssembly)
+    FoldMap.map Serial TopDown (GslResult.promote nameAssembly)

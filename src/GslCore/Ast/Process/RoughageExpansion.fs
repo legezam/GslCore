@@ -3,6 +3,7 @@ module GslCore.Ast.Process.RoughageExpansion
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 open GslCore.Pragma
 
 
@@ -27,7 +28,7 @@ let private validateRoughageLine (roughageWrapper: Node<Roughage>) =
 
     if not hasLocus
     then AstResult.errStringF ValueError "Roughage construct has indeterminate locus: %s" (AstNode.decompile node) node
-    else AstResult.ok roughageWrapper
+    else GslResult.ok roughageWrapper
 
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
 let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
@@ -86,9 +87,9 @@ let private expandRoughageLine node =
     match node with
     | Roughage (rw) ->
         validateRoughageLine rw
-        |> AstResult.map expandRoughage
+        |> GslResult.map expandRoughage
 
-    | _ -> AstResult.ok node
+    | _ -> GslResult.ok node
 
 /// Expand all inline roughage definitions into subblocks.
 let expandRoughageLines =

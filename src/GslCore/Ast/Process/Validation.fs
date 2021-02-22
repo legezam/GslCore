@@ -4,6 +4,7 @@ open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 
+open GslCore.GslResult
 open GslCore.Pragma
 
 // ====================
@@ -17,7 +18,7 @@ let checkParseError node =
         let msg =
             AstMessage.createErrorWithStackTrace ParserError errorWrapper.Value node
 
-        AstResult.err msg
+        GslResult.err msg
     | _ -> Validation.good
 
 // ===============
@@ -75,7 +76,7 @@ let private checkRecursiveCall (s: string list) node =
             "Found a recursive call to '%s'. GSL does not support recursive functions."
             fc.Value.Name
             node
-    | _ -> AstResult.ok node
+    | _ -> GslResult.ok node
 
 /// Fail if a GSL program contains recursively-defined functions.
 let checkRecursiveCalls =

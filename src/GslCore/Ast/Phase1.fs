@@ -1,5 +1,6 @@
 module GslCore.Ast.Phase1
 
+open GslCore.GslResult
 open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast

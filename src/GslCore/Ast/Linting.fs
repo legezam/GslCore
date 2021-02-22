@@ -8,6 +8,7 @@ open GslCore.Ast.Algorithms
 open GslCore.Ast.ErrorHandling
 
 open System.Text.RegularExpressions
+open GslCore.GslResult
 
 let private rabitPartRegex =
     Regex
@@ -26,7 +27,7 @@ let private warnOnPartThatIsLikelyVariable (node: AstNode): ValidationResult =
                     partWrapper.Value partWrapper.Value
 
             let warnMsg = AstMessage.createWarning msgText node
-            AstResult.warn warnMsg ()
+            GslResult.warn warnMsg ()
     | _ -> Validation.good
 
 let private failOnPushAndPop (node: AstNode): AstResult<unit> =

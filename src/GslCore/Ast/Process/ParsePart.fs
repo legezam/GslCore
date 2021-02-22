@@ -4,6 +4,7 @@ module GslCore.Ast.Process.ParsePart
 open System
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
+open GslCore.GslResult
 open GslCore.Pragma
 
 // ==========================
@@ -15,21 +16,21 @@ open GslCore.Pragma
 let getPragmasStrict (part: Node<ParsePart>): AstResult<PragmaCollection> =
     let getBuiltPragma (node: AstNode): AstResult<Pragma> =
         match node with
-        | Pragma pragmaWrapper -> AstResult.ok pragmaWrapper.Value
+        | Pragma pragmaWrapper -> GslResult.ok pragmaWrapper.Value
         | ParsePragma parsePragmaWrapper -> AstResult.unbuiltPragmaError None parsePragmaWrapper.Value.Name node
         | x -> AstResult.internalTypeMismatch None "Pragma" x
 
     part.Value.Pragmas
     |> List.map getBuiltPragma
-    |> AstResult.collectA
-    |> AstResult.map (fun pragmas ->
+    |> GslResult.collectA
+    |> GslResult.map (fun pragmas ->
         PragmaCollection.empty
         |> PragmaCollection.mergeInPragmas pragmas)
 
 /// Get a part's list of built pragmas, represented as a PragmaCollection.
 /// Raises an exception if pragmas are not built.
 let getPragmas (part: Node<ParsePart>): PragmaCollection =
-    match getPragmasStrict part |> AstResult.GetValue with
+    match getPragmasStrict part |> GslResult.GetValue with
     | Ok success -> success.Result
     | Result.Error err ->
         failwith
@@ -75,11 +76,11 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
             replacePragmas parsePart mergedPragmas
 
         if collidingPragmas |> Set.isEmpty then
-            AstResult.ok newPart
+            GslResult.ok newPart
         else
             let warning =
                 AstMessage.createWarning
                     (sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", "))
                     (Part(parsePart))
 
-            AstResult.warn warning newPart)
+            GslResult.warn warning newPart)

@@ -3,6 +3,7 @@ namespace GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 
 
 
@@ -69,12 +70,12 @@ module VariableResolution =
         if targetType = NotYetTyped
            || targetType = boundValueType then
             // exact type check or destination is not strongly typed
-            AstResult.ok boundValue
+            GslResult.ok boundValue
         elif boundValueType = NotYetTyped then
             // our value doesn't have type information, see if we can elide it
             match elideType boundValue with
             | Some elidedType when elidedType = targetType -> // elides to correct type
-                AstResult.ok boundValue
+                GslResult.ok boundValue
             | Some elidedType -> // elides to incorrect type
                 AstResult.variableTypeMismatch varName elidedType targetType node
             | None -> // whatever this thing is, it shouldn't be inside a variable
@@ -109,7 +110,7 @@ module VariableResolution =
                 typeCheck varName node targetType declaredType boundValue
         | Some FLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
             match mode with
-            | AllowUnresolvedFunctionLocals -> AstResult.ok node
+            | AllowUnresolvedFunctionLocals -> GslResult.ok node
             | Strict ->
                 AstResult.errStringF
                     (InternalError(UnresolvedVariable))
@@ -128,7 +129,7 @@ module VariableResolution =
             let targetType = snd typedVariable.Value
             // might resolve to another variable, so we need to do this recursively
             resolveVariableRecursive mode variableBindings targetType typedVariable node
-        | x -> AstResult.ok x
+        | x -> GslResult.ok x
 
     /// Transform an AST with unresolved scoped variables into a tree with resolved scoped variables.
     /// Variables that resolve to function arguments are left untouched in this phase.

@@ -5,6 +5,7 @@ open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Core.Expansion
 open GslCore.Core.PluginTypes
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference
 
@@ -40,12 +41,12 @@ module Phase2 =
             | _ -> // otherwise, run the expansion step
                 match BoostrapSelection.tryGetExpansionMode tree with
                 | Some mode -> runPhase2 mode tree >>= doPhase2 (passNumber + 1)
-                | None -> AstResult.ok tree
+                | None -> GslResult.ok tree
 
         // if we just want to expand one step and re-emit literal source code
         if parameters.OneShot then
             match BoostrapSelection.tryGetExpansionMode treeIn with
             | Some mode -> runPhase2 mode treeIn
-            | None -> AstResult.ok treeIn
+            | None -> GslResult.ok treeIn
         else
             doPhase2 0 treeIn

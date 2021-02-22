@@ -87,69 +87,14 @@ type AstResult<'a> = GslResult<'a, AstMessage>
 
 
 module AstResult =
-    let warn msg result: AstResult<'a> =
-        GslResult.warn msg result
-        
-    let warns msgs result: AstResult<'a> =
-        GslResult.warns msgs result        
-
-    let ok result: AstResult<'a> =
-        GslResult.ok result
-
-    let err (msg: AstMessage): AstResult<'a> = GslResult.err msg
 
     let errString msgType msg node: AstResult<'a> =
         AstMessage.createErrorWithStackTrace msgType msg node
-        |> err
+        |> GslResult.err
 
     let errStringF msgType msgfmt fmtVal node: AstResult<'a> =
         AstMessage.createErrorWithStackTrace msgType (sprintf msgfmt fmtVal) node
-        |> err
-
-    let collectA (results: AstResult<'a> list): AstResult<'a list> =
-        GslResult.collectA results
-        
-    let collectM (results: AstResult<'a> list): AstResult<'a list> =
-        GslResult.collectM results
-
-    let map (op: 'a -> 'b) (result: AstResult<'a>): AstResult<'b> =
-        GslResult.map op result
-
-    let bind (op: 'a -> AstResult<'b>) (result: AstResult<'a>): AstResult<'b> =
-        GslResult.bind op result
-
-    let map2 (op: 'a -> 'b -> 'c) (resultA: AstResult<'a>) (resultB: AstResult<'b>): AstResult<'c> =
-        GslResult.map2 op resultA resultB
-
-    let map3 (op: 'a -> 'b -> 'c -> 'd)
-             (resultA: AstResult<'a>)
-             (resultB: AstResult<'b>)
-             (resultC: AstResult<'c>)
-             : AstResult<'d> =
-        GslResult.map3 op resultA resultB resultC
-
-    let optionalResult (op: 'a -> AstResult<'b>) (input: 'a option): AstResult<'b option> =
-        GslResult.optionalResult op input
-
-    let combineValidations (first: 'a -> AstResult<'b>) (second: 'a -> AstResult<'c>) (input: 'a): AstResult<unit> =
-        GslResult.combineValidations first second input
-
-    let mergeMessages (messages: AstMessage list) (result: AstResult<'a>): AstResult<'a> =
-        GslResult.mergeMessages messages result
-
-    let ofResult (errorMapper: 'b -> AstMessage) (input: Result<'a, 'b>): AstResult<'a> =
-        GslResult.ofResult errorMapper input
-
-    let ignore (original: AstResult<'a>): AstResult<unit> =
-        GslResult.ignore original
-
-    let promote (op: 'a -> 'b) (input: 'a): AstResult<'b> = GslResult.promote op input
-
-    let mapMessages (op: AstMessage -> AstMessage) (result: AstResult<'a>) =
-        GslResult.mapMessages op result
-
-    let appendMessageToError msg (result: AstResult<'a>): AstResult<'a> =
-        GslResult.appendMessageToError msg result
+        |> GslResult.err
 
     ///Create an error representing a type mismatch resulting from a bugged GSL program.
     let variableTypeMismatch (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstResult<'c> =
@@ -220,15 +165,6 @@ module AstResult =
                 if showStackTrace then yield this.StackTrace.ToString()
             }
             |> String.concat "\n"
-
-[<AutoOpen>]
-module Operators =
-    let (>>=) = Operators.(>>=)
-
-    let (>=>) = Operators.(>=>)
-
-    let (&&&) = Operators.(&&&)
-
 
 type GslParseErrorContext =
     { stateStack: int list

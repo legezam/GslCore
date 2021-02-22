@@ -5,6 +5,7 @@ open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 
 // =====================
 // inlining function calls
@@ -67,7 +68,7 @@ module Inlining =
                 (sprintf "Function '%s' expects %d arguments but received %d." functionCall.Name neededArgs passedArgs)
                 functionCallNode
         else
-            AstResult.ok (parseFunction, functionCall)
+            GslResult.ok (parseFunction, functionCall)
 
     /// Create a local variable from a typed value.
     let private localVarFromTypedValueAndName (variableBindings: VariableBindings)
@@ -80,7 +81,7 @@ module Inlining =
             // this ensures that function locals never resolve to each other.
             AstTreeHead(typedValue)
             |> FoldMap.map Serial TopDown (VariableResolution.resolveVariable Strict variableBindings)
-            |> AstResult.map (fun (AstTreeHead newVal) ->
+            |> GslResult.map (fun (AstTreeHead newVal) ->
                 VariableBinding
                     { Value =
                           { Name = name
@@ -107,10 +108,10 @@ module Inlining =
                 Seq.zip parseFunction.ArgumentNames functionCall.Arguments // zip up the args with the arg names
                 |> Seq.map (localVarFromTypedValueAndName variableBindings) // map them to local variables
                 |> Seq.toList
-                |> AstResult.collectA
+                |> GslResult.collectA
                 // if unpacking and conversion succeeded, make a new block with the
                 // variable declarations followed by the rest of the block
-                |> AstResult.map (fun variableBindings ->
+                |> GslResult.map (fun variableBindings ->
                     Block
                         { blockWrapper with
                               Value = variableBindings @ tail })
@@ -131,18 +132,18 @@ module Inlining =
             | Some functionDefinition ->
                 // Helper function to add new position to an AST node
                 let addPositions (node: AstNode) =
-                    AstResult.ok (Utils.prependPositionsAstNode functionCallWrapper.Positions node)
+                    GslResult.ok (Utils.prependPositionsAstNode functionCallWrapper.Positions node)
 
                 // inline the args into the function call block
                 // this new block replaces the function call
                 checkArgs functionDefinition functionCall node
                 >>= inlinePassedArgs state.Variables
-                |> AstResult.map AstTreeHead // needed to adapt to the map function
+                |> GslResult.map AstTreeHead // needed to adapt to the map function
                 >>= FoldMap.map Serial TopDown addPositions
-                |> AstResult.map (fun treeHead -> treeHead.wrappedNode)
+                |> GslResult.map (fun treeHead -> treeHead.wrappedNode)
 
             | None -> AstResult.errString UnresolvedFunction functionCall.Name node
-        | _ -> AstResult.ok node
+        | _ -> GslResult.ok node
 
     let inlineFunctionCalls =
         let foldMapParameters =

@@ -3,6 +3,7 @@ module GslCore.Ast.Process.Cleanup
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 
 // =========================
 // stripping all non-literals from a tree
@@ -37,8 +38,8 @@ let private cleanBlock cleaner node =
 
 /// Strip function defintions from tree.
 let stripFunctions =
-    FoldMap.map Serial TopDown (AstResult.promote (cleanBlock cleanFunction))
+    FoldMap.map Serial TopDown (GslResult.promote (cleanBlock cleanFunction))
 
 /// Strip variable bindings from tree.
 let stripVariables =
-    FoldMap.map Serial TopDown (AstResult.promote (cleanBlock cleanVariable))
+    FoldMap.map Serial TopDown (GslResult.promote (cleanBlock cleanVariable))

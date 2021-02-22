@@ -3,6 +3,7 @@ namespace GslCore.Core.Expansion
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 
 
 
@@ -66,4 +67,4 @@ module BoostrapSelection =
             // this node needs to be bootstrapped, run it
             bootstrapOperation state node
         else
-            AstResult.ok node
+            GslResult.ok node

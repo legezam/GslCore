@@ -8,7 +8,6 @@ open GslCore.Ast.Types
 open GslCore.Core.Expansion
 open GslCore.Pragma
 open NUnit.Framework
-open Amyris.ErrorHandling
 open GslCore.AstAssertions
 open GslCore.Ast.Algorithms
 open GslCore.Ast.ErrorHandling

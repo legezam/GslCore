@@ -5,6 +5,7 @@ open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Constants
+open GslCore.GslResult
 
 // ======================
 // computing relative positions
@@ -83,7 +84,7 @@ let private calculatePosition (position: int<OneOffset>)
 let private getProvidedPosition (relativePosition: ParseRelativePosition): AstResult<int> =
     match relativePosition.Item with
     | Int ({ Node.Value = providedPosition
-             Positions = _ }) -> AstResult.ok providedPosition
+             Positions = _ }) -> GslResult.ok providedPosition
     | x -> AstResult.internalTypeMismatch (Some "relative position building") "Int" x
 
 /// Compute relative positions for slices.
@@ -98,12 +99,12 @@ let private buildRelativePosition (node: AstNode): AstResult<AstNode> =
         // make sure we have a real value to work with
         parseRelativePosition
         |> getProvidedPosition
-        |> AstResult.map (fun position -> position * 1<OneOffset>)
+        |> GslResult.map (fun position -> position * 1<OneOffset>)
         >>= fun position ->
                 calculatePosition position parseRelativePosition.Qualifier parseRelativePosition.Position
-                |> AstResult.ofResult (TransformationError.toAstMessage node position)
-                |> AstResult.map (fun (position, geneEnd) -> buildNode position geneEnd)
-    | _ -> AstResult.ok node
+                |> GslResult.fromResult (TransformationError.toAstMessage node position)
+                |> GslResult.map (fun (position, geneEnd) -> buildNode position geneEnd)
+    | _ -> GslResult.ok node
 
 let compute =
     FoldMap.map Serial TopDown buildRelativePosition

@@ -4,6 +4,7 @@ open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.GslResult
 open GslCore.Pragma
 
 // =====================
@@ -117,13 +118,13 @@ module AssemblyStuffing =
                     if existingPragma.Arguments <> colliding.Arguments then // pragma collision with unequal arguments
                         collidingPragmaError existingPragma colliding node
                     else
-                        AstResult.ok () // identical arguments, ignore collision
-                | None -> AstResult.ok ())
+                        GslResult.ok () // identical arguments, ignore collision
+                | None -> GslResult.ok ())
             |> Seq.toList
-            |> AstResult.collectA
-            |> AstResult.ignore
+            |> GslResult.collectA
+            |> GslResult.ignore
         else
-            AstResult.ok ()
+            GslResult.ok ()
 
     /// Deposit collected pragmas into an assembly.
     let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment) (node: AstNode): AstResult<AstNode> =
@@ -137,7 +138,7 @@ module AssemblyStuffing =
             let assemblyPragmas = ParsePart.getPragmas partWrapper
 
             checkPragmaCollisions incoming assemblyPragmas node
-            |> AstResult.map (fun _ ->
+            |> GslResult.map (fun _ ->
                 // no collisions, free to merge everything in.
                 // start with globals, merge in transients, then merge in part pragmas
                 let newPragmas =
@@ -155,7 +156,7 @@ module AssemblyStuffing =
                         newPragmas
 
                 Part(ParsePart.replacePragmas partWrapper pragmasWithWarnOff))
-        | _ -> AstResult.ok node
+        | _ -> GslResult.ok node
 
     ///<summary>
     /// Add pragmas into assemblies.

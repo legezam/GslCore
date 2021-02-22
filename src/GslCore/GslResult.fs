@@ -51,13 +51,13 @@ module GslResult =
         |> Success.withWarning msg
         |> Ok
         |> GslResult.Create
-        
+
     let inline warns msgs result: GslResult<'a, 'b> =
         result
         |> Success.create
         |> Success.withWarnings msgs
         |> Ok
-        |> GslResult.Create        
+        |> GslResult.Create
 
     let inline ok result: GslResult<'a, 'b> =
         result |> Success.create |> Ok |> GslResult.Create
@@ -75,7 +75,7 @@ module GslResult =
         |> GslResult.Create
 
     let inline collectM (results: GslResult<'a, 'b> list): GslResult<'a list, 'b> =
-        
+
         results
         |> List.map GslResult.GetValue
         |> List.sequenceResultM
@@ -138,7 +138,7 @@ module GslResult =
         ((first input), (second input))
         ||> map2 (fun _ _ -> ())
 
-    let inline mergeMessages (messages: 'b list) (result: GslResult<'a, 'b>): GslResult<'a, 'b> =
+    let inline addMessages (messages: 'b list) (result: GslResult<'a, 'b>): GslResult<'a, 'b> =
         match result.Value with
         | Ok success ->
             Ok
@@ -149,7 +149,12 @@ module GslResult =
             Result.Error(errors @ messages)
             |> GslResult.Create
 
-    let inline ofResult (errorMapper: 'b -> 'c) (input: Result<'a, 'b>): GslResult<'a, 'c> =
+    let inline addMessageToError (msg: 'b) (result: GslResult<'a, 'b>): GslResult<'a, 'b> =
+        result.Value
+        |> Result.eitherMap id (fun errors -> errors @ [ msg ])
+        |> GslResult.Create
+
+    let inline fromResult (errorMapper: 'b -> 'c) (input: Result<'a, 'b>): GslResult<'a, 'c> =
         match input with
         | Ok result -> ok result
         | Error err ->
@@ -192,7 +197,7 @@ module GslResult =
             |> GslResult.Create
         | Error errors -> Result.Error errors |> GslResult.Create
 
-    let inline promote (op: 'a -> 'b) (input: 'a): GslResult<'b, 'c> = op input |> ok
+    let inline promote (op: 'a -> 'b) (input: 'a): GslResult<'b, 'c> = ok input |> map op
 
     let inline mapMessages (op: 'b -> 'b) (result: GslResult<'a, 'b>) =
         match result.Value with
@@ -201,11 +206,6 @@ module GslResult =
                 ({ success with
                        Warnings = success.Warnings |> List.map op })
         | Error errors -> Result.Error(errors |> List.map op)
-        |> GslResult.Create
-
-    let inline appendMessageToError msg (result: GslResult<'a, 'b>): GslResult<'a, 'b> =
-        result.Value
-        |> Result.eitherMap id (fun errors -> errors @ [ msg ])
         |> GslResult.Create
 
     let inline valueOr (op: 'b list -> 'a) (input: GslResult<'a, 'b>): 'a =

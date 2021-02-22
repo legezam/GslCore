@@ -1,12 +1,13 @@
 ﻿/// Generic algorithms for operating on ASTs.
 namespace GslCore.Ast.Algorithms
 
+open System.Text
+open GslCore
+open GslCore.GslResult
+open GslCore.Constants
+open GslCore.Pragma
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
-open System.Text
-open GslCore.Constants
-open GslCore
-open GslCore.Pragma
 open FSharp.Collections.ParallelSeq
 
 
@@ -457,14 +458,14 @@ module FoldMap =
         let updatedModifiers =
             parsePart.Modifiers
             |> List.map (foldDropState state parameters)
-            |> AstResult.collectA
+            |> GslResult.collectA
 
         let updatedPragmas =
             parsePart.Pragmas
             |> List.map (foldDropState state parameters)
-            |> AstResult.collectA
+            |> GslResult.collectA
 
-        AstResult.map3 (fun basePart modifiers pragmas ->
+        GslResult.map3 (fun basePart modifiers pragmas ->
             let updatedParsePart =
                 { parsePart with
                       BasePart = basePart
@@ -484,15 +485,15 @@ module FoldMap =
 
         let updatedLocus =
             level2Expression.Locus
-            |> AstResult.optionalResult (foldDropState state parameters)
+            |> GslResult.optionalResult (foldDropState state parameters)
 
         let updatedParts =
             level2Expression.Parts
             |> List.map (foldDropState state parameters)
-            |> AstResult.collectA
+            |> GslResult.collectA
 
         (updatedLocus, updatedParts)
-        ||> AstResult.map2 (fun locus parts ->
+        ||> GslResult.map2 (fun locus parts ->
                 let updatedExpression =
                     { level2Expression with
                           Locus = locus
@@ -523,8 +524,8 @@ module FoldMap =
         // merge the new line results into one result
         newLineResults
         |> List.rev
-        |> AstResult.collectA
-        >>= fun newLines -> AstResult.ok (Block({ blockWrapper with Value = newLines }))
+        |> GslResult.collectA
+        >>= fun newLines -> GslResult.ok (Block({ blockWrapper with Value = newLines }))
 
 
     /// Performs processing of each node in a block in parallel, with the same semantics as serial.
@@ -562,8 +563,8 @@ module FoldMap =
         |> PSeq.map (fun (inputState, n) -> loop inputState n parameters |> snd)
         |> PSeq.withDegreeOfParallelism useNCores
         |> PSeq.toList
-        |> AstResult.collectA
-        >>= fun newLines -> AstResult.ok (Block({ blockWrapper with Value = newLines }))
+        |> GslResult.collectA
+        >>= fun newLines -> GslResult.ok (Block({ blockWrapper with Value = newLines }))
     /// Recursive into the children of a node.
     and private transformChildren (state: 'State)
                                   (parameters: FoldMapParameters<'State>)
@@ -571,7 +572,7 @@ module FoldMap =
                                   : AstResult<AstNode> =
         // recurse into children of the revised node
         match node with
-        | Leaf leaf -> AstResult.ok leaf // leaf nodes need no recursion
+        | Leaf leaf -> GslResult.ok leaf // leaf nodes need no recursion
         | VariableBinding variableBindingWrapper ->
             (foldDropState state parameters variableBindingWrapper.Value.Value)
             >>= fun newInner ->
@@ -582,7 +583,7 @@ module FoldMap =
                     VariableBinding
                         { variableBindingWrapper with
                               Value = updatedWrapper }
-                    |> AstResult.ok
+                    |> GslResult.ok
         | TypedValue typedValueWrapper ->
             let gslType, typedValue = typedValueWrapper.Value
 
@@ -591,7 +592,7 @@ module FoldMap =
                     TypedValue
                         { typedValueWrapper with
                               Value = (gslType, newInner) }
-                    |> AstResult.ok
+                    |> GslResult.ok
 
         | BinaryOperation bindaryOperationWrapper ->
             let newLeft =
@@ -601,7 +602,7 @@ module FoldMap =
                 foldDropState state parameters bindaryOperationWrapper.Value.Right
 
             (newLeft, newRight)
-            ||> AstResult.map2 (fun newLeft newRight ->
+            ||> GslResult.map2 (fun newLeft newRight ->
                     let updatedWrapper =
                         { bindaryOperationWrapper.Value with
                               Left = newLeft
@@ -613,7 +614,7 @@ module FoldMap =
 
         | Negation negationWrapper ->
             foldDropState state parameters negationWrapper.Value
-            >>= fun node -> AstResult.ok (Negation({ negationWrapper with Value = node }))
+            >>= fun node -> GslResult.ok (Negation({ negationWrapper with Value = node }))
         // Slicing
         | ParseRelPos relativePositionWrapper ->
             foldDropState state parameters relativePositionWrapper.Value.Item
@@ -625,7 +626,7 @@ module FoldMap =
                     ParseRelPos
                         { relativePositionWrapper with
                               Value = updatedWrapper }
-                    |> AstResult.ok
+                    |> GslResult.ok
         | Slice sliceWrapper ->
             let newLeft =
                 foldDropState state parameters sliceWrapper.Value.Left
@@ -634,7 +635,7 @@ module FoldMap =
                 foldDropState state parameters sliceWrapper.Value.Right
 
             (newLeft, newRight)
-            ||> AstResult.map2 (fun newLeft newRight ->
+            ||> GslResult.map2 (fun newLeft newRight ->
                     let updatedWrapper =
                         { sliceWrapper.Value with
                               Left = newLeft
@@ -652,7 +653,7 @@ module FoldMap =
                 foldDropState state parameters level2Wrapper.Value.Target
 
             (newPromoter, newTarget)
-            ||> AstResult.map2 (fun newPromoter newTarget ->
+            ||> GslResult.map2 (fun newPromoter newTarget ->
                     let updatedWrapperValue =
                         { level2Wrapper.Value with
                               Promoter = newPromoter
@@ -665,14 +666,14 @@ module FoldMap =
         | ParsePragma pragmaWrapper ->
             pragmaWrapper.Value.Values
             |> List.map (foldDropState state parameters)
-            |> AstResult.collectA
+            |> GslResult.collectA
             >>= fun newVals ->
                     let updated =
                         { pragmaWrapper.Value with
                               Values = newVals }
 
                     ParsePragma { pragmaWrapper with Value = updated }
-                    |> AstResult.ok
+                    |> GslResult.ok
         | Block blockWrapper ->
             match parameters.Mode with
             | Parallel -> processBlockParallel state parameters blockWrapper
@@ -688,10 +689,10 @@ module FoldMap =
                     FunctionDef
                         { functionDefinitionWrapper with
                               Value = updated }
-                    |> AstResult.ok
+                    |> GslResult.ok
         | FunctionCall functionCallWrapper ->
-            AstResult.collectA (List.map (foldDropState state parameters) functionCallWrapper.Value.Arguments)
-            |> AstResult.map (fun newArgs ->
+            GslResult.collectA (List.map (foldDropState state parameters) functionCallWrapper.Value.Arguments)
+            |> GslResult.map (fun newArgs ->
                 let updated =
                     { functionCallWrapper.Value with
                           Arguments = newArgs }
@@ -700,8 +701,8 @@ module FoldMap =
                     { functionCallWrapper with
                           Value = updated })
         | Assembly assemblyWrapper ->
-            AstResult.collectA (List.map (foldDropState state parameters) assemblyWrapper.Value)
-            |> AstResult.map (fun newParts ->
+            GslResult.collectA (List.map (foldDropState state parameters) assemblyWrapper.Value)
+            |> GslResult.map (fun newParts ->
                 Assembly
                     { assemblyWrapper with
                           Value = newParts })
@@ -730,7 +731,7 @@ module FoldMap =
         let _, newTree =
             loop initialState tree.wrappedNode parameters
 
-        newTree |> AstResult.map AstTreeHead
+        newTree |> GslResult.map AstTreeHead
 
     ///<summary>
     /// Produce a new AST by recursively applying a function to every node in the tree.
@@ -755,7 +756,7 @@ type ValidationResult = AstResult<unit>
 
 module Validation =
     /// Validation success with no warning.
-    let good: ValidationResult = AstResult.ok ()
+    let good: ValidationResult = GslResult.ok ()
 
 
     /// Map a validation function over the tree.
@@ -766,6 +767,6 @@ module Validation =
     let validate (f: AstNode -> ValidationResult) tree =
         // we can express this operation using map and by doctoring the inputs and outputs.
         // map requires a function that produces a transformation result.
-        let fPassThru (node: AstNode) = f node |> AstResult.map (fun _ -> node) // splice the node into successful validation result which is always ()
+        let fPassThru (node: AstNode) = f node |> GslResult.map (fun _ -> node) // splice the node into successful validation result which is always ()
 
         FoldMap.map Serial TopDown fPassThru tree
