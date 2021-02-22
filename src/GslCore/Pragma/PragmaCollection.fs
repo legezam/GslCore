@@ -1,7 +1,7 @@
 namespace GslCore.Pragma
 
 open System
-open Amyris.ErrorHandling
+open FsToolkit.ErrorHandling
 open GslCore.Pragma
 
 // ===========================
@@ -46,8 +46,8 @@ module PragmaCollection =
 
                     match existing.Definition
                           |> Pragma.fromDefinition newArgs with
-                    | Ok (newPragma, _messages) -> this.Pragmas |> Map.add pragma.Name newPragma
-                    | Bad messages -> failwithf "%s" (String.Join(";", messages))
+                    | Ok newPragma -> this.Pragmas |> Map.add pragma.Name newPragma
+                    | Error messages -> failwithf "%s" (String.Join(";", messages))
             | _ -> this.Pragmas |> Map.add pragma.Name pragma
 
         { this with Pragmas = pragmas }
@@ -139,6 +139,6 @@ module PragmaCollection =
         match maybePlatformDefinition with
         | Some platformPragma ->
             Platform.parsePlatform platformPragma.Arguments
-            |> returnOrFail
+            |> Result.valueOr failwith
         | None -> Megastitch
 

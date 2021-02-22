@@ -1,8 +1,9 @@
 namespace GslCore.Core.Expansion
 
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
+
 
 
 
@@ -65,4 +66,4 @@ module BoostrapSelection =
             // this node needs to be bootstrapped, run it
             bootstrapOperation state node
         else
-            ok node
+            AstResult.ok node

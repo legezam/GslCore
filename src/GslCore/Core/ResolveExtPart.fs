@@ -1,5 +1,6 @@
 ﻿namespace GslCore.Core.ResolveExtPart
 
+open FsToolkit.ErrorHandling
 open GslCore.Core.Types
 open GslCore.Pragma
 open GslCore.Ast.LegacyParseTypes
@@ -7,7 +8,6 @@ open GslCore.Core.Ryse
 open GslCore.Core
 open GslCore.Constants
 open Amyris.Dna
-open Amyris.ErrorHandling
 
 type ExtFetchSeq =
     { Id: string
@@ -127,7 +127,7 @@ module ResolveExtPart =
                         // Find the left and right hand ends of the slice
                         let x, y =
                             getBoundsFromSlice finalSlice dna.Length (Library(partId.id))
-                            |> returnOrFail
+                            |> Result.valueOr failwith
 
                         let finalDNA =
                             dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]
@@ -210,7 +210,7 @@ module ResolveExtPart =
 
         match legalPartPrefix pid with
         | None ->
-            fail
+            Error
                 (sprintf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid)
         | Some (partSpace, _) ->
             match partSpace with
@@ -227,18 +227,18 @@ module ResolveExtPart =
                     let dna =
                         Dna(rabit.DnaElementSpecs.[0].DnaSequence)
 
-                    ok
-                        ({ Dna = dna
-                           Source = "hutch"
-                           Id = pid
-                           Name = rabit.Name })
+                    Ok
+                        { Dna = dna
+                          Source = "hutch"
+                          Id = pid
+                          Name = rabit.Name }
                 else
                     // Part is in the library
-                    ok
-                        ({ Dna = library.[libName]
-                           Source = "library"
-                           Id = pid
-                           Name = libName })
+                    Ok
+                        { Dna = library.[libName]
+                          Source = "library"
+                          Id = pid
+                          Name = libName }
             | x -> failwithf "ERROR: unimplemented external partSpace %s\n" x
 
     let getExtPartSlice (verbose: bool) (partId: PartIdLegacy) =
@@ -314,7 +314,7 @@ module ResolveExtPart =
             // Find the left and right hand ends of the slice
             let x, y =
                 getBoundsFromSlice finalSlice extPart.Dna.Length (Library(extPart.Id))
-                |> returnOrFail
+                |> Result.valueOr failwith
 
             let finalDNA =
                 extPart.Dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]

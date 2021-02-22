@@ -1,6 +1,6 @@
 namespace GslCore.Reference
 open System
-open Amyris.ErrorHandling
+
 open GslCore.Constants
 open GslCore.Pragma
 
@@ -27,9 +27,9 @@ module GenomeDefinitions =
 
 
         match genomeDefinitions |> Map.tryFind refGenomeName with
-        | Some genomeDef -> ok genomeDef
+        | Some genomeDef -> Ok genomeDef
         | None when refGenomeName = Default.RefGenome ->
-            fail
+            Error
                 (sprintf
                     "ERROR: unable to load default genome '%s' <currently loaded: %s>"
                      Default.RefGenome
@@ -37,7 +37,7 @@ module GenomeDefinitions =
                       then "none"
                       else String.Join(",", [ for k in genomeDefinitions -> k.Key ])))
         | _ ->
-            fail
+            Error
                 (sprintf "ERROR: no such refgenome '%s', options are\n%s" refGenomeName
                      (String.Join("\n", seq { for k in genomeDefinitions -> sprintf "    '%s'" k.Key })))
 

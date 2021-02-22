@@ -2,12 +2,12 @@
 module GslCore.Plugin.TaggingPlugin
 
 open System
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Types
 open GslCore.Core.CommandConfig
 open GslCore.Pragma
 open GslCore.Core.PluginTypes
-open Amyris.ErrorHandling
 
 let taggingArg =
     { Name = "tag"
@@ -19,17 +19,17 @@ let parseTag (single: string) state =
     match single.IndexOf(":") with
     | -1 -> fail (sprintf "--tag value %s missing expected colon" single)
     | colonPosition ->
-        ok
+        AstResult.ok
             ({ nameSpace = single.[..colonPosition - 1].Trim()
                tag = single.[colonPosition + 1..].Trim() }
              :: state)
 
 let parseTags (args: string list) =
     args
-    |> List.fold (fun (state: Result<_, _>) (arg: string) -> state >>= (parseTag arg)) (ok [])
+    |> List.fold (fun (state: Result<_, _>) (arg: string) -> state >>= (parseTag arg)) (AstResult.ok [])
 
 /// do a trial parse and return ok unit if successful
-let validateTag args = parseTags args >>= (fun _ -> ok ())
+let validateTag args = parseTags args >>= (fun _ -> AstResult.ok ())
 
 let tagPragmaDef =
     { Name = "tag"

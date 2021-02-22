@@ -2,6 +2,7 @@
 module GslCore.GslcProcess
 
 open System
+open GslCore.Ast.ErrorHandling
 open Amyris.Bio
 open GslCore.Constants
 open GslCore.Core
@@ -14,7 +15,6 @@ open GslCore.Primer
 open GslCore.ProcessCmdLineArgs
 open GslCore.Core.PluginTypes
 open GslCore.Ast
-open Amyris.ErrorHandling
 
 /// Run GSLC on string input.
 let rec processGSL (s: ConfigurationState) gslText =
@@ -84,12 +84,13 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
     then printf "Processing %d assemblies\n" (Seq.length assem)
 
     assem
-    |> Seq.mapi (fun i a ->
+    |> Seq.mapi (fun index dnaAssembly ->
         try
-            expandAssembly opts.Verbose markerProviders rgs library i a
-            |> ok
-        with e -> fail (AssemblyTransformationMessage.exceptionToAssemblyMessage a e))
-    |> collect
+            expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
+            |> AstResult.ok
+        with ex ->
+            AstResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
+    |> AstResult.collectA
     >>= (fun assemblies ->
 
         if opts.Verbose then

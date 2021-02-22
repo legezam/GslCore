@@ -9,18 +9,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
   </PropertyGroup>
-  <!--  Don't know how to do this for new sdk style project files
-        Run manually as (remove space from - - )
-        ../../packages/FsLexYacc/build/fsyacc.exe - - module GslParser GslParser.fsy
-        <FsLexYacc Include="GslParser.fsy"> </FsLexYacc>
-  -->
   <ItemGroup>
-    <PropertyGroup >
-      <DefineConstants>TRACE</DefineConstants>
-      <PlatformTarget>AnyCPU</PlatformTarget>
-      <OtherFlags>--sig:test.fsi</OtherFlags>
-    </PropertyGroup>
     <None Include="paket.template"/>
+    <None Include="paket.references" />
     <Compile Include="AssemblyInfo.fs" />
 
     <Compile Include="Constants.fs" />

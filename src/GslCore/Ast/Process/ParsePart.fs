@@ -1,6 +1,7 @@
 module GslCore.Ast.Process.ParsePart
 
-open Amyris.ErrorHandling
+
+open System
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Pragma
@@ -11,31 +12,30 @@ open GslCore.Pragma
 
 /// Get a part's list of built pragmas, represented as a PragmaCollection.
 /// This function will fail if it finds unbuilt pragmas.
-let getPragmasStrict (part: Node<ParsePart>): Result<PragmaCollection, AstMessage> =
-    let getBuiltPragma (node: AstNode) =
+let getPragmasStrict (part: Node<ParsePart>): AstResult<PragmaCollection> =
+    let getBuiltPragma (node: AstNode): AstResult<Pragma> =
         match node with
-        | Pragma pragmaWrapper -> ok (pragmaWrapper.Value)
-        | ParsePragma parsePragmaWrapper -> AstMessage.unbuiltPragmaError None parsePragmaWrapper.Value.Name node
-        | x -> AstMessage.internalTypeMismatch None "Pragma" x
+        | Pragma pragmaWrapper -> AstResult.ok pragmaWrapper.Value
+        | ParsePragma parsePragmaWrapper -> AstResult.unbuiltPragmaError None parsePragmaWrapper.Value.Name node
+        | x -> AstResult.internalTypeMismatch None "Pragma" x
 
     part.Value.Pragmas
     |> List.map getBuiltPragma
-    |> collect
-    >>= (fun pragmas ->
+    |> AstResult.collectA
+    |> AstResult.map (fun pragmas ->
         PragmaCollection.empty
-        |> PragmaCollection.mergeInPragmas pragmas
-        |> ok)
+        |> PragmaCollection.mergeInPragmas pragmas)
 
 /// Get a part's list of built pragmas, represented as a PragmaCollection.
 /// Raises an exception if pragmas are not built.
 let getPragmas (part: Node<ParsePart>): PragmaCollection =
-    match getPragmasStrict part with
-    | Ok (pc, _) -> pc
-    | Bad (errs) ->
+    match getPragmasStrict part |> AstResult.GetValue with
+    | Ok success -> success.Result
+    | Result.Error err ->
         failwith
-            (errs
+            (err
              |> List.map (fun m -> m.Summary)
-             |> String.concat "\n")
+             |> String.concat Environment.NewLine)
 
 ///<summary>
 /// Replace a part's pragmas with a converted version of a pragma collection.
@@ -56,7 +56,7 @@ let replacePragmas (part: Node<ParsePart>) (pragmaCollection: PragmaCollection):
 
 /// Merge a pragma collection into a part, clobbering existing pragmas.
 /// Add a warning if there are any collisions.
-let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollection): Result<Node<ParsePart>, AstMessage> =
+let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollection): AstResult<Node<ParsePart>> =
     getPragmasStrict parsePart
     >>= (fun partPragmas ->
         let namesFromPragmaCollection =
@@ -75,11 +75,11 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
             replacePragmas parsePart mergedPragmas
 
         if collidingPragmas |> Set.isEmpty then
-            ok newPart
+            AstResult.ok newPart
         else
             let warning =
                 AstMessage.createWarning
                     (sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", "))
                     (Part(parsePart))
 
-            warn warning newPart)
+            AstResult.warn warning newPart)

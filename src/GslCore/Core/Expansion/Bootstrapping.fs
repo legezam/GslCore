@@ -5,7 +5,6 @@ open GslCore.Ast.Types
 open GslCore.Ast
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
 open GslCore.Ast.Process
 open GslCore.Ast.LegacyParseTypes
 
@@ -22,7 +21,7 @@ let bootstrapError expectedType note tree =
     let msg =
         sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
 
-    AstMessage.createError (BootstrapError(Some(tree))) msg tree
+    AstResult.errString (BootstrapError(Some(tree))) msg tree
 
 /// Bootstrapped expansion phases don't have meaningful source positions as a result of expansion.
 /// Instead, replace all of the positions with one provided from the external context to at least
@@ -67,11 +66,11 @@ let private replaceSourcePosition pos node =
 /// Replace all source positions in a bootstrapped expanded tree with the position of the node
 /// that was expanded into source.
 let private replaceSourcePositions pos =
-    FoldMap.map Serial TopDown (promote (replaceSourcePosition pos))
+    FoldMap.map Serial TopDown (AstResult.promote (replaceSourcePosition pos))
 
 /// If any messages emanated from a bootstrapped parsing, replace their positions with the input position.
 let private replaceMessagePositions pos =
-    mapMessages (fun (msg: AstMessage) -> { msg with SourcePosition = pos })
+    AstResult.mapMessages (fun (msg: AstMessage) -> { msg with SourcePosition = pos })
 
 ///<summary>
 /// Later phases of the compiler currently output literal source code which is parsed again.
@@ -84,14 +83,14 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
     /// Unpack a bootstrapped AST to a block or fail.
     let asBlock tree =
         match tree with
-        | AstTreeHead (Block (nw)) -> ok (Splice(Array.ofList nw.Value))
+        | AstTreeHead (Block (nw)) -> AstResult.ok (Splice(Array.ofList nw.Value))
         | AstTreeHead (node) -> bootstrapError "Block" None node
 
     let contextMsg =
         sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
 
     LexAndParse.lexAndParse false source
-    |> addContextIfError
+    |> AstResult.appendMessageToError
         (AstMessage.createErrorWithStackTrace
             (InternalError(ParserError))
              contextMsg
@@ -106,7 +105,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult) (source:
 /// top-level block.
 let bootstrapPhase1 (parameters: Phase1Parameters) originalPosition =
     bootstrap originalPosition (Phase1.phase1 parameters)
-    
+
 
 // =================
 // splicing bootstraps back into the tree
@@ -145,7 +144,7 @@ let private healSplice node =
 
 /// Explode all Splices into their enclosing context.
 let healSplices =
-    FoldMap.map Serial TopDown (promote healSplice)
+    FoldMap.map Serial TopDown (AstResult.promote healSplice)
 
 
 // ==================================
@@ -162,16 +161,19 @@ let bootstrapExpandLegacyAssembly errorMsgType
                                   node
                                   : NodeTransformResult =
     /// Perform the expansion operation, capturing any exception as an error.
-    let expandCaptureException =
-        expansionFunction
-        |> captureException (AstMessage.exceptionToError errorMsgType node)
+    let expandCaptureException assembly =
+        try
+            expansionFunction assembly |> AstResult.ok
+        with e ->
+            AstResult.exceptionToError errorMsgType node e
+            |> AstResult.err
 
     match node with
     | AssemblyPart (apUnpack) ->
         convertAssembly assemblyConversionContext apUnpack
         >>= expandCaptureException
         >>= (bootstrapOperation ((fst apUnpack).Positions))
-    | _ -> ok node
+    | _ -> AstResult.ok node
 
 /// Execute a complete bootstrapped expansion on an AST.
 /// Runs foldmap on the provided expansion function, followed by
@@ -191,4 +193,3 @@ let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
         tree
     >>= healSplices // heal the splices
     >>= AssemblyStuffing.stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
-    

@@ -6,7 +6,6 @@ open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 open GslCore.Core.Expansion
 open GslCore.Pragma
@@ -112,9 +111,9 @@ let validateNoAssemblyInL2Promoter (node: AstNode) =
     | L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
         match e.Value.Promoter with
-        | AssemblyPart a -> AstMessage.createError L2ExpansionError "Unsupported use of an Assembly." node
+        | AssemblyPart _ -> AstResult.errString L2ExpansionError "Unsupported use of an Assembly." node
         | RecursivePart _ ->
-            AstMessage.createError
+            AstResult.errString
                 (InternalError L2ExpansionError)
                 "Unexpected recursive part definition in L2 promoter position."
                 node
@@ -126,16 +125,18 @@ let expandLevel2 (parameters: Phase1Parameters) (providers: L2Provider list) (rg
 
     let bootstrapExpandL2Expression pragmaContext node =
         /// Perform the expansion operation, capturing any exception as an error.
-        let expandCaptureException =
-            expandL2Expression providers rgs
-            |> captureException (AstMessage.exceptionToError L2ExpansionError node)
+        let expandCaptureException construct =
+            try
+                expandL2Expression providers rgs construct |> AstResult.ok
+            with e ->
+                AstResult.exceptionToError L2ExpansionError node e |> AstResult.err
 
         match node with
         | L2Expression (l2e) ->
             convertL2Line pragmaContext l2e
             >>= expandCaptureException
             >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions)
-        | _ -> ok node
+        | _ -> AstResult.ok node
 
     let foldmapParameters =
         { FoldMapParameters.Direction = TopDown

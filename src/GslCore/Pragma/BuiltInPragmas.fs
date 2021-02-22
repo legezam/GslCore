@@ -1,33 +1,36 @@
 namespace GslCore.Pragma
 
 open System
+open FsToolkit.ErrorHandling
 open GslCore.PcrParamParse
-open Amyris.ErrorHandling
+
 
 module Parse =
     // Helper functions for generic validation of simple parameters.
-    let parseNumber parseFunc kind (args: string list) =
+    let parseNumber parseFunc kind (args: string list): Result<unit, string> =
         match args with
         | [ i ] ->
             match parseFunc i with
-            | true, _ -> ok ()
-            | false, _ -> fail (sprintf "Could not parse %s as an %s." i kind)
+            | true, _ -> Ok ()
+            | false, _ -> Error (sprintf "Could not parse %s as an %s." i kind)
         // We shouldn't ever hit this clause as we should have already blown up with
         // a different error.
-        | x -> fail (sprintf "parse number expected one argument but got %d" x.Length)
+        | x -> Error (sprintf "parse number expected one argument but got %d" x.Length)
 
     let parseInt = parseNumber (Int64.TryParse) "int"
     let parseDouble = parseNumber (Double.TryParse) "float"
 
 module Validation =
     /// Pass-through placeholder validator.
-    let noValidate _ = ok ()
+    let noValidate _ = Ok ()
 
     let validatePcrParams (args: string list) =
         args
         |> Seq.map PcrParameterParser.parseArg
-        |> Seq.map (lift ignore)
-        |> collectValidations
+        |> Seq.map (Result.map ignore)
+        |> Seq.toList
+        |> List.sequenceResultA
+        |> Result.ignore
 
 type Platform =
     | Stitch
@@ -38,12 +41,12 @@ module Platform =
         function
         | [ singleItem ] ->
             match singleItem with
-            | "stitch" -> ok Stitch
-            | "megastitch" -> ok Megastitch
-            | _ -> fail (sprintf "Invalid platform '%s'.  Options are 'stitch' and 'megastitch'." singleItem)
+            | "stitch" -> Ok Stitch
+            | "megastitch" -> Ok Megastitch
+            | _ -> Error (sprintf "Invalid platform '%s'.  Options are 'stitch' and 'megastitch'." singleItem)
         // We shouldn't ever hit this clause as we should have already blown up with
         // a different error.
-        | x -> fail (sprintf "platform expected one argument but got %d" x.Length)
+        | x -> Error (sprintf "platform expected one argument but got %d" x.Length)
 
 /// Represents topology information about constructs
 type Topology =
@@ -64,10 +67,10 @@ module Topology =
         function
         | [ arg ] ->
             match arg with
-            | LinearValue -> ok Linear
-            | CircularValue -> ok Circular
-            | _ -> fail (sprintf "Invalid topology '%s'.  Options are 'linear' and 'circular'." arg)
-        | x -> fail (sprintf "topology expected one argument but got %d" x.Length)
+            | LinearValue -> Ok Linear
+            | CircularValue -> Ok Circular
+            | _ -> Error (sprintf "Invalid topology '%s'.  Options are 'linear' and 'circular'." arg)
+        | x -> Error (sprintf "topology expected one argument but got %d" x.Length)
 
     let toString: Topology -> string =
         function
@@ -106,7 +109,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Specify an assembly platform to target, current options: 'stitch', 'megastitch'."
           InvertsTo = None
-          Validate = Platform.parsePlatform >> (lift ignore) }
+          Validate = Platform.parsePlatform >> (Result.map ignore) }
 
     let markersetPragmaDef =
         { PragmaDefinition.Name = "markerset"
@@ -146,7 +149,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "The design has either linear or circular topology"
           InvertsTo = None
-          Validate = Topology.parse >> (lift ignore) }
+          Validate = Topology.parse >> (Result.map ignore) }
 
     let linkersPragmaDef =
         { PragmaDefinition.Name = "linkers"
@@ -238,7 +241,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Set various parts of PCR conditions."
           InvertsTo = None
-          Validate = Validation.validatePcrParams }
+          Validate = Validation.validatePcrParams >> Result.mapError (String.concat Environment.NewLine) }
 
     let [<Literal>] TargetTmName = "targettm"
     let targetTmPragmaDef =
@@ -284,7 +287,7 @@ module BuiltIn =
           Scope = BlockOnly(Persistent)
           Description = "Set melting conditions for the overlap junction in a seamless design."
           InvertsTo = None
-          Validate = Validation.validatePcrParams }
+          Validate = Validation.validatePcrParams >> Result.mapError (String.concat Environment.NewLine) }
 
     let [<Literal>] MinOverlapLenName = "minoverlaplen"
     let minOverlapLenPragmaDef =

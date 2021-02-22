@@ -1,5 +1,6 @@
 namespace GslCore.Pragma
-open Amyris.ErrorHandling
+
+
 type PragmaBuilder(pragmas: Map<string, PragmaDefinition>) =
     member this.Pragmas = pragmas
     
@@ -64,4 +65,4 @@ module PragmaBuilder =
     let createPragmaFromNameValue (name: string) (values: string list) (cache: PragmaBuilder): Result<Pragma, string> =
         match cache.Pragmas |> Map.tryFind name with
         | Some definition -> definition |> Pragma.fromDefinition values
-        | None -> fail (sprintf "Unknown or invalid pragma: '#%s'" name)         
+        | None -> Error (sprintf "Unknown or invalid pragma: '#%s'" name)         

@@ -13,7 +13,6 @@ open GslCore.Core.CommandConfig
 open GslCore.Ast
 open GslCore.GslcProcess // Top-level compiler operations
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
 open GslCore.Ast.ErrorHandling
 // Helper libs for oligo design, sequence parsing all in Amyris.Bio.dll
 // These imports are only needed for the temporary primer test function below.

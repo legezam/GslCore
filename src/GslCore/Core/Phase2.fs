@@ -3,7 +3,6 @@ namespace GslCore.Core
 
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
-open Amyris.ErrorHandling
 open GslCore.Core.Expansion
 open GslCore.Core.PluginTypes
 open GslCore.Pragma
@@ -22,7 +21,7 @@ open GslCore.Reference
 /// passes.
 // FIXME: way too many arguments
 module Phase2 =
-    let phase2 (parameters: Phase2Parameters) (treeIn: AstTreeHead): Result<AstTreeHead, AstMessage> =
+    let phase2 (parameters: Phase2Parameters) (treeIn: AstTreeHead): AstResult<AstTreeHead> =
 
         let runPhase2 mode tree =
             match mode with
@@ -33,7 +32,7 @@ module Phase2 =
         let rec doPhase2 passNumber (tree: AstTreeHead) =
             match parameters.MaxPasses with
             | Some (limit) when passNumber > limit -> // if we're past a limit passed in, fail.
-                AstMessage.createErrorf
+                AstResult.errStringF
                     (InternalError(Error))
                     "Compiler phase 2 hit recursion limit of %d."
                     limit
@@ -41,12 +40,12 @@ module Phase2 =
             | _ -> // otherwise, run the expansion step
                 match BoostrapSelection.tryGetExpansionMode tree with
                 | Some mode -> runPhase2 mode tree >>= doPhase2 (passNumber + 1)
-                | None -> ok tree
+                | None -> AstResult.ok tree
 
         // if we just want to expand one step and re-emit literal source code
         if parameters.OneShot then
             match BoostrapSelection.tryGetExpansionMode treeIn with
-            | Some (mode) -> runPhase2 mode treeIn
-            | None -> ok treeIn
+            | Some mode -> runPhase2 mode treeIn
+            | None -> AstResult.ok treeIn
         else
             doPhase2 0 treeIn

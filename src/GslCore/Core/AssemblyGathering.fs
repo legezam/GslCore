@@ -1,8 +1,8 @@
 module GslCore.Core.AssemblyGathering
 
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 
 // ===============================
@@ -17,10 +17,10 @@ let private convertAndGatherAssembly (accum: ResizeArray<Assembly>) conversionCo
     match node with
     | AssemblyPart (pieces) ->
         convertAssembly conversionContext pieces
-        >>= (fun convertedAssembly ->
+        |> AstResult.map (fun convertedAssembly ->
             accum.Add(convertedAssembly)
-            ok node) // pass the node through unchanged
-    | _ -> ok node
+            node) // pass the node through unchanged
+    | _ -> AstResult.ok node
 
 /// Convert all assembly parts to legacy Assemblies, and gather them in a mutable accumulator.
 /// Return the accumulation if all conversions were successful.
@@ -34,6 +34,6 @@ let convertAndGatherAssemblies tree =
           Map = convertAndGatherAssembly accum }
 
     FoldMap.foldMap emptyConversionContext foldmapParameters tree
-    >>= (fun treeOut ->
+    |> AstResult.map (fun treeOut ->
         // if successful, return the accumulated assemblies and the tree itself
-        ok ((accum |> List.ofSeq), treeOut))
+        (accum |> List.ofSeq), treeOut)

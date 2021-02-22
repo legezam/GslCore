@@ -6,7 +6,6 @@ open GslCore.Core.Types
 open GslCore.Core.CommandConfig
 open GslCore.Core.PluginTypes
 open GslCore.Constants
-open Amyris.ErrorHandling
 open GslCore.GslcProcess
 open GslCore.Pragma
 open GslCore.Uri

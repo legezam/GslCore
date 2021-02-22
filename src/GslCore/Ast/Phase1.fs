@@ -5,7 +5,6 @@ open GslCore.Ast.Types
 open GslCore.Ast
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
 open GslCore.Pragma
 
 // ==================
@@ -19,7 +18,7 @@ let immediateValidations =
          &&& Validation.validBasePart)
 
 /// Phase 1 is everything before bioinformatics really gets involved.
-let phase1 (parameters: Phase1Parameters): AstTreeHead -> Result<AstTreeHead, AstMessage> =
+let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead> =
     Linting.linters
     >=> immediateValidations
     >=> Validation.checkRecursiveCalls

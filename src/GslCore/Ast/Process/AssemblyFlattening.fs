@@ -1,7 +1,6 @@
 module GslCore.Ast.Process.AssemblyFlattening
 
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
@@ -55,16 +54,16 @@ let private shiftOne (shiftedParts: Node<ParsePart> list, addFuse: bool)
 /// Because the internal fold naturally reverses the list, don't un-reverse it because we need
 /// to do this anyway.
 ///</summary>
-let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): Result<Node<ParsePart> list, AstMessage> =
+let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list): AstResult<Node<ParsePart> list> =
     let shiftedParts, trailingFuse = parts |> List.fold shiftOne ([], false)
 
     if trailingFuse then
-        AstMessage.createError
+        AstResult.errString
             PragmaError
             "Found a trailing #fuse in an assembly that needs to flip."
             (Part(List.head shiftedParts))
     else
-        ok shiftedParts
+        AstResult.ok shiftedParts
 
 /// Replace any pragmas that invert upon reversal with their inverted version.
 let private invertPragma (pragmaBuilder: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
@@ -87,14 +86,14 @@ let private invertPragma (pragmaBuilder: PragmaBuilder) (part: Node<ParsePart>):
 let private explodeAssembly (pragmaBuilder: PragmaBuilder)
                             (assemblyPart: Node<ParsePart>)
                             (assemblyBasePart: Node<AstNode list>)
-                            : Result<AstNode list, AstMessage> =
+                            : AstResult<AstNode list> =
     // This operation is trivial if the assembly is in the forward orientation.
     // If it needs to reverse, it is rather tedious.
     let subParts = unpackParts assemblyBasePart.Value
 
     let correctlyOrientedParts =
         if assemblyPart.Value.IsForward then
-            ok subParts
+            AstResult.ok subParts
         else
             subParts
             |> List.map (fun subPart ->
@@ -106,15 +105,15 @@ let private explodeAssembly (pragmaBuilder: PragmaBuilder)
             |> shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
     // now that the parts are correctly oriented, stuff the assembly pragmas into them
     correctlyOrientedParts
-    >>= (fun parts ->
-        parts
-        |> List.map (fun p -> ParsePart.mergePragmas p (ParsePart.getPragmas assemblyPart))
-        |> collect
-        |> lift (List.map (fun (p: Node<ParsePart>) -> Part(p))))
+    >>= fun parts ->
+            parts
+            |> List.map (fun parsePart -> ParsePart.mergePragmas parsePart (ParsePart.getPragmas assemblyPart))
+            |> AstResult.collectA
+            |> AstResult.map (List.map Part)
 
 /// Collapse a part whose base part is another part.
 // FIXME: we should probably be more careful with mods here
-let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<ParsePart>): Result<AstNode, AstMessage> =
+let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<ParsePart>): AstResult<AstNode> =
     let outerPragmas = ParsePart.getPragmas outerPart
 
     let joinedMods =
@@ -127,7 +126,7 @@ let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<
              <> outerPart.Value.IsForward) // should be rev if one or the other is rev.
 
     ParsePart.mergePragmas innerPart outerPragmas
-    >>= (fun newInner ->
+    |> AstResult.map (fun newInner ->
         let newInnerWithOuterMods =
             { newInner with
                   Value =
@@ -135,24 +134,26 @@ let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<
                             Modifiers = joinedMods
                             IsForward = newDir } }
 
-        ok (Part(newInnerWithOuterMods)))
+        Part newInnerWithOuterMods)
 
 /// Explode any nested assemblies up into the list of parts in the parent assembly.
 // TODO: need to handle mods, and allow only if contents of assembly is a single gene part.
 // should use an active pattern to match.
 // TODO: we should probably check for pragma collisions and complain about them, though this is
 // before stuffing pragmas into assemblies so it may be an edge case.
-let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): Result<AstNode, AstMessage> =
+let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): AstResult<AstNode> =
     match node with
     | AssemblyPart (assemblyPart, assemblyBasePart) ->
         // iterate over the parts in the assembly, accumulating lists of parts we will concatenate
         assemblyBasePart.Value
         |> Seq.map (fun part ->
             match part with
-            | AssemblyPart (assemblyPart, assemblyBasePart) -> explodeAssembly parameters.PragmaBuilder assemblyPart assemblyBasePart
-            | x -> ok [ x ])
-        |> collect
-        |> lift (fun partLists ->
+            | AssemblyPart (assemblyPart, assemblyBasePart) ->
+                explodeAssembly parameters.PragmaBuilder assemblyPart assemblyBasePart
+            | x -> AstResult.ok [ x ])
+        |> Seq.toList
+        |> AstResult.collectA
+        |> AstResult.map (fun partLists ->
             let newBasePart =
                 Assembly
                     ({ assemblyBasePart with
@@ -166,7 +167,7 @@ let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): Resu
     | RecursivePart (outer, inner) ->
         // flatten parts that have another part as their base part due to using a single-part variable in an assembly
         collapseRecursivePart outer inner
-    | _ -> ok node
+    | _ -> AstResult.ok node
 
 /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
 let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =

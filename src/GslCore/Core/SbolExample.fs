@@ -1,7 +1,7 @@
 ﻿namespace GslCore.Core.Sbol
 
 open Amyris.Dna
-open Amyris.ErrorHandling
+open FsToolkit.ErrorHandling
 open GslCore.Uri
 
 type SBOLProvider =
@@ -363,11 +363,11 @@ module Gbom =
 module Uris =
     let roleUriBase =
         Uri.addNamespaces Uri.AmyrisUriBase [ "Role" ]
-        |> returnOrFail
+        |> Result.valueOr failwith
 
     let addTermToNamespaceStatic ns term =
         Uri.addTermToNamespace ns term
-        |> returnOrFail
+        |> Result.valueOr failwith
 
     // --- static URI definitions ---
     let ryseLinkerRoleUri =
@@ -417,8 +417,8 @@ module Uris =
 
     let rabitBreedUriBase =
         Uri.addNamespaces roleUriBase [ "RabitBreed" ]
-        |> returnOrFail
+        |> Result.valueOr failwith
 
     let rabitBreedRole breed =
         Uri.addTermToNamespace rabitBreedUriBase breed
-        |> returnOrFail
+        |> Result.valueOr failwith

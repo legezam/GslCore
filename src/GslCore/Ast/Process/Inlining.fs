@@ -1,7 +1,6 @@
 namespace GslCore.Ast.Process
 
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
@@ -58,22 +57,22 @@ module Inlining =
     let private checkArgs (parseFunction: ParseFunction)
                           (functionCall: FunctionCall)
                           (functionCallNode: AstNode)
-                          : Result<ParseFunction * FunctionCall, AstMessage> =
+                          : AstResult<ParseFunction * FunctionCall> =
         let neededArgs, passedArgs =
             parseFunction.ArgumentNames.Length, functionCall.Arguments.Length
         // make sure we have the right number of arguments
         if passedArgs <> neededArgs then
-            AstMessage.createError
+            AstResult.errString
                 TypeError
                 (sprintf "Function '%s' expects %d arguments but received %d." functionCall.Name neededArgs passedArgs)
                 functionCallNode
         else
-            ok (parseFunction, functionCall)
+            AstResult.ok (parseFunction, functionCall)
 
     /// Create a local variable from a typed value.
     let private localVarFromTypedValueAndName (variableBindings: VariableBindings)
                                               (name: string, node: AstNode)
-                                              : Result<AstNode, AstMessage> =
+                                              : AstResult<AstNode> =
         match node with
         | TypedValue typedValueWrapper ->
             let (varType, typedValue) = typedValueWrapper.Value
@@ -81,22 +80,21 @@ module Inlining =
             // this ensures that function locals never resolve to each other.
             AstTreeHead(typedValue)
             |> FoldMap.map Serial TopDown (VariableResolution.resolveVariable Strict variableBindings)
-            >>= (fun (AstTreeHead newVal) ->
-                ok
-                    (VariableBinding
-                        ({ Value =
-                               { Name = name
-                                 Type = varType
-                                 Value = newVal }
-                           Positions = typedValueWrapper.Positions })))
-        | x -> AstMessage.internalTypeMismatch (Some "function call") "typed value" x
+            |> AstResult.map (fun (AstTreeHead newVal) ->
+                VariableBinding
+                    { Value =
+                          { Name = name
+                            Type = varType
+                            Value = newVal }
+                      Positions = typedValueWrapper.Positions })
+        | x -> AstResult.internalTypeMismatch (Some "function call") "typed value" x
 
 
     /// Inline the passed function args in place of the FunctionLocals placeholder.
     /// Return a revised block.
     let private inlinePassedArgs (variableBindings: VariableBindings)
                                  (parseFunction: ParseFunction, functionCall: FunctionCall)
-                                 : Result<AstNode, AstMessage> =
+                                 : AstResult<AstNode> =
         match parseFunction.Body with
         | Block blockWrapper ->
             match blockWrapper.Value with
@@ -108,23 +106,23 @@ module Inlining =
                                  | _ -> false) ->
                 Seq.zip parseFunction.ArgumentNames functionCall.Arguments // zip up the args with the arg names
                 |> Seq.map (localVarFromTypedValueAndName variableBindings) // map them to local variables
-                |> collect
+                |> Seq.toList
+                |> AstResult.collectA
                 // if unpacking and conversion succeeded, make a new block with the
                 // variable declarations followed by the rest of the block
-                >>= fun variableBindings ->
-                        ok
-                            (Block
-                                ({ blockWrapper with
-                                       Value = variableBindings @ tail }))
+                |> AstResult.map (fun variableBindings ->
+                    Block
+                        { blockWrapper with
+                              Value = variableBindings @ tail })
             | _ ->
-                AstMessage.createError
+                AstResult.errString
                     (InternalError(TypeError))
                     "No function locals node found in function defintion block."
                     parseFunction.Body
-        | x -> AstMessage.internalTypeMismatch (Some "function body") "Block" x
+        | x -> AstResult.internalTypeMismatch (Some "function body") "Block" x
 
     /// Replace a function call with the contents of a function definition.
-    let private inlineFunctionCall (state: FunctionInliningState) (node: AstNode): Result<AstNode, AstMessage> =
+    let private inlineFunctionCall (state: FunctionInliningState) (node: AstNode): AstResult<AstNode> =
         match node with
         | FunctionCall functionCallWrapper when state.Depth = 0 -> // only do inlining if we're not inside a def
             let functionCall = functionCallWrapper.Value
@@ -133,18 +131,18 @@ module Inlining =
             | Some functionDefinition ->
                 // Helper function to add new position to an AST node
                 let addPositions (node: AstNode) =
-                    ok (Utils.prependPositionsAstNode functionCallWrapper.Positions node)
+                    AstResult.ok (Utils.prependPositionsAstNode functionCallWrapper.Positions node)
 
                 // inline the args into the function call block
                 // this new block replaces the function call
                 checkArgs functionDefinition functionCall node
                 >>= inlinePassedArgs state.Variables
-                |> lift AstTreeHead // needed to adapt to the map function
+                |> AstResult.map AstTreeHead // needed to adapt to the map function
                 >>= FoldMap.map Serial TopDown addPositions
-                |> lift (fun treeHead -> treeHead.wrappedNode)
+                |> AstResult.map (fun treeHead -> treeHead.wrappedNode)
 
-            | None -> AstMessage.createError UnresolvedFunction functionCall.Name node
-        | _ -> ok node
+            | None -> AstResult.errString UnresolvedFunction functionCall.Name node
+        | _ -> AstResult.ok node
 
     let inlineFunctionCalls =
         let foldMapParameters =

@@ -3,7 +3,6 @@ module GslCore.AstAssertions
 
 open System
 open NUnit.Framework
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms

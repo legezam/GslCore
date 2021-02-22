@@ -1,7 +1,6 @@
 ﻿/// Definitions of plug-in types and interfaces.
 namespace GslCore.Core.PluginTypes
 
-open Amyris.ErrorHandling
 open GslCore.Core.Types
 open GslCore.Core.CommandConfig
 open Amyris.Bio
@@ -191,7 +190,7 @@ type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
 module AssemblyTransformationMessage =
     /// Convert an exception during assembly transformation into a message.
     let exceptionToAssemblyMessage assembly (exc: System.Exception) =
-        { Message = exc.Message
+        { AssemblyTransformationMessage.Message = exc.Message
           Kind = ATError
           Assembly = assembly
           StackTrace = Some(System.Diagnostics.StackTrace(exc))

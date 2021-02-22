@@ -1,13 +1,13 @@
 ﻿namespace GslCore.Core.Types
 
 open System
+open FsToolkit.ErrorHandling
 open GslCore.Pragma
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.Uri
 open GslCore.Ast.LegacyParseTypes
 open Amyris.Dna
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 
 type SequenceLibrary = Map<string, Dna>
@@ -134,7 +134,8 @@ type OrfAnnotation =
     /// Return a sequence of the starting indices of every complete codon described by this annotation.
     /// If the Orf is fwd, these will be in increasing order; if rev, decreasing order.
     member x.CompleteCodonIndices() =
-        let left, right = ZeroOffset.toInt x.Left, ZeroOffset.toInt x.Right
+        let left, right =
+            ZeroOffset.toInt x.Left, ZeroOffset.toInt x.Right
         // the number of bases we need to move inwards from the edge to find the start of the first codon
         let alleleOffset =
             match x.FrameOffset with
@@ -164,14 +165,16 @@ module OrfAnnotation =
     let orfAnnotationFromSlice (slice: Slice) (orfLen: int) fwd context =
         let sliceStart, sliceEnd =
             getBoundsFromSlice slice orfLen context
-            |> returnOrFail
+            |> Result.valueOr failwith
             |> (fun (l, r) -> OneOffset.toZero l, OneOffset.toZero r)
 
         // compute the actual length of the slice
-        let sliceLen = ZeroOffset.toInt (sliceEnd - sliceStart) + 1
+        let sliceLen =
+            ZeroOffset.toInt (sliceEnd - sliceStart) + 1
 
         // based on the gene-relative slice coordinates, determine the frame offset of this ORF.
-        let frameOffset = OrfOffset.orfOffsetFromAlleleOffset sliceStart
+        let frameOffset =
+            OrfOffset.orfOffsetFromAlleleOffset sliceStart
 
         // if left is less than 0, then the ORF starts at a positive offset
         // these coordinates are now relative to the materialized DNA slice

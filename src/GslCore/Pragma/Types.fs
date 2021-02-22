@@ -1,6 +1,5 @@
 ﻿namespace GslCore.Pragma
 
-open Amyris.ErrorHandling
 open GslCore
 
 /// Accumulate named capabilities from #capa pragmas

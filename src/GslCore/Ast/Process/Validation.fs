@@ -1,6 +1,5 @@
 module GslCore.Ast.Process.Validation
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -14,7 +13,11 @@ open GslCore.Pragma
 /// Return an error if this node is a parse error.
 let checkParseError node =
     match node with
-    | ParseError (ew) -> AstMessage.createError ParserError ew.Value node
+    | ParseError errorWrapper ->
+        let msg =
+            AstMessage.createErrorWithStackTrace ParserError errorWrapper.Value node
+
+        AstResult.err msg
     | _ -> Validation.good
 
 // ===============
@@ -31,7 +34,7 @@ let validatePart op node =
 let private validBasePartPP pp =
     match pp.BasePart with
     | ValidBasePart _ -> Validation.good
-    | x -> AstMessage.createErrorf (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
+    | x -> AstResult.errStringF (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
 
 let validBasePart = validatePart validBasePartPP
 
@@ -41,7 +44,7 @@ let private checkModsPP pp =
         match pp.BasePart with
         | Gene _ -> Validation.good
         | PartId _ -> Validation.good
-        | x -> AstMessage.createErrorf PartError "Can only apply part mods to Gene or PartId, not %s" x.TypeName x
+        | x -> AstResult.errStringF PartError "Can only apply part mods to Gene or PartId, not %s" x.TypeName x
     else
         Validation.good
 
@@ -67,12 +70,12 @@ let private updateRecursiveCheckState mode (s: string list) node =
 let private checkRecursiveCall (s: string list) node =
     match node with
     | FunctionCall (fc) when s |> List.contains fc.Value.Name ->
-        AstMessage.createErrorf
+        AstResult.errStringF
             RecursiveFunctionCall
             "Found a recursive call to '%s'. GSL does not support recursive functions."
             fc.Value.Name
             node
-    | _ -> ok node
+    | _ -> AstResult.ok node
 
 /// Fail if a GSL program contains recursively-defined functions.
 let checkRecursiveCalls =
@@ -81,4 +84,5 @@ let checkRecursiveCalls =
           Mode = Serial
           StateUpdate = updateRecursiveCheckState
           Map = checkRecursiveCall }
+
     FoldMap.foldMap [] foldMapParameters

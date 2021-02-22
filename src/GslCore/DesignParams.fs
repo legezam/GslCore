@@ -1,7 +1,7 @@
 ﻿namespace GslCore.DesignParams
 
 open Amyris.Bio.primercore
-open Amyris.ErrorHandling
+open FsToolkit.ErrorHandling.Operator.Result
 open GslCore
 open GslCore.Pragma
 open GslCore.Constants
@@ -23,7 +23,7 @@ module DesignParams =
         arguments
         |> List.fold (fun primerParams argument ->
             primerParams
-            >>= (PcrParameterParser.parseArgUpdatePP argument)) (ok designParams)
+            >>= (PcrParameterParser.parseArgUpdatePP argument)) (Ok designParams)
 
     /// Starting design parameters for construction
     let identity =
@@ -33,40 +33,41 @@ module DesignParams =
           OverlapParams = defaultParams
           OverlapMinLength = Default.MinOverlapLength }
 
-    
+
     let updateFromPragma (pragma: Pragma) (designParams: DesignParams): Result<DesignParams, string> =
         match pragma.Name, pragma.Arguments with
         | BuiltIn.PcrParamsName, args ->
             revise designParams.PrimerParams args
-            >>= (fun primerParams -> ok { designParams with PrimerParams = primerParams })
+            |> Result.map (fun primerParams ->
+                { designParams with
+                      PrimerParams = primerParams })
         | BuiltIn.PcrAssemblyParamsName, args ->
             revise designParams.OverlapParams args
-            >>= (fun overlapParams ->
-                ok
-                    { designParams with
-                          OverlapParams = overlapParams })
+            |> Result.map (fun overlapParams ->
+                { designParams with
+                      OverlapParams = overlapParams })
         | BuiltIn.TargetTmName, head :: _ ->
-            ok
+            Ok
                 { designParams with
                       TargetTemp = Utils.strToTempC head }
         | BuiltIn.MinOverlapLenName, head :: _ ->
-            ok
+            Ok
                 { designParams with
                       OverlapMinLength = int head }
         | BuiltIn.SeamlesOverlapTmName, head :: _ ->
-            ok
+            Ok
                 { designParams with
                       SeamlessOverlapTemp = Utils.strToTempC head }
         | BuiltIn.AtPenaltyName, head :: _ ->
-            ok
+            Ok
                 { designParams with
                       PrimerParams =
                           { designParams.PrimerParams with
                                 ATPenalty = float head * 1.0<C> } }
-        | _ -> ok designParams
+        | _ -> Ok designParams
 
     /// Given a pragma environment, compute assembly physical design parameters from an existing set.
     let fromPragmas (designParams: DesignParams) (pragmaCollection: PragmaCollection): Result<DesignParams, string> =
         pragmaCollection
         |> PragmaCollection.values
-        |> Seq.fold (fun designParams pragma -> designParams >>= (updateFromPragma pragma)) (ok designParams)
+        |> Seq.fold (fun designParams pragma -> designParams >>= (updateFromPragma pragma)) (Ok designParams)

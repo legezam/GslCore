@@ -1,7 +1,7 @@
 ﻿namespace GslCore.Ast.ErrorHandling
 
 open GslCore.Ast.Types
-open Amyris.ErrorHandling
+open FsToolkit.ErrorHandling
 open FSharp.Text.Parsing
 open System.Diagnostics
 open GslCore
@@ -58,8 +58,6 @@ type AstMessage =
         | _ -> // can't do much without a position now, can we.
             sprintf "%s: %s" messageTypeName this.Message
 
-
-
 // =======================
 // helper functions for creating warnings and errors
 // =======================
@@ -79,27 +77,200 @@ module AstMessage =
     let createErrorWithStackTrace = create (Some(StackTrace()))
 
     // ------ creating error results ------
+//    type AstResult<'a> = Result<'a * (AstMessage list), AstMessage list>
+//    ///Create a error result from a string and a node.
+//    let createError msgType msg node: AstResult<'a> =
+//        let msg =
+//            createErrorWithStackTrace msgType msg node
+//
+//        Result.Error [ msg ]
+//
+//    ///Create a error result from a format string, single value, and node.
+//    let createErrorf msgType msgfmt fmtVal node =
+//        createError msgType (sprintf msgfmt fmtVal) node
 
-    ///Create a error result from a string and a node.
-    let createError msgType msg node =
-        Bad [ createErrorWithStackTrace msgType msg node ]
 
-    ///Create a error result from a format string, single value, and node.
-    let createErrorf msgType msgfmt fmtVal node =
-        createError msgType (sprintf msgfmt fmtVal) node
-
-
-    let private optionalContextStr: string option -> string =
+    let optionalContextStr: string option -> string =
         function
         | Some s -> sprintf " in %s" s
         | None -> ""
 
+
+[<Struct>]
+type Success<'a> =
+    { Result: 'a
+      Warnings: AstMessage list }
+
+module Success =
+    let combine (first: Success<'a>) (second: Success<'a>): Success<'a list> =
+        { Result = first.Result :: second.Result :: []
+          Warnings = first.Warnings @ second.Warnings }
+
+    let append (appendTo: Success<'a list>) (first: Success<'a>): Success<'a list> =
+        { Result = appendTo.Result @ [ first.Result ]
+          Warnings = first.Warnings @ appendTo.Warnings }
+
+    let create (result: 'a) =
+        { Success.Result = result
+          Warnings = [] }
+
+    let withWarning (warning: AstMessage) (this: Success<'a>) =
+        { this with
+              Warnings = this.Warnings @ [ warning ] }
+
+    let withWarnings (warning: AstMessage list) (this: Success<'a>) =
+        { this with
+              Warnings = this.Warnings @ warning }
+
+[<Struct>]
+type AstResult<'a> =
+    | AstResult of Result<Success<'a>, AstMessage list>
+    member this.Value =
+        let (AstResult value) = this
+        value
+
+    static member Create(input: Result<Success<'a>, AstMessage list>) = AstResult input
+
+    static member GetValue(this: AstResult<'a>) =
+        let (AstResult result) = this
+        result
+
+module AstResult =
+    let warn msg result: AstResult<'a> =
+        result
+        |> Success.create
+        |> Success.withWarning msg
+        |> Ok
+        |> AstResult.Create
+
+    let ok result: AstResult<'a> =
+        result |> Success.create |> Ok |> AstResult.Create
+
+    let err (msg: AstMessage): AstResult<'a> = Result.Error [ msg ] |> AstResult.Create
+
+    let errString msgType msg node: AstResult<'a> =
+        AstMessage.createErrorWithStackTrace msgType msg node
+        |> err
+
+    let errStringF msgType msgfmt fmtVal node: AstResult<'a> =
+        AstMessage.createErrorWithStackTrace msgType (sprintf msgfmt fmtVal) node
+        |> err
+
+    let collectA (results: AstResult<'a> list): AstResult<'a list> =
+        results
+        |> List.map AstResult.GetValue
+        |> List.sequenceResultA
+        |> Result.mapError (List.collect id)
+        |> Result.map (fun results ->
+            results
+            |> List.fold Success.append (Success.create []))
+        |> AstResult.Create
+
+    let collectM (results: AstResult<'a> list): AstResult<'a list> =
+        results
+        |> List.map AstResult.GetValue
+        |> List.sequenceResultM
+        |> Result.map (fun results ->
+            results
+            |> List.fold Success.append (Success.create []))
+        |> AstResult.Create
+
+    let map (op: 'a -> 'b) (result: AstResult<'a>): AstResult<'b> =
+        result
+        |> AstResult.GetValue
+        |> Result.map (fun okay ->
+            { Success.Result = op okay.Result
+              Warnings = okay.Warnings })
+        |> AstResult.Create
+
+    let bind (op: 'a -> AstResult<'b>) (result: AstResult<'a>): AstResult<'b> =
+        result
+        |> AstResult.GetValue
+        |> Result.bind (fun okay ->
+            op okay.Result
+            |> AstResult.GetValue
+            |> Result.map (fun nextOkay ->
+                { Success.Result = nextOkay.Result
+                  Warnings = okay.Warnings @ nextOkay.Warnings }))
+        |> AstResult.Create
+
+    let map2 (op: 'a -> 'b -> 'c) (resultA: AstResult<'a>) (resultB: AstResult<'b>): AstResult<'c> =
+        let a = resultA |> AstResult.GetValue
+        let b = resultB |> AstResult.GetValue
+
+        Result.map2 (fun a b ->
+            { Success.Result = op a.Result b.Result
+              Warnings = a.Warnings @ b.Warnings }) a b
+        |> AstResult.Create
+
+    let map3 (op: 'a -> 'b -> 'c -> 'd)
+             (resultA: AstResult<'a>)
+             (resultB: AstResult<'b>)
+             (resultC: AstResult<'c>)
+             : AstResult<'d> =
+        let a = resultA |> AstResult.GetValue
+        let b = resultB |> AstResult.GetValue
+        let c = resultC |> AstResult.GetValue
+
+        Result.map3 (fun a b c ->
+            { Success.Result = op a.Result b.Result c.Result
+              Warnings = a.Warnings @ b.Warnings @ c.Warnings }) a b c
+        |> AstResult.Create
+
+    let optionalResult (op: 'a -> AstResult<'b>) (input: 'a option): AstResult<'b option> =
+        input
+        |> Option.map (op >> (map Some))
+        |> Option.defaultValue (ok None)
+
+    let combineValidations (first: 'a -> AstResult<'b>) (second: 'a -> AstResult<'c>) (input: 'a): AstResult<unit> =
+        ((first input), (second input))
+        ||> map2 (fun _ _ -> ())
+
+    let mergeMessages (messages: AstMessage list) (result: AstResult<'a>): AstResult<'a> =
+        match result.Value with
+        | Ok success ->
+            Ok
+                { success with
+                      Warnings = success.Warnings @ messages }
+            |> AstResult.Create
+        | Result.Error errors ->
+            Result.Error(errors @ messages)
+            |> AstResult.Create
+
+    let ofResult (errorMapper: 'b -> AstMessage) (input: Result<'a, 'b>): AstResult<'a> =
+        match input with
+        | Ok result -> ok result
+        | Result.Error err ->
+            Result.Error [ (errorMapper err) ]
+            |> AstResult.Create
+
+    let ignore (original: AstResult<'a>): AstResult<unit> =
+        match original.Value with
+        | Ok success ->
+            Ok
+                ({ Success.Result = ()
+                   Warnings = success.Warnings })
+            |> AstResult.Create
+        | Result.Error errors -> Result.Error errors |> AstResult.Create
+
+    let promote (op: 'a -> 'b) (input: 'a): AstResult<'b> = op input |> ok
+
+    let mapMessages (op: AstMessage -> AstMessage) (result: AstResult<'a>) =
+        match result.Value with
+        | Ok success ->
+            Ok
+                ({ success with
+                       Warnings = success.Warnings |> List.map op })
+        | Result.Error errors -> Result.Error(errors |> List.map op)
+        |> AstResult.Create
+
+    let appendMessageToError msg (result: AstResult<'a>): AstResult<'a> =
+        result.Value
+        |> Result.eitherMap id (fun errors -> errors @ [ msg ])
+        |> AstResult.Create
+
     ///Create an error representing a type mismatch resulting from a bugged GSL program.
-    let variableTypeMismatch (variableName: string)
-                             (declaredType: 'a)
-                             (expectedType: 'b)
-                             (node: AstNode)
-                             : Result<'c, AstMessage> =
+    let variableTypeMismatch (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstResult<'c> =
         let message =
             sprintf
                 "The variable %s has been inferred to have the type %O, but is required to have the type %O in this context."
@@ -107,32 +278,30 @@ module AstMessage =
                 declaredType
                 expectedType
 
-        createError TypeError message node
+        errString TypeError message node
+
 
     ///<summary>
     ///Create an internal error representing a type mismatch.
     ///This is a common pattern when unpacking AST entities, and implies
     ///a bug in compiler logic rather than an error in parsed source code.
     ///</summary>
-    let internalTypeMismatch (maybeContext: string option)
-                             (expectedType: string)
-                             (actualNode: AstNode)
-                             : Result<'a, AstMessage> =
+    let internalTypeMismatch (maybeContext: string option) (expectedType: string) (actualNode: AstNode): AstResult<'a> =
         let message =
             sprintf
                 "Expected a '%s'%s, but got a '%s'"
                 expectedType
-                (optionalContextStr maybeContext)
+                (AstMessage.optionalContextStr maybeContext)
                 (actualNode.TypeName)
 
-        createError (InternalError(TypeError)) message actualNode
+        errString (InternalError(TypeError)) message actualNode
 
     ///Create an internal error if we encounter a pragma that hasn't been built.
-    let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): Result<'a, AstMessage> =
+    let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): AstResult<'a> =
         let message =
-            sprintf "Found an unbuilt pragma%s: '%s'" (optionalContextStr context) name
+            sprintf "Found an unbuilt pragma%s: '%s'" (AstMessage.optionalContextStr context) name
 
-        createError (InternalError(PragmaError)) message node
+        errString (InternalError(PragmaError)) message node
 
     /// Convert an exception into an error message.
     /// Provide an AST node for context.
@@ -169,6 +338,14 @@ module AstMessage =
                 if showStackTrace then yield this.StackTrace.ToString()
             }
             |> String.concat "\n"
+
+[<AutoOpen>]
+module Operators =
+    let (>>=) a b = AstResult.bind b a
+
+    let (>=>) a b = fun inp -> a inp >>= b
+
+    let (&&&) = AstResult.combineValidations
 
 type GslParseErrorContext =
     { stateStack: int list

@@ -1,6 +1,5 @@
 module GslCore.Ast.Process.RoughageExpansion
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -15,20 +14,20 @@ open GslCore.Pragma
 // we expand each individual line into block, possibly containing pragmas, and one L2 line.
 // we need the pragma context to do this
 
-let private validateRoughageLine (rw: Node<Roughage>) =
-    let r = rw.Value
+let private validateRoughageLine (roughageWrapper: Node<Roughage>) =
+    let roughage = roughageWrapper.Value
     // Rule 1:  must be able to work out the locus.  Locus can be either explicit (ho^) or
     //          implicit pSLN1>YNG1  but can't have just bidirectional promoters with no explicit locus  e.g.   ADH1<pGAL1-pGAL10>ADH2
     let hasLocus =
-        r.Locus.IsSome
-        || (r.Parts.Length > 0
-            && not r.Parts.Head.Value.PromoterAndTarget2.IsSome)
+        roughage.Locus.IsSome
+        || (roughage.Parts.Length > 0
+            && not roughage.Parts.Head.Value.PromoterAndTarget2.IsSome)
 
-    let node = Roughage(rw)
+    let node = Roughage(roughageWrapper)
 
     if not hasLocus
-    then AstMessage.createErrorf ValueError "Roughage construct has indeterminate locus: %s" (AstNode.decompile node) node
-    else ok rw
+    then AstResult.errStringF ValueError "Roughage construct has indeterminate locus: %s" (AstNode.decompile node) node
+    else AstResult.ok roughageWrapper
 
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
 let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
@@ -87,9 +86,10 @@ let private expandRoughageLine node =
     match node with
     | Roughage (rw) ->
         validateRoughageLine rw
-        >>= (promote expandRoughage)
+        |> AstResult.map expandRoughage
 
-    | _ -> ok node
+    | _ -> AstResult.ok node
 
 /// Expand all inline roughage definitions into subblocks.
-let expandRoughageLines = FoldMap.map Serial TopDown expandRoughageLine
+let expandRoughageLines =
+    FoldMap.map Serial TopDown expandRoughageLine

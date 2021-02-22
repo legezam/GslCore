@@ -8,12 +8,13 @@ nuget Newtonsoft.Json
 nuget FsLexYacc storage: packages
 nuget MathNet.Numerics
 nuget FSharp.Collections.ParallelSeq
+nuget FSToolkit.ErrorHandling
 
 group Test
   source https://api.nuget.org/v3/index.json
   framework: >= netstandard2.0
   storage none
-
+  nuget FSToolkit.ErrorHandling
   nuget FSharp.Core ~> 5
   nuget NUnit ~> 3
   nuget NUnit.ConsoleRunner ~> 3

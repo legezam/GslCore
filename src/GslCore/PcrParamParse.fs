@@ -4,7 +4,7 @@ namespace GslCore.PcrParamParse
 open System
 open Amyris.Bio.primercore
 open System.Text.RegularExpressions
-open Amyris.ErrorHandling
+
 
 type PcrUnit =
     | UM
@@ -75,10 +75,10 @@ module PcrParameterParser =
                 | NM -> v * 1.0<nM> |> Amyris.Bio.primercore.nM2M
 
             match tag with
-            | KnownTag t -> ok (t, unitVal)
+            | KnownTag t -> Ok (t, unitVal)
             | UnknownTag t ->
-                fail (sprintf "unknown pcr parameter '%s', should be one of mon, div, dntp, template or primer" t)
-        | _ -> fail (sprintf "Invalid argument: '%s'. %s" a MatchErrorMsg)
+                Error (sprintf "unknown pcr parameter '%s', should be one of mon, div, dntp, template or primer" t)
+        | _ -> Error (sprintf "Invalid argument: '%s'. %s" a MatchErrorMsg)
 
     /// Try to parse a single argument, and use it to up
     let private updatePP (primerParams: PrimerParams) (tag: PcrParamTag, unitVal: float<M>) =
@@ -91,4 +91,4 @@ module PcrParameterParser =
 
     let parseArgUpdatePP (a: string) (primerParams: PrimerParams) =
         parseArg a
-        |> Trial.lift (updatePP primerParams)
+        |> Result.map (updatePP primerParams)

@@ -1,6 +1,5 @@
 ﻿module GslCore.Ast.LegacyParseTypes
 
-open Amyris.ErrorHandling
 open Amyris.Dna
 open GslCore.Ast.Process
 open GslCore.Constants
@@ -42,16 +41,16 @@ let getBoundsFromSlice (slice: Slice) featureLength context =
     match context with
     | Genomic ->
         // no validation necessary
-        ok (left, right)
+        Ok(left, right)
     | Library partId ->
         // the slice bounds are not allowed to fall outside the feature as we don't have
         // data on flanking regions in this context
         if left < 1<OneOffset>
            || right <= left
            || right > (featureLength * 1<OneOffset>) then
-            fail (sprintf "Illegal slice (%A) outside core gene range for library item %s." slice partId)
+            Result.Error(sprintf "Illegal slice (%A) outside core gene range for library item %s." slice partId)
         else
-            ok (left, right)
+            Ok(left, right)
 
 type Mod =
     | MUTATION of Mutation
@@ -213,7 +212,7 @@ let prettyPrintAssembly (assembly: Assembly) =
 let private sliceFromAstSlice (s: ParseSlice) =
     match s.Left, s.Right with
     | RelPos (lw), RelPos (rw) ->
-        ok
+        AstResult.ok
             (SLICE
                 ({ left = lw.Value
                    lApprox = s.LeftApprox
@@ -223,52 +222,52 @@ let private sliceFromAstSlice (s: ParseSlice) =
         let contextStr =
             sprintf "legacy slice construction; found [%s:%s]" x.TypeName y.TypeName
 
-        AstMessage.internalTypeMismatch (Some(contextStr)) "RelPos" x
+        AstResult.internalTypeMismatch (Some(contextStr)) "RelPos" x
 
 let private astNodeToLegacyMod node =
     match node with
     | Slice (sw) -> sliceFromAstSlice sw.Value
-    | Mutation (mw) -> ok (MUTATION(mw.Value))
-    | DotMod (dm) -> ok (DOTMOD(dm.Value))
-    | _ -> AstMessage.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
+    | Mutation (mw) -> AstResult.ok (MUTATION(mw.Value))
+    | DotMod (dm) -> AstResult.ok (DOTMOD(dm.Value))
+    | _ -> AstResult.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
 
 let private convertMods mods =
-    mods |> List.map astNodeToLegacyMod |> collect
+    mods
+    |> List.map astNodeToLegacyMod
+    |> AstResult.collectA
 
 /// Convert an AST base part into a legacy Part.
-let private createLegacyPart (part: Node<ParsePart>): Result<Part, AstMessage> =
+let private createLegacyPart (part: Node<ParsePart>): AstResult<Part> =
     match part.Value.BasePart with
-    | Gene (gw) ->
+    | Gene geneWrapper ->
         convertMods part.Value.Modifiers
-        >>= (fun mods ->
+        |> AstResult.map (fun mods ->
             let genePart =
-                { gene = gw.Value.Gene
+                { gene = geneWrapper.Value.Gene
                   mods = mods
-                  where = gw.Positions }
+                  where = geneWrapper.Positions }
 
-            ok
-                (GENEPART
-                    ({ part = genePart
-                       linker = gw.Value.Linker })))
-    | Marker _ -> ok MARKERPART
-    | InlineDna (s) -> ok (INLINEDNA(Dna(s.Value, true, AllowAmbiguousBases)))
-    | InlineProtein (s) -> ok (INLINEPROT s.Value)
-    | HetBlock _ -> ok HETBLOCK
-    | PartId (p) ->
+            GENEPART
+                { part = genePart
+                  linker = geneWrapper.Value.Linker })
+    | Marker _ -> AstResult.ok MARKERPART
+    | InlineDna dnaSequence -> AstResult.ok (INLINEDNA(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
+    | InlineProtein proteinSequence -> AstResult.ok (INLINEPROT proteinSequence.Value)
+    | HetBlock _ -> AstResult.ok HETBLOCK
+    | PartId partId ->
         convertMods part.Value.Modifiers
-        >>= (fun mods -> ok (PARTID({ id = p.Value; mods = mods })))
-    | x -> AstMessage.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
+        |> AstResult.map (fun mods -> PARTID { id = partId.Value; mods = mods })
+    | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
 let private createPPP part =
     match part with
-    | Part (p) ->
+    | Part p ->
         createLegacyPart p
-        >>= (fun legacyPart ->
-            ok
-                { part = legacyPart
-                  pr = ParsePart.getPragmas p
-                  fwd = p.Value.IsForward })
-    | x -> AstMessage.internalTypeMismatch (Some "legacy part conversion") "Part" x
+        |> AstResult.map (fun legacyPart ->
+            { part = legacyPart
+              pr = ParsePart.getPragmas p
+              fwd = p.Value.IsForward })
+    | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "Part" x
 
 /// For assembly conversion, we need to accumulate both a pragma environment and docstrings.
 /// Combine these two accumulation functions and state datastructures.
@@ -295,7 +294,7 @@ let updateConversionContext mode s node =
 /// Convert an AST assembly into a legacy assembly.
 let convertAssembly (context: AssemblyConversionContext)
                     (partWrapper: Node<ParsePart>, aplw: Node<AstNode list>)
-                    : Result<Assembly, AstMessage> =
+                    : AstResult<Assembly> =
     let assemblyPragmas = ParsePart.getPragmas partWrapper
 
     let name =
@@ -312,21 +311,28 @@ let convertAssembly (context: AssemblyConversionContext)
         |> Option.map (String.concat "")
         |> Option.defaultValue ""
 
-    
-    DesignParams.fromPragmas DesignParams.identity assemblyPragmas
-    |> mapMessages (fun message -> AstMessage.createErrorWithStackTrace PragmaError message (Part(partWrapper)))
-    |> tupleResults (aplw.Value |> List.map createPPP |> collect)
-    >>= fun (parts, designParams) ->
-            ok
-                { Assembly.parts = parts
-                  name = name
-                  uri = uri
-                  linkerHint = linkerHint
-                  pragmas = assemblyPragmas
-                  designParams = designParams
-                  capabilities = context.pragmaEnv.Capabilities
-                  docStrings = context.docs.Assigned
-                  sourcePosition = partWrapper.Positions }
+
+    let parameters =
+        DesignParams.fromPragmas DesignParams.identity assemblyPragmas
+        |> AstResult.ofResult (fun message ->
+            AstMessage.createErrorWithStackTrace PragmaError message (Part(partWrapper)))
+
+    let parts =
+        aplw.Value
+        |> List.map createPPP
+        |> AstResult.collectA
+
+    (parts, parameters)
+    ||> AstResult.map2 (fun parts designParams ->
+            { Assembly.parts = parts
+              name = name
+              uri = uri
+              linkerHint = linkerHint
+              pragmas = assemblyPragmas
+              designParams = designParams
+              capabilities = context.pragmaEnv.Capabilities
+              docStrings = context.docs.Assigned
+              sourcePosition = partWrapper.Positions })
 
 // ======================
 // conversion from L2 AST node to legacy L2 line type
@@ -339,7 +345,7 @@ let private buildL2Element node =
         match nw.Value.Promoter, nw.Value.Target with
         | L2Id _, L2Id (tw)
         | Part _, L2Id (tw) ->
-            ok
+            AstResult.ok
                 { promoter = nw.Value.Promoter
                   target = tw.Value }
 
@@ -347,25 +353,29 @@ let private buildL2Element node =
             let contextStr =
                 sprintf "L2 element construction; found [%s>%s]" x.TypeName y.TypeName
 
-            AstMessage.internalTypeMismatch (Some(contextStr)) "L2Id" node
-    | x -> AstMessage.internalTypeMismatch (Some("L2 element construction")) "L2Id" x
+            AstResult.internalTypeMismatch (Some(contextStr)) "L2Id" node
+    | x -> AstResult.internalTypeMismatch (Some("L2 element construction")) "L2Id" x
 
 let private unpackLocus nodeopt =
     match nodeopt with
-    | Some (L2Id (lw)) -> ok (Some(lw.Value))
-    | Some (x) -> AstMessage.internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
-    | None -> ok None
+    | Some (L2Id (lw)) -> AstResult.ok (Some(lw.Value))
+    | Some (x) -> AstResult.internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
+    | None -> AstResult.ok None
 
 /// Build a concrete L2 expression from an AST node.
-let private buildL2Expression (ew: Node<L2Expression>) =
-    ew.Value.Parts
-    |> List.map buildL2Element
-    |> collect
-    |> tupleResults (unpackLocus ew.Value.Locus)
-    >>= (fun (locus, parts) -> ok { l2Locus = locus; parts = parts })
+let private buildL2Expression (ew: Node<L2Expression>): AstResult<BuiltL2Expression> =
+    let parts =
+        ew.Value.Parts
+        |> List.map buildL2Element
+        |> AstResult.collectA
+
+    let locus = unpackLocus ew.Value.Locus
+
+    (locus, parts)
+    ||> AstResult.map2 (fun locus parts -> { l2Locus = locus; parts = parts })
 
 /// Build a L2Line from an AST node and pragma environment.
-let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expression>): Result<L2Line, AstMessage> =
+let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expression>): AstResult<L2Line> =
     let pragmas =
         pragmaEnv.Persistent
         |> PragmaCollection.mergeInCollection pragmaEnv.AssignedTransients
@@ -379,10 +389,9 @@ let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expressio
         |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
     buildL2Expression l2Expression
-    >>= fun l2Design ->
-            ok
-                { L2Line.l2Design = l2Design
-                  name = name
-                  uri = uri
-                  pragmas = pragmas
-                  capabilities = pragmaEnv.Capabilities }
+    |> AstResult.map (fun l2Design ->
+        { L2Line.l2Design = l2Design
+          name = name
+          uri = uri
+          pragmas = pragmas
+          capabilities = pragmaEnv.Capabilities })

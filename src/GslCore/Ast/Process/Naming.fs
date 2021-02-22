@@ -1,6 +1,5 @@
 module GslCore.Ast.Process.Naming
 
-open Amyris.ErrorHandling
 open Amyris.Dna
 open GslCore.Constants
 open GslCore.Ast.Process
@@ -21,35 +20,37 @@ let private checkGeneName (reference: GenomeDefinitions)
                           (library: Map<string, Dna>)
                           (assemblyPragmas: PragmaCollection)
                           (node: AstNode)
-                          : Result<unit, AstMessage> =
+                          : AstResult<unit> =
     match node with
     | GenePart (parsePart, genePart) ->
         let geneName = genePart.Value.Gene.[1..].ToUpper()
         let partPragmas = ParsePart.getPragmas parsePart
 
+
         GenomeDefinitions.getReferenceGenome reference [ partPragmas; assemblyPragmas ]
-        |> mapMessages (fun message -> AstMessage.createErrorWithStackTrace RefGenomeError message node)
-        >>= (fun reference ->
-            if reference
-               |> GenomeDefinition.isValidFeature geneName
-               || library.ContainsKey(geneName) then
-                Validation.good
-            else
-                AstMessage.createErrorf PartError "Unknown gene: '%s'." geneName (parsePart.Value.BasePart))
+        |> AstResult.ofResult (fun message -> AstMessage.createErrorWithStackTrace RefGenomeError message node)
+        >>= fun reference ->
+                if reference
+                   |> GenomeDefinition.isValidFeature geneName
+                   || library.ContainsKey(geneName) then
+                    Validation.good
+                else
+                    AstResult.errStringF PartError "Unknown gene: '%s'." geneName (parsePart.Value.BasePart)
     | _ -> Validation.good
 
 /// Check all the gene names in the context of a single assembly.
 let private checkGeneNamesInAssembly (reference: GenomeDefinitions)
                                      (library: Map<string, Dna>)
                                      (node: AstNode)
-                                     : Result<unit, AstMessage> =
+                                     : AstResult<unit> =
     match node with
     | AssemblyPart (partWrapper, assemblyWrapper) ->
         let assemblyPragmas = ParsePart.getPragmas partWrapper
 
         assemblyWrapper.Value
         |> List.map (checkGeneName reference library assemblyPragmas)
-        |> collectValidations
+        |> AstResult.collectA
+        |> AstResult.ignore
     | _ -> Validation.good
 
 /// Validate all gene names.
@@ -118,4 +119,4 @@ let private nameAssembly (node: AstNode): AstNode =
 /// the new name pragma.
 ///</summary>
 let nameAssemblies =
-    FoldMap.map Serial TopDown (promote nameAssembly)
+    FoldMap.map Serial TopDown (AstResult.promote nameAssembly)

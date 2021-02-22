@@ -2,6 +2,7 @@
 
 open System
 
+open FsToolkit.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.LegacyParseTypes
@@ -10,7 +11,6 @@ open GslCore.Pragma
 open GslCore.Core.Types
 open GslCore.Core
 open Amyris.Bio
-open Amyris.ErrorHandling
 open Amyris.Dna
 open GslCore.Reference
 open GslCore.Core.Ryse
@@ -190,9 +190,8 @@ let getRG (a: Assembly) (rgs: GenomeDefinitions) (pr: PragmaCollection) =
     // Prefer reference genome from passed-in pragmas over assembly.
     let prags = [ pr; a.pragmas ]
 
-    match GenomeDefinitions.getReferenceGenome rgs prags with
-    | Ok (g, _) -> g
-    | Bad msgs -> failwith msgs.[0]
+    GenomeDefinitions.getReferenceGenome rgs prags
+    |> Result.valueOr failwith
 
 /// Take a genepart and slices and get the actual DNA sequence.
 let realizeSequence verbose (pragmas: PragmaCollection) fwd (rg: GenomeDefinition) (gp: GenePartWithLinker) =
@@ -332,7 +331,7 @@ let expandGenePart verbose
 
             let x, y =
                 getBoundsFromSlice finalSlice dna.Length sliceContext
-                |> returnOrFail
+                |> Result.valueOr failwith
 
             let finalDNA =
                 dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]
@@ -598,7 +597,7 @@ let expandGenePart verbose
 let private determineTopology (pragmas: PragmaCollection): Topology =
     match pragmas
           |> PragmaCollection.tryFind BuiltIn.topologyPragmaDef with
-    | Some pragma -> pragma.Arguments |> Topology.parse |> returnOrFail
+    | Some pragma -> pragma.Arguments |> Topology.parse |> Result.valueOr failwith
     | None -> Linear
 
 /// Take a parsed assembly definition and translate it

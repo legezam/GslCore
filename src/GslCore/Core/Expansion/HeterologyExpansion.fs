@@ -1,11 +1,11 @@
 module GslCore.Core.Expansion.HeterologyExpansion
 
 open System
+open FsToolkit.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open Amyris.ErrorHandling
 open GslCore.Ast.LegacyParseTypes
 open Amyris.Dna
 open GslCore.Core.DnaCreation
@@ -304,14 +304,14 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
             // ===============================================
 
             let part1 =
-                ResolveExtPart.fetchFullPartSequence (verbose) (Map.empty) pid1
-                |> Trial.mapFailure (fun messages -> sprintf "Fail fetching %s" pid1.id :: messages)
-                |> returnOrFail
+                ResolveExtPart.fetchFullPartSequence verbose Map.empty pid1
+                |> Result.mapError (sprintf "Fail fetching %s. %s" pid1.id)
+                |> Result.valueOr failwith
 
             let part4 =
                 ResolveExtPart.fetchFullPartSequence verbose Map.empty pid4
-                |> Trial.mapFailure (fun messages -> sprintf "Fail fetching %s" pid4.id :: messages)
-                |> returnOrFail
+                |> Result.mapError (sprintf "Fail fetching %s. %s" pid4.id)
+                |> Result.valueOr failwith
 
 
             let s1 =
@@ -417,13 +417,14 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
     else newSource
 
 /// Expand all heterology blocks in an AST.
-let expandHetBlocks (parameters: Phase2Parameters) (tree: AstTreeHead): Result<AstTreeHead, AstMessage> =
+let expandHetBlocks (parameters: Phase2Parameters) (tree: AstTreeHead): AstResult<AstTreeHead> =
 
     let assemblyExpansion = expandHB parameters
 
     let bootstrapOperation =
         let phase1Params =
-            parameters |> Phase1Parameters.fromPhase2        
+            parameters |> Phase1Parameters.fromPhase2
+
         Bootstrapping.bootstrapExpandLegacyAssembly
             HetBlockError
             assemblyExpansion

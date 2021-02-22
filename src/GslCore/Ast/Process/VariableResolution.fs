@@ -1,6 +1,5 @@
 namespace GslCore.Ast.Process
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -66,23 +65,23 @@ module VariableResolution =
                           (targetType: GslVariableType)
                           (boundValueType: GslVariableType)
                           (boundValue: AstNode)
-                          : Result<AstNode, AstMessage> =
+                          : AstResult<AstNode> =
         if targetType = NotYetTyped
            || targetType = boundValueType then
             // exact type check or destination is not strongly typed
-            ok boundValue
+            AstResult.ok boundValue
         elif boundValueType = NotYetTyped then
             // our value doesn't have type information, see if we can elide it
             match elideType boundValue with
             | Some elidedType when elidedType = targetType -> // elides to correct type
-                ok boundValue
+                AstResult.ok boundValue
             | Some elidedType -> // elides to incorrect type
-                AstMessage.variableTypeMismatch varName elidedType targetType node
+                AstResult.variableTypeMismatch varName elidedType targetType node
             | None -> // whatever this thing is, it shouldn't be inside a variable
-                AstMessage.internalTypeMismatch (Some("variable type checking")) (targetType.ToString()) boundValue
+                AstResult.internalTypeMismatch (Some("variable type checking")) (targetType.ToString()) boundValue
         else
             // type mismatch
-            AstMessage.variableTypeMismatch varName boundValueType targetType node
+            AstResult.variableTypeMismatch varName boundValueType targetType node
 
 
     /// Resolve a typed variable to a variable declaration.
@@ -93,7 +92,7 @@ module VariableResolution =
                                              (targetType: GslVariableType)
                                              (typeWrapper: Node<string * GslVariableType>)
                                              (node: AstNode)
-                                             : Result<AstNode, AstMessage> =
+                                             : AstResult<AstNode> =
         let varName, _ = typeWrapper.Value
         // first see if we have this guy in our bindings at all
         match variableBindings.TryFind(varName) with
@@ -110,28 +109,26 @@ module VariableResolution =
                 typeCheck varName node targetType declaredType boundValue
         | Some FLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
             match mode with
-            | AllowUnresolvedFunctionLocals -> ok node
+            | AllowUnresolvedFunctionLocals -> AstResult.ok node
             | Strict ->
-                AstMessage.createErrorf
+                AstResult.errStringF
                     (InternalError(UnresolvedVariable))
                     "A variable resolved to a function local during strict variable resolution: %s"
                     varName
                     node
-        | None ->
-            // unresolved variable!
-            AstMessage.createError UnresolvedVariable varName node
+        | None -> AstResult.errString UnresolvedVariable varName node
 
     ///Given resolution state and an AST node, possibly resolve a reference.
     let internal resolveVariable (mode: VariableResolutionMode)
                                  (variableBindings: VariableBindings)
                                  (node: AstNode)
-                                 : Result<AstNode, AstMessage> =
+                                 : AstResult<AstNode> =
         match node with
         | TypedVariable typedVariable ->
             let targetType = snd typedVariable.Value
             // might resolve to another variable, so we need to do this recursively
             resolveVariableRecursive mode variableBindings targetType typedVariable node
-        | x -> ok x
+        | x -> AstResult.ok x
 
     /// Transform an AST with unresolved scoped variables into a tree with resolved scoped variables.
     /// Variables that resolve to function arguments are left untouched in this phase.

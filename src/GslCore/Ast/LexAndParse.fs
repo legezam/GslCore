@@ -1,11 +1,11 @@
 ﻿/// Entry points for lexing and parsing.
 module GslCore.Ast.LexAndParse
 
+open FsToolkit.ErrorHandling
 open GslCore.Constants
 open GslCore.Ast.GslParser
 open GslCore.Ast.GslLexer
 open FSharp.Text.Lexing
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open System.Diagnostics
@@ -184,10 +184,9 @@ let lexAndParse verbose (source: GslSourceCode) =
 
         match parseExceptionToError errNode exn with
         | Some msg -> msg
-        | None -> AstMessage.exceptionToError ParserError errNode exn
+        | None -> AstResult.exceptionToError ParserError errNode exn
 
-    let doLexParseCaptureException =
-        doLexParse verbose
-        |> captureException convertException
 
-    doLexParseCaptureException inBuffer
+    try
+        AstResult.ok (doLexParse verbose inBuffer)
+    with e -> AstResult.err (convertException e)

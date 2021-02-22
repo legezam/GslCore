@@ -6,7 +6,7 @@ module GslCore.Ast.Linting
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Ast.ErrorHandling
-open Amyris.ErrorHandling
+
 open System.Text.RegularExpressions
 
 let private rabitPartRegex =
@@ -26,15 +26,15 @@ let private warnOnPartThatIsLikelyVariable (node: AstNode): ValidationResult =
                     partWrapper.Value partWrapper.Value
 
             let warnMsg = AstMessage.createWarning msgText node
-            warn warnMsg ()
+            AstResult.warn warnMsg ()
     | _ -> Validation.good
 
-let private failOnPushAndPop (node: AstNode): Result<unit, AstMessage> =
+let private failOnPushAndPop (node: AstNode): AstResult<unit> =
     match node with
     | ParsePragma (parsePragmaWrapper) ->
         if parsePragmaWrapper.Value.Name = "push"
            || parsePragmaWrapper.Value.Name = "pop" then
-            AstMessage.createError
+            AstResult.errString
                 PragmaError
                 "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
                 node
@@ -43,9 +43,9 @@ let private failOnPushAndPop (node: AstNode): Result<unit, AstMessage> =
     | _ -> Validation.good
 
 
-let private allLinters =
-    warnOnPartThatIsLikelyVariable
-    &&& failOnPushAndPop
+let private allLinters: AstNode -> AstResult<unit> =
+    warnOnPartThatIsLikelyVariable &&& failOnPushAndPop
+    
 
 /// Perform all linting passes on an AST.
 let linters = Validation.validate allLinters

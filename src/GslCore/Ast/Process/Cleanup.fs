@@ -1,6 +1,6 @@
 module GslCore.Ast.Process.Cleanup
 
-open Amyris.ErrorHandling
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 
@@ -37,8 +37,8 @@ let private cleanBlock cleaner node =
 
 /// Strip function defintions from tree.
 let stripFunctions =
-    FoldMap.map Serial TopDown (promote (cleanBlock cleanFunction))
+    FoldMap.map Serial TopDown (AstResult.promote (cleanBlock cleanFunction))
 
 /// Strip variable bindings from tree.
 let stripVariables =
-    FoldMap.map Serial TopDown (promote (cleanBlock cleanVariable))
+    FoldMap.map Serial TopDown (AstResult.promote (cleanBlock cleanVariable))

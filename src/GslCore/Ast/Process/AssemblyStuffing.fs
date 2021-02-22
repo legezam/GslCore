@@ -1,6 +1,5 @@
 namespace GslCore.Ast.Process
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Process
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
@@ -91,7 +90,7 @@ module AssemblyStuffing =
             | _ -> environment
 
     /// Helper error for pragma collision.
-    let private collidingPragmaError (existing: Pragma) (incoming: Pragma) (node: AstNode): Result<unit, AstMessage> =
+    let private collidingPragmaError (existing: Pragma) (incoming: Pragma) (node: AstNode): AstResult<unit> =
         let formatPragma pragma = pragma.Arguments |> String.concat " "
 
         let msg =
@@ -101,13 +100,13 @@ module AssemblyStuffing =
                 (formatPragma incoming)
                 (formatPragma existing)
 
-        AstMessage.createError PragmaError msg node
+        AstResult.errString PragmaError msg node
 
     /// Check incoming pragmas for collisions with another pragma collection.
     let private checkPragmaCollisions (incoming: PragmaCollection)
                                       (existing: PragmaCollection)
                                       (node: AstNode)
-                                      : Result<unit, AstMessage> =
+                                      : AstResult<unit> =
         if existing |> PragmaCollection.isEmpty |> not then
             existing
             |> PragmaCollection.values
@@ -118,16 +117,16 @@ module AssemblyStuffing =
                     if existingPragma.Arguments <> colliding.Arguments then // pragma collision with unequal arguments
                         collidingPragmaError existingPragma colliding node
                     else
-                        ok () // identical arguments, ignore collision
-                | None -> ok ())
-            |> collectValidations
+                        AstResult.ok () // identical arguments, ignore collision
+                | None -> AstResult.ok ())
+            |> Seq.toList
+            |> AstResult.collectA
+            |> AstResult.ignore
         else
-            ok ()
+            AstResult.ok ()
 
     /// Deposit collected pragmas into an assembly.
-    let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment)
-                                         (node: AstNode)
-                                         : Result<AstNode, AstMessage> =
+    let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment) (node: AstNode): AstResult<AstNode> =
         match node with
         | AssemblyPart (partWrapper, _) ->
             let incoming =
@@ -138,7 +137,7 @@ module AssemblyStuffing =
             let assemblyPragmas = ParsePart.getPragmas partWrapper
 
             checkPragmaCollisions incoming assemblyPragmas node
-            >>= fun _ ->
+            |> AstResult.map (fun _ ->
                 // no collisions, free to merge everything in.
                 // start with globals, merge in transients, then merge in part pragmas
                 let newPragmas =
@@ -155,8 +154,8 @@ module AssemblyStuffing =
                     else
                         newPragmas
 
-                ok (Part(ParsePart.replacePragmas partWrapper pragmasWithWarnOff))
-        | _ -> ok node
+                Part(ParsePart.replacePragmas partWrapper pragmasWithWarnOff))
+        | _ -> AstResult.ok node
 
     ///<summary>
     /// Add pragmas into assemblies.

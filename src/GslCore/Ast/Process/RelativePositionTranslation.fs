@@ -1,7 +1,6 @@
 module GslCore.Ast.Process.RelativePositionTranslation
 
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -54,42 +53,42 @@ let private calculatePosition (position: int<OneOffset>)
         |> Option.defaultValue defaultRelPosQualifier
 
     match qualifier, relPosition with
-    | S, _ -> (position, FivePrime) |> ok
-    | E, _ -> (position, ThreePrime) |> ok
+    | S, _ -> (position, FivePrime) |> Ok
+    | E, _ -> (position, ThreePrime) |> Ok
     | A, Left
     | AS, Left
     | SA, Left ->
         if position > 0<OneOffset>
-        then (position * 3 - 2<OneOffset>, FivePrime) |> ok
-        else fail NegativeLeftAminoAcidStartPosition
+        then (position * 3 - 2<OneOffset>, FivePrime) |> Ok
+        else Result.Error NegativeLeftAminoAcidStartPosition
     | AE, Left
     | EA, Left ->
         let aminoAcidIndex =
             if position > 0<OneOffset> then position * 3 - 2<OneOffset> else position * 3
 
-        (aminoAcidIndex, ThreePrime) |> ok
+        (aminoAcidIndex, ThreePrime) |> Ok
     | A, Right
     | AS, Right
     | SA, Right ->
         if position > 0<OneOffset>
-        then ((position * 3), FivePrime) |> ok
-        else fail NegativeRightAminoAcidStartPosition
+        then ((position * 3), FivePrime) |> Ok
+        else Result.Error NegativeRightAminoAcidStartPosition
     | AE, Right
     | EA, Right ->
         let aminoAcidIndex =
             if position > 0<OneOffset> then position * 3 else position * 3 + 2<OneOffset>
 
-        (aminoAcidIndex, ThreePrime) |> ok
+        (aminoAcidIndex, ThreePrime) |> Ok
 
-let private getProvidedPosition (relativePosition: ParseRelativePosition): Result<int, AstMessage> =
+let private getProvidedPosition (relativePosition: ParseRelativePosition): AstResult<int> =
     match relativePosition.Item with
     | Int ({ Node.Value = providedPosition
-             Positions = _ }) -> ok providedPosition
-    | x -> AstMessage.internalTypeMismatch (Some "relative position building") "Int" x
+             Positions = _ }) -> AstResult.ok providedPosition
+    | x -> AstResult.internalTypeMismatch (Some "relative position building") "Int" x
 
 /// Compute relative positions for slices.
 /// Replaces `ParseRelativePosition` items with `RelativePosition` items
-let private buildRelativePosition (node: AstNode): Result<AstNode, AstMessage> =
+let private buildRelativePosition (node: AstNode): AstResult<AstNode> =
     match node with
     | ParseRelPos relativePositionWrapper ->
         let parseRelativePosition = relativePositionWrapper.Value
@@ -99,12 +98,12 @@ let private buildRelativePosition (node: AstNode): Result<AstNode, AstMessage> =
         // make sure we have a real value to work with
         parseRelativePosition
         |> getProvidedPosition
-        |> Trial.lift (fun position -> position * 1<OneOffset>)
+        |> AstResult.map (fun position -> position * 1<OneOffset>)
         >>= fun position ->
                 calculatePosition position parseRelativePosition.Qualifier parseRelativePosition.Position
-                |> Trial.mapFailure (List.map (TransformationError.toAstMessage node position))
-                |> Trial.lift (fun (position, geneEnd) -> buildNode position geneEnd)
-    | _ -> ok node
+                |> AstResult.ofResult (TransformationError.toAstMessage node position)
+                |> AstResult.map (fun (position, geneEnd) -> buildNode position geneEnd)
+    | _ -> AstResult.ok node
 
 let compute =
     FoldMap.map Serial TopDown buildRelativePosition

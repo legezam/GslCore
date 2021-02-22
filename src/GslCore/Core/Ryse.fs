@@ -3,10 +3,10 @@
 open System.IO
 open System
 open System.Collections.Concurrent
-open Amyris.ErrorHandling
 open Amyris.Bio.utils
 open Amyris.Dna
 
+open FsToolkit.ErrorHandling
 open GslCore.Constants
 open GslCore.Core.Rycod
 open GslCore.Uri
@@ -302,7 +302,7 @@ module Ryse =
                 let dna =
                     linker.Dna
                     |> fun x -> if phase then x else x.RevComp()
-                let linkerUri = linker.Name |> Uri.linkerUri |> returnOrFail
+                let linkerUri = linker.Name |> Uri.linkerUri |> Result.valueOr failwith
                 // Build the linker entry
                 { Id = None
                   ExternalId = None
@@ -674,11 +674,11 @@ module Ryse =
     let linkerUris linkCode =
         let componentLinker =
             Uri.buildUri [ "Component"; "Linker" ] linkCode
-            |> returnOrFail
+            |> Result.valueOr failwith
             
         let componentSequenceLinker =
             Uri.buildUri [ "ComponentSequence"; "Linker" ] linkCode
-            |> returnOrFail
+            |> Result.valueOr failwith
         componentLinker, componentSequenceLinker
 
     /// Return the SBOL specification of a RYSE linker.

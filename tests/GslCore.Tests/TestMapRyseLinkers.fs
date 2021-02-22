@@ -9,7 +9,6 @@ open NUnit.Framework
 open GslCore.Core.Types
 open GslCore.AssemblyTestSupport
 open GslCore.Pragma
-open Amyris.ErrorHandling
 open GslCore.DesignParams
 
 [<TestFixture>]

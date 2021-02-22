@@ -1,8 +1,8 @@
 namespace GslCore.Pragma
 
 open System
-open Amyris.ErrorHandling
 
+open FsToolkit.ErrorHandling.Operator.Result
 /// Instance of a pragma directive.
 [<CustomEquality; CustomComparison>]
 type Pragma =
@@ -68,20 +68,20 @@ module Pragma =
 
         let checkNArgs n =
             if nArg <> n
-            then fail (sprintf "Pragma #%s expected %d argument(s) but got %d: %A" name n nArg values)
-            else ok ()
+            then Error (sprintf "Pragma #%s expected %d argument(s) but got %d: %A" name n nArg values)
+            else Ok ()
 
         let checkMinArgs min =
             if nArg < min
-            then fail (sprintf "Pragma #%s expected at least %d argument(s) but got %d: %A" name min nArg values)
-            else ok ()
+            then Error (sprintf "Pragma #%s expected at least %d argument(s) but got %d: %A" name min nArg values)
+            else Ok ()
 
         let checkMaxArgs max _ =
             if nArg > max
-            then fail (sprintf "Pragma #%s expected at most %d argument(s) but got %d: %A" name max nArg values)
-            else ok ()
+            then Error (sprintf "Pragma #%s expected at most %d argument(s) but got %d: %A" name max nArg values)
+            else Ok ()
 
-        let checkArgShape () =
+        let checkArgShape (): Result<unit, string> =
             match pDef.Shape with
             | Zero -> checkNArgs 0
             | One -> checkNArgs 1
@@ -90,7 +90,7 @@ module Pragma =
             | Range (min, max) -> checkMinArgs min >>= checkMaxArgs max
             | ExactlySet (vals) ->
                 if not (vals |> List.contains nArg) then
-                    fail
+                    Error
                         (sprintf
                             "Pragma %s expected any number of arguments in the set %A but got %d: %A"
                              name
@@ -98,15 +98,15 @@ module Pragma =
                              nArg
                              values)
                 else
-                    ok ()
+                    Ok ()
 
-        let validateArgs () = pDef.Validate values
+        let validateArgs (): PragmaValidationResult = pDef.Validate values
 
         // validation pipeline
         checkArgShape ()
         >>= validateArgs
         >>= (fun () ->
-            ok
+            Ok
                 { Definition = pDef
                   Arguments = values })
 

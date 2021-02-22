@@ -1,6 +1,5 @@
 namespace GslCore.Ast.Process
 
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -37,20 +36,16 @@ module PragmaBuilding =
                 | _ :: tail -> tail
         | None -> contexts
 
-    let private checkPragmaArg: AstNode -> Result<string, AstMessage> =
+    let private checkPragmaArg: AstNode -> AstResult<string> =
         function
-        | String stringWrapper -> ok stringWrapper.Value
-        | Int intWrapper -> ok (intWrapper.Value.ToString())
-        | Float floatWrapper -> ok (floatWrapper.Value.ToString())
+        | String stringWrapper -> AstResult.ok stringWrapper.Value
+        | Int intWrapper -> AstResult.ok (intWrapper.Value.ToString())
+        | Float floatWrapper -> AstResult.ok (floatWrapper.Value.ToString())
         | TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
-            AstMessage.createErrorf
-                (InternalError(UnresolvedVariable))
-                "Unresolved variable in pragma: '%s'"
-                name
-                astNode
-        | x -> AstMessage.internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
+            AstResult.errStringF (InternalError(UnresolvedVariable)) "Unresolved variable in pragma: '%s'" name astNode
+        | x -> AstResult.internalTypeMismatch (Some "pragma value") "String, Int, or Float" x
 
-    let private checkDeprecated (node: AstNode) (pragma: Pragma): Result<Pragma, AstMessage> =
+    let private checkDeprecated (node: AstNode) (pragma: Pragma): AstResult<Pragma> =
         match PragmaDeprecation.deprecatedPragmas
               |> Map.tryFind pragma.Name with
         | Some depreciation -> // deprecated pragma, issue a warning and replace it
@@ -58,12 +53,12 @@ module PragmaBuilding =
                 AstMessage.create None DeprecationWarning depreciation.WarningMessage node
 
             let replacedPragma = depreciation.Replace pragma
-            warn warningMsg replacedPragma
-        | None -> ok pragma
+            AstResult.warn warningMsg replacedPragma
+        | None -> AstResult.ok pragma
 
     // check if this pragma is a capability declaration.
     // if so, validate it.
-    let private checkCapa (legalCapas: Capabilities) (node: AstNode) (pragma: Pragma): Result<Pragma, AstMessage> =
+    let private checkCapa (legalCapas: Capabilities) (node: AstNode) (pragma: Pragma): AstResult<Pragma> =
         if pragma |> Pragma.isCapa then
             let isNotLegalCapa =
                 not (legalCapas.Contains(pragma.Arguments.[0]))
@@ -78,16 +73,13 @@ module PragmaBuilding =
                 let msg =
                     sprintf "Undeclared capability: %s.  Declared capabilities are %s" pragma.Name goodCapas
 
-                AstMessage.createError PragmaError msg node
+                AstResult.errString PragmaError msg node
             else
-                ok pragma
+                AstResult.ok pragma
         else
-            ok pragma
+            AstResult.ok pragma
 
-    let private checkScope (contexts: PragmaConstructionContext list)
-                           (node: AstNode)
-                           (pragma: Pragma)
-                           : Result<Pragma, AstMessage> =
+    let private checkScope (contexts: PragmaConstructionContext list) (node: AstNode) (pragma: Pragma): AstResult<Pragma> =
         match contexts with
         | headContext :: _ ->
             let errCond =
@@ -103,16 +95,16 @@ module PragmaBuilding =
                 let msg =
                     sprintf "#%s is used at %s, but is restricted to %s." pragma.Name usedIn allowedScope
 
-                AstMessage.createError PragmaError msg node
-            | None -> ok pragma
-        | [] -> AstMessage.createError (InternalError(PragmaError)) "Pragma scope context is empty." node
+                AstResult.errString PragmaError msg node
+            | None -> AstResult.ok pragma
+        | [] -> AstResult.errString (InternalError(PragmaError)) "Pragma scope context is empty." node
 
 
     /// Attempt to build a real pragma from a parsed pragma.
     let private compilePragma (parameters: Phase1Parameters)
                               (contexts: PragmaConstructionContext list)
                               (node: AstNode)
-                              : Result<AstNode, AstMessage> =
+                              : AstResult<AstNode> =
 
         match node with
         | ParsePragma pragmaWrapper ->
@@ -120,25 +112,24 @@ module PragmaBuilding =
             /// Building pragmas returns strings at the moment.
             /// Wrap them in an AST message.
             // TODO: fix this sad state of affairs once the big changes have landed in default.
-            let wrapPragmaErrorString s =
-                AstMessage.createErrorWithStackTrace PragmaError s node
+            let wrapPragmaErrorString (message: string): AstMessage =
+                AstMessage.createErrorWithStackTrace PragmaError message node
 
             pragma.Values
             |> List.map checkPragmaArg
-            |> collect
+            |> AstResult.collectA
             >>= (fun values ->
                 parameters.PragmaBuilder
                 |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
-                |> (mapMessages wrapPragmaErrorString))
+                |> AstResult.ofResult wrapPragmaErrorString)
             >>= (checkDeprecated node)
             >>= (checkScope contexts node)
             >>= (checkCapa parameters.LegalCapabilities node)
-            >>= (fun builtPragma ->
-                ok
-                    (Pragma
-                        ({ Value = builtPragma
-                           Positions = pragmaWrapper.Positions })))
-        | _ -> ok node
+            |> AstResult.map (fun builtPragma ->
+                Pragma
+                    { Value = builtPragma
+                      Positions = pragmaWrapper.Positions })
+        | _ -> AstResult.ok node
 
     /// Build genuine pragmas from reduced parsed pragmas.
     let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult =

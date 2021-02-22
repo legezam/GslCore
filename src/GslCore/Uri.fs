@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Uri
 
-open Amyris.ErrorHandling
+open FsToolkit.ErrorHandling
+
 type Uri = string
 
 module Uri =
@@ -40,7 +41,7 @@ module Uri =
     let buildUri (namespaces: string list) (term: string): Result<string, string> =
         // TODO: type constraint on stringifyable term?
         match checkTermsForIssues (term :: namespaces) with
-        | Some errorMessage -> fail errorMessage
+        | Some errorMessage -> Error errorMessage
         | None ->
             let ub = System.Text.StringBuilder()
             ub.Append(AmyrisUriBase) |> ignore
@@ -50,12 +51,12 @@ module Uri =
 
             ub.Append(UriTermDelimiter) |> ignore
             ub.Append(term) |> ignore
-            ok (ub.ToString())
+            Ok (ub.ToString())
 
     /// Construct a URI namespace extension.
     let addNamespaces (baseNamespace: string) (namespaces: string list): Result<string, string> =
         match checkTermsForIssues namespaces with
-        | Some errorMessage -> fail errorMessage
+        | Some errorMessage -> Error errorMessage
         | None ->
             let ub = System.Text.StringBuilder()
             ub.Append(baseNamespace) |> ignore
@@ -63,18 +64,18 @@ module Uri =
             for ns in namespaces do
                 ub.Append(UriPathDelimiter + ns) |> ignore
 
-            ok (ub.ToString())
+            Ok (ub.ToString())
 
     /// Add a term entry into a namespace.
     let addTermToNamespace (baseNamespace: string) (term: string): Result<string, string> =
         match checkTermsForIssues [ term ] with
-        | Some errorMessage -> fail errorMessage
-        | None -> ok (baseNamespace + UriTermDelimiter + term)
+        | Some errorMessage -> Error errorMessage
+        | None -> Ok (baseNamespace + UriTermDelimiter + term)
 
     // TODO: possibly move these definitions into the appropriate module
     let private linkerBase =
         addNamespaces AmyrisUriBase [ "Component"; "Linker" ]
-        |> returnOrFail
+        |> Result.valueOr failwith
 
     /// Construct a RYSE linker URI from a link code.
     /// Since this is entirely programmatic we expect it should never fail at
@@ -83,7 +84,7 @@ module Uri =
 
     let private gslcTempUriBase =
         addNamespaces AmyrisUriBase [ "GSLC"; "TEMP" ]
-        |> returnOrFail
+        |> Result.valueOr failwith
 
     // heap-allocated counter
     let private globalUriCounter: int ref = ref 0
@@ -94,4 +95,4 @@ module Uri =
         globalUriCounter := value + 1
 
         addTermToNamespace gslcTempUriBase (sprintf "%d" value)
-        |> returnOrFail
+        |> Result.valueOr failwith
