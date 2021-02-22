@@ -1,5 +1,6 @@
 ﻿module GslCore.TestPromTermLen
 
+open System
 open GslCore.Core
 open GslCore.Reference
 open NUnit.Framework
@@ -98,7 +99,7 @@ type TestPromTermLen() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
                 (PragmaBuilder.createPragmaFromNameValue name [ "250" ] PragmaBuilder.builtin)
-                |> GslResult.valueOr (failwith "illegal")
+                |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
                 |> ignore)
 
         checkPragmaExists "promlen"
