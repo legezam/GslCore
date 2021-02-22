@@ -102,6 +102,7 @@ Target.create "AssemblyInfo" (fun _ ->
           AssemblyInfo.Product dmxProject
           AssemblyInfo.Description summary
           AssemblyInfo.Version release.AssemblyVersion
+          AssemblyInfo.InternalsVisibleTo "GslCore.Tests"
           AssemblyInfo.InformationalVersion (Git.Information.getCurrentHash())
           AssemblyInfo.FileVersion release.AssemblyVersion ]
 

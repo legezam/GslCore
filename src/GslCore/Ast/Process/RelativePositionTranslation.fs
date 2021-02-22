@@ -16,6 +16,7 @@ type CalculationMessage =
     | NegativeLeftAminoAcidStartPosition of position: int<OneOffset>
     /// Occurs when a negative right value appears in amino acid slicing syntax (foo[A20:-15])
     | NegativeRightAminoAcidStartPosition of position: int<OneOffset>
+    | PositionCannotBeZero
 
 /// Represents an overall issue during the relative positon calculation
 type RelativePositionTranslationMessage =
@@ -38,47 +39,48 @@ module RelativePositionTranslation =
 
     let private defaultRelPosQualifier = S
 
-    let private calculatePosition (position: int<OneOffset>)
-                                  (maybeQualifier: RelPosQualifier option)
-                                  (relPosition: RelPosPosition)
-                                  : GslResult<int<OneOffset> * GeneEnd, CalculationMessage> =
+    let internal calculatePosition (position: int<OneOffset>)
+                                   (maybeQualifier: RelPosQualifier option)
+                                   (relPosition: RelPosPosition)
+                                   : GslResult<int<OneOffset> * GeneEnd, CalculationMessage> =
+        if position = 0<OneOffset> then
+            GslResult.err PositionCannotBeZero
+        else
+            let qualifier =
+                maybeQualifier
+                |> Option.defaultValue defaultRelPosQualifier
 
+            match qualifier, relPosition with
+            | S, _ -> (position, FivePrime) |> GslResult.ok
+            | E, _ -> (position, ThreePrime) |> GslResult.ok
+            | A, Left
+            | AS, Left
+            | SA, Left ->
+                if position > 0<OneOffset> then
+                    (position * 3 - 2<OneOffset>, FivePrime)
+                    |> GslResult.ok
+                else
+                    GslResult.err (NegativeLeftAminoAcidStartPosition position)
+            | AE, Left
+            | EA, Left ->
+                let aminoAcidIndex =
+                    if position > 0<OneOffset> then position * 3 - 2<OneOffset> else position * 3
 
-        let qualifier =
-            maybeQualifier
-            |> Option.defaultValue defaultRelPosQualifier
+                (aminoAcidIndex, ThreePrime) |> GslResult.ok
+            | A, Right
+            | AS, Right
+            | SA, Right ->
+                if position > 0<OneOffset>
+                then ((position * 3), FivePrime) |> GslResult.ok
+                else GslResult.err (NegativeRightAminoAcidStartPosition position)
+            | AE, Right
+            | EA, Right ->
+                let aminoAcidIndex =
+                    if position > 0<OneOffset> then position * 3 else position * 3 + 2<OneOffset>
 
-        match qualifier, relPosition with
-        | S, _ -> (position, FivePrime) |> GslResult.ok
-        | E, _ -> (position, ThreePrime) |> GslResult.ok
-        | A, Left
-        | AS, Left
-        | SA, Left ->
-            if position > 0<OneOffset> then
-                (position * 3 - 2<OneOffset>, FivePrime)
-                |> GslResult.ok
-            else
-                GslResult.err (NegativeLeftAminoAcidStartPosition position)
-        | AE, Left
-        | EA, Left ->
-            let aminoAcidIndex =
-                if position > 0<OneOffset> then position * 3 - 2<OneOffset> else position * 3
+                (aminoAcidIndex, ThreePrime) |> GslResult.ok
 
-            (aminoAcidIndex, ThreePrime) |> GslResult.ok
-        | A, Right
-        | AS, Right
-        | SA, Right ->
-            if position > 0<OneOffset>
-            then ((position * 3), FivePrime) |> GslResult.ok
-            else GslResult.err (NegativeRightAminoAcidStartPosition position)
-        | AE, Right
-        | EA, Right ->
-            let aminoAcidIndex =
-                if position > 0<OneOffset> then position * 3 else position * 3 + 2<OneOffset>
-
-            (aminoAcidIndex, ThreePrime) |> GslResult.ok
-
-    let private getProvidedPosition (relativePosition: ParseRelativePosition)
+    let internal getProvidedPosition (relativePosition: ParseRelativePosition)
                                     : GslResult<int, RelativePositionTranslationMessage> =
         match relativePosition.Item with
         | Int ({ Node.Value = providedPosition
