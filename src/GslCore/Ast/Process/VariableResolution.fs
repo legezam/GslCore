@@ -27,9 +27,10 @@ type VariableBindings = Map<string, VariableResolutionWrapper>
 
 module VariableResolution =
     let private addBinding (bindings: VariableBindings) (variableBinding: Node<VariableBinding>) =
-        bindings.Add(variableBinding.Value.Name, VBinding variableBinding)
+        bindings
+        |> Map.add variableBinding.Value.Name (VBinding variableBinding)
 
-    let private addFuncLocal (bindings: VariableBindings) (name: string) = bindings.Add(name, FLocal)
+    let private addFuncLocal (bindings: VariableBindings) (name: string) = bindings |> Map.add name FLocal
 
     /// Given an AST node, update the variable resolution state.
     /// We need to be a little careful here due to a tricky issue.

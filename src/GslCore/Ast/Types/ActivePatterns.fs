@@ -88,10 +88,11 @@ let (|AllowedInMathExpression|_|) (node: AstNode) =
 /// Match variable declarations that effectively create a pathological self-reference.
 let (|SelfReferentialVariable|_|) (node: AstNode) =
     match node with
-    | VariableBinding (vb) ->
-        match vb.Value.Value with
-        | TypedVariable (vbInner) -> // variable pointing to another variable
-            if vb.Value.Name = fst vbInner.Value then Some vb else None
+    | VariableBinding variableBindingWrapper ->
+        match variableBindingWrapper.Value.Value with
+        | TypedVariable innerVariableBindingWrapper -> // variable pointing to another variable
+            let (innerName, _) = innerVariableBindingWrapper.Value
+            let outerName = variableBindingWrapper.Value.Name
+            if outerName = innerName then Some variableBindingWrapper else None
         | _ -> None
     | _ -> None
-
