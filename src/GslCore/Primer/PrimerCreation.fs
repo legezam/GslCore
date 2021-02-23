@@ -12,7 +12,7 @@ open GslCore.DesignParams
 open GslCore.Pragma
 
 /// Check if tail of A overlaps head of B
-let checkTailAOverlapsHeadB (a: Dna) (b: Dna) =
+let checkTailAOverlapsHeadB (a: Dna) (b: Dna): bool =
     let rec maxOverlap i =
         if i >= a.Length - 12 then false
         else if a.[i..] = (b.[..a.Length - i - 1]) then true
@@ -61,8 +61,8 @@ type TuneStep =
     | EXT_R_AMP
     | EXT_R_ANNEAL
 
-let nonSlide s =
-    match s with
+let nonSlide: TuneStep -> bool =
+    function
     | CHOP_F_AMP
     | CHOP_F_ANNEAL
     | CHOP_R_AMP
@@ -80,23 +80,23 @@ let nonSlide s =
 /// We need to tune fwdTail length (ft)  fwd body (fb) as well as reverse equivalents.
 /// There are 3 deltas to optimize, for the anneal delta, fwd amp delta and rev amp delta.
 type private TuneState =
-    { bestAnnealDelta: float<C>
-      bestFwdDelta: float<C>
-      bestRevDelta: float<C>
+    { BestAnnealDelta: float<C>
+      BestFwdDelta: float<C>
+      BestRevDelta: float<C>
       (*bestFt : int ; bestRt : int ; bestFb : int ; bestRb : int ; *)
-      ft: int
-      fb: int
-      rt: int
-      rb: int }
+      ForwardTailLength: int
+      ForwardBodyLength: int
+      ReverseTailLength: int
+      ReverseBodyLength: int }
     override x.ToString() =
         sprintf
             "bestA=%A bestF=%A bestR=%A bestT=%A"
-            x.bestAnnealDelta
-            x.bestFwdDelta
-            x.bestRevDelta
-            (x.bestAnnealDelta
-             + x.bestFwdDelta
-             + x.bestRevDelta)
+            x.BestAnnealDelta
+            x.BestFwdDelta
+            x.BestRevDelta
+            (x.BestAnnealDelta
+             + x.BestFwdDelta
+             + x.BestRevDelta)
 
 [<Struct>]
 type TuneVector(a: int, b: int, c: int, d: int) =
@@ -105,23 +105,24 @@ type TuneVector(a: int, b: int, c: int, d: int) =
     member x.C = c
     member x.D = d
 
-let maxTuneTailsIters = 500
+[<Literal>]
+let MaxTuneTailsIters = 500
 
 /// Extend tails of primers (or truncate) to optimize annealing Tm
 /// after left/right design off a linker/inline
-let tuneTails verbose
-              (dp: DesignParams)
+let tuneTails (verbose: bool)
+              (designParams: DesignParams)
               (fwdTailLenFixed: int option)
-              fwdTailLenMin
-              fwdTailLenMax
-              firmMiddle
+              (fwdTailLenMin: int)
+              (fwdTailLenMax: int)
+              (maybeFirmMiddle: float<C> option)
               (revTailLenFixed: int option)
-              revTailLenMin
-              revTailLenMax
-              (fwd: Primer)
-              (rev: Primer)
+              (revTailLenMin: int)
+              (revTailLenMax: int)
+              (forwardPrimer: Primer)
+              (reversePrimer: Primer)
               (middleDNA: Dna)
-              =
+              : Primer * Primer =
     // Input is two sets of primers like this where the region between | symbols is an inline sequence.
     // Output is adjust primer tails that have a better annealing length
 
@@ -157,35 +158,39 @@ let tuneTails verbose
     let revTemplate =
         match revTailLenFixed with
         | Some (n) -> middleDNA.[..n - 1].RevComp()
-        | None -> DnaOps.append middleDNA fwd.Body |> DnaOps.revComp
+        | None ->
+            DnaOps.append middleDNA forwardPrimer.Body
+            |> DnaOps.revComp
 
     /// the body part of the reverse oligo, which corresponds to the upstream rabit, + middleDNA (linker + sandwich seqs).
     /// Upstream rabit is included to deal with seamless designs without a linker
     let fwdTemplate =
         match fwdTailLenFixed with
         | Some (n) -> middleDNA.[middleDNA.Length - n..]
-        | None -> DnaOps.append (rev.Body.RevComp()) (middleDNA)
+        | None -> DnaOps.append (reversePrimer.Body.RevComp()) (middleDNA)
 
     /// The reverse primer body (end of upstream rabit) + middleDNA (linkers + sandwich sequence) + the forward
     /// primer body (beginning of downstream rabit)
     let fullTemplate =
-        DnaOps.concat [ rev.Body.RevComp()
+        DnaOps.concat [ reversePrimer.Body.RevComp()
                         middleDNA
-                        fwd.Body ]
+                        forwardPrimer.Body ]
 
     /// Target Tm for middle annealing part.  Cheat if it's a linker and we just want to keep this part (ideally) full length
     let annealTarget =
-        match firmMiddle with
-        | Some (x) ->
+        match maybeFirmMiddle with
+        | Some x ->
             if verbose
             then printfn "procAssembly: tuneTails: setAnnealTarget to firmMiddle=%A" x
 
             x
         | None ->
             if verbose
-            then printfn "procAssembly: tuneTails: setAnnealTarget to seamlessOverlapTm=%A" dp.SeamlessOverlapTemp
+            then printfn
+                     "procAssembly: tuneTails: setAnnealTarget to seamlessOverlapTm=%A"
+                     designParams.SeamlessOverlapTemp
 
-            dp.SeamlessOverlapTemp
+            designParams.SeamlessOverlapTemp
     //let annealTarget = dp.seamlessOverlapTm // Just use this,  rev/fwdTailLenFixed vars take care of constraining RYSE linkers
 
     // Find two positions f and r that create a better ovelap tm
@@ -196,9 +201,10 @@ let tuneTails verbose
     //  ----------------^ (inlineOffset)
     let inlineLen = middleDNA.Length
     /// Last base of inline region
-    let X = rev.Body.Length + middleDNA.Length - 1
+    let X =
+        reversePrimer.Body.Length + middleDNA.Length - 1
     /// First base of inline region
-    let Y = rev.Body.Length
+    let Y = reversePrimer.Body.Length
 
     if verbose
     then printfn "procAssembly: tuneTails: tuneTailOpt: X=%d Y=%d\n template=%s" X Y fullTemplate.str
@@ -210,7 +216,9 @@ let tuneTails verbose
 
         // record our current state so we never retrace our steps
         let seen =
-            seen'.Add(TuneVector(state.fb, state.ft, state.rb, state.rt))
+            seen'.Add
+                (TuneVector
+                    (state.ForwardBodyLength, state.ForwardTailLength, state.ReverseBodyLength, state.ReverseTailLength))
 
         // Calculate overlap oligo.  Tricky but it has to be a substring of the fwd oligo
         // from some point to the end
@@ -220,13 +228,13 @@ let tuneTails verbose
         /// Matches when an oligo has hit its maximum length
         let (|OligoMax|_|) =
             function
-            | x when x = dp.PrimerParams.maxLength -> Some(x)
+            | x when x = designParams.PrimerParams.maxLength -> Some(x)
             | _ -> None
 
         /// matches if an oligo gets too long
         let (|OligoOver|_|) =
             function
-            | x when x > dp.PrimerParams.maxLength -> Some(x)
+            | x when x > designParams.PrimerParams.maxLength -> Some(x)
             | _ -> None
         (*
         /// matches if an oligo gets too short
@@ -237,268 +245,278 @@ let tuneTails verbose
         if verbose then
             printf
                 "tuneTailsOpt: rt=%d rb=%d ft=%d fb=%d rD=%f aD=%f fD=%f (rLen=%d) (fLen=%d)"
-                state.rt
-                state.rb
-                state.ft
-                state.fb
-                (state.bestRevDelta / 1.0<C>)
-                (state.bestAnnealDelta / 1.0<C>)
-                (state.bestFwdDelta / 1.0<C>)
-                (state.rt + state.rb)
-                (state.ft + state.fb)
+                state.ReverseTailLength
+                state.ReverseBodyLength
+                state.ForwardTailLength
+                state.ForwardBodyLength
+                (state.BestRevDelta / 1.0<C>)
+                (state.BestAnnealDelta / 1.0<C>)
+                (state.BestFwdDelta / 1.0<C>)
+                (state.ReverseTailLength + state.ReverseBodyLength)
+                (state.ForwardTailLength + state.ForwardBodyLength)
 
         /// length of the forward oligo, including the tail and the body
-        let fwdLen = state.ft + state.fb
+        let fwdLen =
+            state.ForwardTailLength + state.ForwardBodyLength
         /// length of the reverse oligo, including the tail and the body
-        let revLen = state.rt + state.rb
+        let revLen =
+            state.ReverseTailLength + state.ReverseBodyLength
 
         let updateFwd (s: TuneState) =
             { s with
-                  bestFwdDelta =
-                      if s.fb < 5 then
+                  BestFwdDelta =
+                      if s.ForwardBodyLength < 5 then
                           999.0<C>
                       else
-                          dp.TargetTemp
-                          - (Amyris.Bio.primercore.temp dp.PrimerParams fwd.Body.arr s.fb) }
+                          designParams.TargetTemp
+                          - (Amyris.Bio.primercore.temp
+                              designParams.PrimerParams
+                                 forwardPrimer.Body.arr
+                                 s.ForwardBodyLength) }
 
         let updateRev (s: TuneState) =
             { s with
-                  bestRevDelta =
-                      if s.rb < 5 then
+                  BestRevDelta =
+                      if s.ReverseBodyLength < 5 then
                           999.0<C>
                       else
-                          dp.TargetTemp
-                          - (Amyris.Bio.primercore.temp dp.PrimerParams rev.Body.arr s.rb) }
+                          designParams.TargetTemp
+                          - (Amyris.Bio.primercore.temp
+                              designParams.PrimerParams
+                                 reversePrimer.Body.arr
+                                 s.ReverseBodyLength) }
 
         let updateAnneal (s: TuneState) =
             { s with
-                  bestAnnealDelta =
+                  BestAnnealDelta =
                       annealTarget
                       - (Amyris.Bio.primercore.temp
-                          dp.PrimerParams
-                             (fullTemplate.[X - s.ft + 1..].arr)
-                             ((Y + s.rt - 1) - (X - s.ft + 1) + 1)) }
+                          designParams.PrimerParams
+                             (fullTemplate.[X - s.ForwardTailLength + 1..].arr)
+                             ((Y + s.ReverseTailLength - 1)
+                              - (X - s.ForwardTailLength + 1)
+                              + 1)) }
 
         /// Takes in a move (union case Tunestep) and updates the TuneState accordingly
         let makeMove =
             function
-            | CHOP_F_AMP -> { state with fb = state.fb - 1 } |> updateFwd
-            | CHOP_F_ANNEAL -> { state with ft = state.ft - 1 } |> updateAnneal
-            | CHOP_R_AMP -> { state with rb = state.rb - 1 } |> updateRev
-            | CHOP_R_ANNEAL -> { state with rt = state.rt - 1 } |> updateAnneal
+            | CHOP_F_AMP ->
+                { state with
+                      ForwardBodyLength = state.ForwardBodyLength - 1 }
+                |> updateFwd
+            | CHOP_F_ANNEAL ->
+                { state with
+                      ForwardTailLength = state.ForwardTailLength - 1 }
+                |> updateAnneal
+            | CHOP_R_AMP ->
+                { state with
+                      ReverseBodyLength = state.ReverseBodyLength - 1 }
+                |> updateRev
+            | CHOP_R_ANNEAL ->
+                { state with
+                      ReverseTailLength = state.ReverseTailLength - 1 }
+                |> updateAnneal
             | SLIDE_F_LEFT ->
                 { state with
-                      fb = state.fb - 1
-                      ft = state.ft + 1 }
+                      ForwardBodyLength = state.ForwardBodyLength - 1
+                      ForwardTailLength = state.ForwardTailLength + 1 }
                 |> updateFwd
                 |> updateAnneal
             | SLIDE_F_RIGHT ->
                 { state with
-                      fb = state.fb + 1
-                      ft = state.ft - 1 }
+                      ForwardBodyLength = state.ForwardBodyLength + 1
+                      ForwardTailLength = state.ForwardTailLength - 1 }
                 |> updateFwd
                 |> updateAnneal
             | SLIDE_R_LEFT ->
                 { state with
-                      rb = state.rb + 1
-                      rt = state.rt - 1 }
+                      ReverseBodyLength = state.ReverseBodyLength + 1
+                      ReverseTailLength = state.ReverseTailLength - 1 }
                 |> updateRev
                 |> updateAnneal
             | SLIDE_R_RIGHT ->
                 { state with
-                      rt = state.rt + 1
-                      rb = state.rb - 1 }
+                      ReverseTailLength = state.ReverseTailLength + 1
+                      ReverseBodyLength = state.ReverseBodyLength - 1 }
                 |> updateRev
                 |> updateAnneal
-            | EXT_F_AMP -> { state with fb = state.fb + 1 } |> updateFwd
-            | EXT_F_ANNEAL -> { state with ft = state.ft + 1 } |> updateAnneal
-            | EXT_R_AMP -> { state with rb = state.rb + 1 } |> updateRev
-            | EXT_R_ANNEAL -> { state with rt = state.rt + 1 } |> updateAnneal
+            | EXT_F_AMP ->
+                { state with
+                      ForwardBodyLength = state.ForwardBodyLength + 1 }
+                |> updateFwd
+            | EXT_F_ANNEAL ->
+                { state with
+                      ForwardTailLength = state.ForwardTailLength + 1 }
+                |> updateAnneal
+            | EXT_R_AMP ->
+                { state with
+                      ReverseBodyLength = state.ReverseBodyLength + 1 }
+                |> updateRev
+            | EXT_R_ANNEAL ->
+                { state with
+                      ReverseTailLength = state.ReverseTailLength + 1 }
+                |> updateAnneal
 
         // possible moves, given how long the current oligo is and the limitations (fwdTailLenMax, fwdTailLenMin, etc.).
         let moves =
             seq {
                 match fwdLen with
                 | OligoOver (_) -> // cut something off
-                    if state.fb > dp.PrimerParams.minLength then yield CHOP_F_AMP
+                    if state.ForwardBodyLength > designParams.PrimerParams.minLength
+                    then yield CHOP_F_AMP
                     // Put guard on this to stop best anneal data running away to zero kelvin ;(
                     if fwdTailLenFixed.IsNone
-                       && state.ft > fwdTailLenMin
-                       && state.bestAnnealDelta < maxAnnealSearchDeviation then
+                       && state.ForwardTailLength > fwdTailLenMin
+                       && state.BestAnnealDelta < maxAnnealSearchDeviation then
                         yield CHOP_F_ANNEAL
                 | OligoMax (_) -> // could slide or cut
-                    if state.bestFwdDelta < 0.0<C>
-                       && state.fb > dp.PrimerParams.minLength then
+                    if state.BestFwdDelta < 0.0<C>
+                       && state.ForwardBodyLength > designParams.PrimerParams.minLength then
                         yield CHOP_F_AMP
 
                     if fwdTailLenFixed.IsNone then
-                        if state.bestAnnealDelta < 0.0<C>
-                           && state.ft > fwdTailLenMin then
+                        if state.BestAnnealDelta < 0.0<C>
+                           && state.ForwardTailLength > fwdTailLenMin then
                             yield CHOP_F_ANNEAL
 
-                        if state.fb < fwd.Body.Length
-                           && state.ft > fwdTailLenMin then
+                        if state.ForwardBodyLength < forwardPrimer.Body.Length
+                           && state.ForwardTailLength > fwdTailLenMin then
                             yield SLIDE_F_RIGHT
 
-                        if state.rt > revTailLenMin
-                           && state.ft < fwdTailLenMax then
+                        if state.ReverseTailLength > revTailLenMin
+                           && state.ForwardTailLength < fwdTailLenMax then
                             yield SLIDE_F_LEFT
                 | _ ->
                     // All these moves are only possible if the tail isn't a fixed length
                     if fwdTailLenFixed.IsNone then
-                        if state.bestFwdDelta < 0.0<C>
-                           && state.ft < fwdTailLenMin
-                           && state.fb > dp.PrimerParams.minLength then
+                        if state.BestFwdDelta < 0.0<C>
+                           && state.ForwardTailLength < fwdTailLenMin
+                           && state.ForwardBodyLength > designParams.PrimerParams.minLength then
                             yield CHOP_F_AMP
-                        elif state.fb < fwd.Body.Length then
+                        elif state.ForwardBodyLength < forwardPrimer.Body.Length then
                             yield EXT_F_AMP
 
 
-
-
-
-                        if state.bestAnnealDelta < 0.0<C>
-                           && state.ft > fwdTailLenMin then
+                        if state.BestAnnealDelta < 0.0<C>
+                           && state.ForwardTailLength > fwdTailLenMin then
                             yield CHOP_F_ANNEAL
-                        elif state.ft < fwdTailLenMax then
+                        elif state.ForwardTailLength < fwdTailLenMax then
                             yield EXT_F_ANNEAL
 
 
-
-
-
-                        match sign state.bestAnnealDelta, sign state.bestFwdDelta with
+                        match sign state.BestAnnealDelta, sign state.BestFwdDelta with
                         | 1, 1 -> // both anneal and fwd amp are too cold, could cut either back and extend the other
-                            if state.bestAnnealDelta < state.bestFwdDelta then
-                                if state.fb < fwd.Body.Length
-                                   && state.ft > fwdTailLenMin then
+                            if state.BestAnnealDelta < state.BestFwdDelta then
+                                if state.ForwardBodyLength < forwardPrimer.Body.Length
+                                   && state.ForwardTailLength > fwdTailLenMin then
                                     yield SLIDE_F_RIGHT
-                                elif (state.rt > revTailLenMin
-                                      && state.ft < fwdTailLenMax) then
+                                elif (state.ReverseTailLength > revTailLenMin
+                                      && state.ForwardTailLength < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
-
-
 
 
                         | 1, -1 -> // anneal too cold, fwd too hot
-                            if (state.rt > revTailLenMin
-                                && state.ft < fwdTailLenMax) then
+                            if (state.ReverseTailLength > revTailLenMin
+                                && state.ForwardTailLength < fwdTailLenMax) then
                                 yield SLIDE_F_LEFT
                         | -1, 1 -> // anneal too hot, fwd too cold
-                            if state.fb < fwd.Body.Length
-                               && state.ft > fwdTailLenMin then
+                            if state.ForwardBodyLength < forwardPrimer.Body.Length
+                               && state.ForwardTailLength > fwdTailLenMin then
                                 yield SLIDE_F_RIGHT
                         | -1, -1 -> // both too hot
-                            if state.bestAnnealDelta < state.bestFwdDelta then
-                                if state.fb < fwd.Body.Length - 1
-                                   && state.ft > fwdTailLenMin then
+                            if state.BestAnnealDelta < state.BestFwdDelta then
+                                if state.ForwardBodyLength < forwardPrimer.Body.Length - 1
+                                   && state.ForwardTailLength > fwdTailLenMin then
                                     yield SLIDE_F_RIGHT
-                                else if (state.rt > revTailLenMin
-                                         && state.ft < fwdTailLenMax) then
+                                else if (state.ReverseTailLength > revTailLenMin
+                                         && state.ForwardTailLength < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
-
-
-
 
                         | 0, 1
                         | -1, 0 -> // anneal hot, amp perfect
-                            if state.fb < fwd.Body.Length
-                               && state.ft > fwdTailLenMin then
+                            if state.ForwardBodyLength < forwardPrimer.Body.Length
+                               && state.ForwardTailLength > fwdTailLenMin then
                                 yield SLIDE_F_RIGHT
                         | 0, -1
                         | 1, 0 -> // anneal cold, amp perfect
-                            if (state.fb < fwd.Body.Length
-                                && state.rt > revTailLenMin
-                                && state.ft < fwdTailLenMax) then
+                            if (state.ForwardBodyLength < forwardPrimer.Body.Length
+                                && state.ReverseTailLength > revTailLenMin
+                                && state.ForwardTailLength < fwdTailLenMax) then
                                 yield SLIDE_F_LEFT
                         | 0, 0 -> () // no complaints
                         | x -> failwithf "unexpected delta sign combo %A" x
 
                 match revLen with
                 | OligoOver (_) -> // cut something off reverse primer
-                    if state.rb > dp.PrimerParams.minLength then yield CHOP_R_AMP
+                    if state.ReverseBodyLength > designParams.PrimerParams.minLength
+                    then yield CHOP_R_AMP
 
-                    if revTailLenFixed.IsNone && state.rt > revTailLenMin
-                    then yield CHOP_R_ANNEAL
+                    if revTailLenFixed.IsNone
+                       && state.ReverseTailLength > revTailLenMin then
+                        yield CHOP_R_ANNEAL
                 | OligoMax (_) -> // could slide or cut
-                    if state.bestRevDelta < 0.0<C>
-                       && state.rb > dp.PrimerParams.minLength then
+                    if state.BestRevDelta < 0.0<C>
+                       && state.ReverseBodyLength > designParams.PrimerParams.minLength then
                         yield CHOP_R_AMP
 
                     if revTailLenFixed.IsNone then
-                        if state.bestAnnealDelta < 0.0<C>
-                           && state.rt > revTailLenMin then
+                        if state.BestAnnealDelta < 0.0<C>
+                           && state.ReverseTailLength > revTailLenMin then
                             yield CHOP_R_ANNEAL
 
-                        if state.rb < rev.Body.Length - 1
-                           && state.rt > revTailLenMin then
+                        if state.ReverseBodyLength < reversePrimer.Body.Length - 1
+                           && state.ReverseTailLength > revTailLenMin then
                             yield SLIDE_R_LEFT
-                        elif state.rt < revTailLenMax then
+                        elif state.ReverseTailLength < revTailLenMax then
                             yield SLIDE_R_RIGHT
 
-
-
-
                 | _ ->
-                    if state.bestRevDelta < 0.0<C>
-                       && state.rb > dp.PrimerParams.minLength then
+                    if state.BestRevDelta < 0.0<C>
+                       && state.ReverseBodyLength > designParams.PrimerParams.minLength then
                         yield CHOP_R_AMP
-                    elif state.rb < rev.Body.Length then
+                    elif state.ReverseBodyLength < reversePrimer.Body.Length then
                         yield EXT_R_AMP
 
-
-
-
-
                     if revTailLenFixed.IsNone then
-                        if state.bestAnnealDelta < 0.0<C>
-                           && state.rt > revTailLenMin then
+                        if state.BestAnnealDelta < 0.0<C>
+                           && state.ReverseTailLength > revTailLenMin then
                             yield CHOP_R_ANNEAL
-                        elif state.rt < revTailLenMax then
+                        elif state.ReverseTailLength < revTailLenMax then
                             yield EXT_R_ANNEAL
 
-
-
-
-
-                        match sign state.bestAnnealDelta, sign state.bestRevDelta with
+                        match sign state.BestAnnealDelta, sign state.BestRevDelta with
                         | 1, 1 -> // both anneal and rev amp are too cold, could cut either back and extend the other
-                            if state.bestAnnealDelta < state.bestRevDelta then
-                                if state.rb < rev.Body.Length
-                                   && state.rt > revTailLenMin then
+                            if state.BestAnnealDelta < state.BestRevDelta then
+                                if state.ReverseBodyLength < reversePrimer.Body.Length
+                                   && state.ReverseTailLength > revTailLenMin then
                                     yield SLIDE_R_LEFT
-                                elif state.rt < revTailLenMax then
+                                elif state.ReverseTailLength < revTailLenMax then
                                     yield SLIDE_R_RIGHT
-
-
-
 
                         | 1, -1 -> // anneal too cold, rev too hot
-                            if state.rt < revTailLenMax then yield SLIDE_R_RIGHT
+                            if state.ReverseTailLength < revTailLenMax
+                            then yield SLIDE_R_RIGHT
                         | -1, 1 -> // anneal too hot, rev too cold
-                            if state.rb < rev.Body.Length - 1
-                               && state.rt > revTailLenMin then
+                            if state.ReverseBodyLength < reversePrimer.Body.Length - 1
+                               && state.ReverseTailLength > revTailLenMin then
                                 yield SLIDE_R_LEFT
                         | -1, -1 -> // both too hot
-                            if state.bestAnnealDelta < state.bestRevDelta then
-                                if state.rb < rev.Body.Length
-                                   && state.rt > revTailLenMin then
+                            if state.BestAnnealDelta < state.BestRevDelta then
+                                if state.ReverseBodyLength < reversePrimer.Body.Length
+                                   && state.ReverseTailLength > revTailLenMin then
                                     yield SLIDE_R_LEFT
-                                elif state.rt < revTailLenMax then
+                                elif state.ReverseTailLength < revTailLenMax then
                                     yield SLIDE_R_RIGHT
-
-
-
 
                         | 0, 1
                         | -1, 0 -> // anneal hot, amp perfect
-                            if state.rb < rev.Body.Length
-                               && state.rt > revTailLenMin then
+                            if state.ReverseBodyLength < reversePrimer.Body.Length
+                               && state.ReverseTailLength > revTailLenMin then
                                 yield SLIDE_R_LEFT
                         | 0, -1
                         | 1, 0 -> // anneal cold, amp perfect
-                            if state.rb < rev.Body.Length
-                               && state.rt < revTailLenMax then
+                            if state.ReverseBodyLength < reversePrimer.Body.Length
+                               && state.ReverseTailLength < revTailLenMax then
                                 yield SLIDE_R_RIGHT
                         | 0, 0 -> () // no complaints
                         | x -> failwithf "unexpected combo %A" x
@@ -509,7 +527,8 @@ let tuneTails verbose
             moves
             |> Array.map (fun s -> (s, makeMove s))
             |> Array.filter (fun (_, m) ->
-                seen.Contains(TuneVector(m.fb, m.ft, m.rb, m.rt))
+                seen.Contains
+                    (TuneVector(m.ForwardBodyLength, m.ForwardTailLength, m.ReverseBodyLength, m.ReverseTailLength))
                 |> not)
 
         if verbose then
@@ -518,13 +537,13 @@ let tuneTails verbose
                     sprintf
                         "%A:tD=%3.1f/rD=%3.1f/aD=%3.1f/fD=%3.1f"
                         move
-                        ((abs (s.bestFwdDelta)
-                          + (abs s.bestAnnealDelta)
-                          + (abs s.bestRevDelta))
+                        ((abs (s.BestFwdDelta)
+                          + (abs s.BestAnnealDelta)
+                          + (abs s.BestRevDelta))
                          / 1.0<C>)
-                        (s.bestRevDelta / 1.0<C>)
-                        (s.bestAnnealDelta / 1.0<C>)
-                        (s.bestFwdDelta / 1.0<C>) |]
+                        (s.BestRevDelta / 1.0<C>)
+                        (s.BestAnnealDelta / 1.0<C>)
+                        (s.BestFwdDelta / 1.0<C>) |]
 
             printf " moves: %s " (String.Join(",", moveStates))
 
@@ -536,20 +555,28 @@ let tuneTails verbose
             /// primers are <= maxlength, then total Tm deviation is smaller
             let better (s1: TuneState) (s2: TuneState) =
                 let excess1 =
-                    (s1.ft + s1.fb - dp.PrimerParams.maxLength |> max 0)
-                    + (s1.rt + s1.rb - dp.PrimerParams.maxLength |> max 0)
+                    (s1.ForwardTailLength + s1.ForwardBodyLength
+                     - designParams.PrimerParams.maxLength
+                     |> max 0)
+                    + (s1.ReverseTailLength + s1.ReverseBodyLength
+                       - designParams.PrimerParams.maxLength
+                       |> max 0)
 
                 let excess2 =
-                    (s2.ft + s2.fb - dp.PrimerParams.maxLength |> max 0)
-                    + (s2.rt + s2.rb - dp.PrimerParams.maxLength |> max 0)
+                    (s2.ForwardTailLength + s2.ForwardBodyLength
+                     - designParams.PrimerParams.maxLength
+                     |> max 0)
+                    + (s2.ReverseTailLength + s2.ReverseBodyLength
+                       - designParams.PrimerParams.maxLength
+                       |> max 0)
 
                 (excess1 < excess2)
                 || (excess1 = excess2
-                    && (abs s1.bestAnnealDelta)
-                       + (abs s1.bestFwdDelta)
-                       + (abs s1.bestRevDelta) < (abs s2.bestAnnealDelta)
-                                                 + (abs s2.bestFwdDelta)
-                                                 + (abs s2.bestRevDelta))
+                    && (abs s1.BestAnnealDelta)
+                       + (abs s1.BestFwdDelta)
+                       + (abs s1.BestRevDelta) < (abs s2.BestAnnealDelta)
+                                                 + (abs s2.BestFwdDelta)
+                                                 + (abs s2.BestRevDelta))
             // Pick the lowest
             let bestMove, lowestS =
                 newStates
@@ -559,13 +586,13 @@ let tuneTails verbose
             if verbose then printf "bestM=%A" bestMove
 
             let primersOutOfSpec =
-                state.fb + state.ft > dp.PrimerParams.maxLength
+                state.ForwardBodyLength + state.ForwardTailLength > designParams.PrimerParams.maxLength
                 || // total forward oligo too long
-                state.rb + state.rt > dp.PrimerParams.maxLength
+                state.ReverseBodyLength + state.ReverseTailLength > designParams.PrimerParams.maxLength
                 || // total reverse oligo too long
-                state.fb + state.ft < dp.PrimerParams.minLength
+                state.ForwardBodyLength + state.ForwardTailLength < designParams.PrimerParams.minLength
                 || // total forward oligo too short
-                state.rb + state.rt < dp.PrimerParams.minLength // total reverse oligo too short
+                state.ReverseBodyLength + state.ReverseTailLength < designParams.PrimerParams.minLength // total reverse oligo too short
 
             if better lowestS state then
                 if verbose
@@ -600,21 +627,23 @@ let tuneTails verbose
     //
     //let startAnnealTm = Amyris.Bio.primercore.temp dp.pp fwd.tail fwd.tail.Length
     let startAnnealTm =
-        if fwd.Tail.Length = 0 || rev.Tail.Length = 0 then
+        if forwardPrimer.Tail.Length = 0
+           || reversePrimer.Tail.Length = 0 then
             annealTarget
         else
             Amyris.Bio.primercore.temp
-                dp.PrimerParams
-                (fullTemplate.[X - fwd.Tail.Length + 1..].arr)
-                ((Y + rev.Tail.Length - 1)
-                 - (X - fwd.Tail.Length + 1)
+                designParams.PrimerParams
+                (fullTemplate.[X - forwardPrimer.Tail.Length + 1..]
+                    .arr)
+                ((Y + reversePrimer.Tail.Length - 1)
+                 - (X - forwardPrimer.Tail.Length + 1)
                  + 1)
 
     if verbose then
-        printfn "tuneTailOpt: starting fwdTail=%O" fwd.Tail
-        printfn "tuneTailOpt: starting fwdBody=%O" fwd.Body
-        printfn "tuneTailOpt: starting revTail=%O" rev.Tail
-        printfn "tuneTailOpt: starting revBody=%O" rev.Body
+        printfn "tuneTailOpt: starting fwdTail=%O" forwardPrimer.Tail
+        printfn "tuneTailOpt: starting fwdBody=%O" forwardPrimer.Body
+        printfn "tuneTailOpt: starting revTail=%O" reversePrimer.Tail
+        printfn "tuneTailOpt: starting revBody=%O" reversePrimer.Body
 
         printfn
             "tuneTailOpt: starting fwdTailLenFixed=%s"
@@ -638,135 +667,152 @@ let tuneTails verbose
         printfn "tuneTailOpt: starting fullTemplate=%O" fullTemplate
 
     let rec trimIfNeeded (p: Primer) =
-        if p.lenLE (dp.PrimerParams.maxLength) then
+        if p.lenLE (designParams.PrimerParams.maxLength) then
             p
         else
             let ampTemp =
-                Amyris.Bio.primercore.temp dp.PrimerParams p.Body.arr p.Body.Length
+                Amyris.Bio.primercore.temp designParams.PrimerParams p.Body.arr p.Body.Length
 
-            let ampDelta = abs (ampTemp - dp.TargetTemp)
+            let ampDelta = abs (ampTemp - designParams.TargetTemp)
 
             let annealTemp =
-                Amyris.Bio.primercore.temp dp.PrimerParams p.Tail.arr p.Tail.Length
+                Amyris.Bio.primercore.temp designParams.PrimerParams p.Tail.arr p.Tail.Length
 
             let annealDelta =
-                abs (annealTemp - dp.SeamlessOverlapTemp)
+                abs (annealTemp - designParams.SeamlessOverlapTemp)
 
             if ampDelta < annealDelta
-               && p.Body.Length > dp.PrimerParams.minLength then
+               && p.Body.Length > designParams.PrimerParams.minLength then
                 trimIfNeeded
                     { p with
                           Body = p.Body.[..p.Body.Length - 2] }
             elif ampDelta > annealDelta
-                 && p.Tail.Length > dp.PrimerParams.minLength then
+                 && p.Tail.Length > designParams.PrimerParams.minLength then
                 trimIfNeeded { p with Tail = p.Tail.[1..] }
             else
                 p
 
-    if fwd.Primer.Length = 0 || rev.Primer.Length = 0 then
+    if forwardPrimer.Primer.Length = 0
+       || reversePrimer.Primer.Length = 0 then
         // No primer on one side, no joy in optimizing except we still need to ensure that
         // the starting primers we were handed observe the length requirements
         let fwd' =
-            if fwd.Primer.Length = 0 then fwd else trimIfNeeded fwd
+            if forwardPrimer.Primer.Length = 0 then forwardPrimer else trimIfNeeded forwardPrimer
 
         let rev' =
-            if rev.Primer.Length = 0 then rev else trimIfNeeded rev
+            if reversePrimer.Primer.Length = 0 then reversePrimer else trimIfNeeded reversePrimer
 
         fwd', rev'
     else
         // precalculate the fwd / rev body temps for reference
         let fwdAmpTm =
-            Amyris.Bio.primercore.temp dp.PrimerParams fwd.Body.arr fwd.Body.Length
+            Amyris.Bio.primercore.temp designParams.PrimerParams forwardPrimer.Body.arr forwardPrimer.Body.Length
 
         let revAmpTm =
-            Amyris.Bio.primercore.temp dp.PrimerParams rev.Body.arr rev.Body.Length
+            Amyris.Bio.primercore.temp designParams.PrimerParams reversePrimer.Body.arr reversePrimer.Body.Length
 
         // Start optimization of tail/body with full length tail and body for the original designed primers.
         // This may well be too long for the max oligo length but the tuneTailsOpt function will adjust till they are legal
         let start: TuneState =
-            { bestAnnealDelta = annealTarget - startAnnealTm
-              ft = fwd.Tail.Length
-              rt = rev.Tail.Length
-              bestFwdDelta = dp.TargetTemp - fwdAmpTm
-              bestRevDelta = dp.TargetTemp - revAmpTm
-              fb = fwd.Body.Length
-              rb = rev.Body.Length }
+            { BestAnnealDelta = annealTarget - startAnnealTm
+              ForwardTailLength = forwardPrimer.Tail.Length
+              ReverseTailLength = reversePrimer.Tail.Length
+              BestFwdDelta = designParams.TargetTemp - fwdAmpTm
+              BestRevDelta = designParams.TargetTemp - revAmpTm
+              ForwardBodyLength = forwardPrimer.Body.Length
+              ReverseBodyLength = reversePrimer.Body.Length }
 
         // Call to tunetails - optimize lengths of body/tail
         // ================================================================================
         let finalParams =
-            tuneTailsOpt maxTuneTailsIters start Set.empty
+            tuneTailsOpt MaxTuneTailsIters start Set.empty
 
-        let f = finalParams.ft
-        let r = finalParams.rt
+        let f = finalParams.ForwardTailLength
+        let r = finalParams.ReverseTailLength
 
         if verbose then
-            printfn "tuneTailOpt: ending ft=%d fb=%d" (finalParams.ft) (finalParams.fb)
-            printfn "tuneTailOpt: ending rt=%d rb=%d" (finalParams.rt) (finalParams.rb)
+            printfn "tuneTailOpt: ending ft=%d fb=%d" (finalParams.ForwardTailLength) (finalParams.ForwardBodyLength)
+            printfn "tuneTailOpt: ending rt=%d rb=%d" (finalParams.ReverseTailLength) (finalParams.ReverseBodyLength)
 
             printfn
                 "tuneTailOpt: ending fwd %O|%O"
                 (fwdTemplate.[fwdTemplate.Length - f..])
-                (fwd.Body.[..finalParams.fb - 1])
+                (forwardPrimer.Body.[..finalParams.ForwardBodyLength - 1])
 
             printfn "tuneTailOpt: ending middle %O" middleDNA
             printfn "tuneTailOpt: ending template %O" fullTemplate
 
             printfn
                 "tuneTailOpt: ending rev %O|%O"
-                (rev.Body.[..finalParams.rb - 1].RevComp())
+                (reversePrimer.Body.[..finalParams.ReverseBodyLength - 1]
+                    .RevComp())
                 (revTemplate.[revTemplate.Length - r..].RevComp())
 
-        assert (finalParams.fb <= fwd.Body.Length)
-        assert (finalParams.rb <= rev.Body.Length)
-        assert (finalParams.ft <= fwdTemplate.Length)
-        assert (finalParams.rt <= revTemplate.Length)
+        assert (finalParams.ForwardBodyLength
+                <= forwardPrimer.Body.Length)
+
+        assert (finalParams.ReverseBodyLength
+                <= reversePrimer.Body.Length)
+
+        assert (finalParams.ForwardTailLength
+                <= fwdTemplate.Length)
+
+        assert (finalParams.ReverseTailLength
+                <= revTemplate.Length)
 
         let overlapLen = f + r - inlineLen
-        let fwdFinalLen = f + finalParams.fb
-        let revFinalLen = r + finalParams.rb
+        let fwdFinalLen = f + finalParams.ForwardBodyLength
+        let revFinalLen = r + finalParams.ReverseBodyLength
 
         let fwd' =
-            { fwd with
+            { forwardPrimer with
                   Tail = fwdTemplate.[fwdTemplate.Length - f..]
-                  Body = fwd.Body.[..finalParams.fb - 1]
+                  Body = forwardPrimer.Body.[..finalParams.ForwardBodyLength - 1]
                   Annotation =
                       [ { Left = 0
                           Right = overlapLen - 1
                           Type = DNAIntervalType.Anneal }
-                        { Left = fwdFinalLen - finalParams.fb
+                        { Left = fwdFinalLen - finalParams.ForwardBodyLength
                           Right = fwdFinalLen - 1
                           Type = DNAIntervalType.AMP }
-                        { Left = (fwdFinalLen - finalParams.fb - inlineLen |> max 0) // might not cover full inline region
-                          Right = fwdFinalLen - finalParams.fb - 1
+                        { Left =
+                              (fwdFinalLen
+                               - finalParams.ForwardBodyLength
+                               - inlineLen
+                               |> max 0) // might not cover full inline region
+                          Right = fwdFinalLen - finalParams.ForwardBodyLength - 1
                           Type = DNAIntervalType.Sandwich } ] }
 
         let rev' =
-            { rev with
+            { reversePrimer with
                   Tail = revTemplate.[revTemplate.Length - r..]
-                  Body = rev.Body.[..finalParams.rb - 1]
+                  Body = reversePrimer.Body.[..finalParams.ReverseBodyLength - 1]
                   Annotation =
                       [ { Left = 0
                           Right = overlapLen - 1
                           Type = DNAIntervalType.Anneal }
-                        { Left = revFinalLen - finalParams.rb
+                        { Left = revFinalLen - finalParams.ReverseBodyLength
                           Right = revFinalLen - 1
                           Type = DNAIntervalType.AMP }
-                        { Left = revFinalLen - finalParams.rb - inlineLen |> max 0 // might not cover full inline region
-                          Right = revFinalLen - finalParams.rb - 1
+                        { Left =
+                              revFinalLen
+                              - finalParams.ReverseBodyLength
+                              - inlineLen
+                              |> max 0 // might not cover full inline region
+                          Right = revFinalLen - finalParams.ReverseBodyLength - 1
                           Type = DNAIntervalType.Sandwich } ] }
 
         // Check that the antiparallel primers overlap in the middle except when they were clearly not intended to
         // e.g. linkerless cases we aren't actually briding
         if fwdTailLenMin > 0 && revTailLenMin > 0
-        then checkAntiParallelOverlap fwd.Primer rev.Primer
+        then checkAntiParallelOverlap forwardPrimer.Primer reversePrimer.Primer
 
         // Ensure that after we chop everything up, the final primer is contained within the
         // original primer, otherwise bad things happen to the amplified sequence.
         //let mf = min fwd.Primer.Length fwd'.Primer.Length
 
-        checkParallelOverlap fwd.Primer fwd'.Primer
-        checkParallelOverlap rev.Primer rev'.Primer
+        checkParallelOverlap forwardPrimer.Primer fwd'.Primer
+        checkParallelOverlap reversePrimer.Primer rev'.Primer
         fwd', rev'
 
 let prettyPrintPrimer =
@@ -1212,7 +1258,8 @@ let cutRight verbose (slice: DNASlice) n =
             (if slice.DestinationForward then "Y" else "N")
 
     if (slice.SourceForward && slice.DestinationForward)
-       || ((not slice.SourceForward) && (not slice.DestinationForward)) then
+       || ((not slice.SourceForward)
+           && (not slice.DestinationForward)) then
         { slice with
               SourceTo = slice.SourceTo - (n * 1<ZeroOffset>)
               Dna = slice.Dna.[0..slice.Dna.Length - 1 - n] }
@@ -1237,7 +1284,8 @@ let cutLeft verbose (slice: DNASlice) n =
             (if slice.DestinationForward then "Y" else "N")
 
     if (slice.SourceForward && slice.DestinationForward)
-       || ((not slice.SourceForward) && (not slice.DestinationForward)) then
+       || ((not slice.SourceForward)
+           && (not slice.DestinationForward)) then
         { slice with
               SourceFrom = slice.SourceFrom + (n * 1<ZeroOffset>)
               Dna = slice.Dna.[n..slice.Dna.Length - 1] }
@@ -1250,17 +1298,17 @@ let cutLeft verbose (slice: DNASlice) n =
 /// emitting an output set of DNA slices and a diverged primer pair list
 let rec procAssembly verbose
                      /// Needed for primer design
-                     (dp: DesignParams)
+                     (designParams: DesignParams)
                      /// Name to use in any things that blow up (passed in from parent)
-                     errorName
-                     (prev: DNASlice list)
+                     (errorName: string)
+                     (previousSlices: DNASlice list)
                      /// Emitted slices
-                     (sliceOut: DNASlice list)
+                     (emittedSlices: DNASlice list)
                      /// Primer sets we have emitted.  They come in fwd/rev pairs (both of which can be None at ends)
-                     (primersOut: DivergedPrimerPair list)
+                     (emittedPrimers: DivergedPrimerPair list)
                      /// Remaining slices to process
-                     (l: DNASlice list)
-                     =
+                     (remainingSlices: DNASlice list)
+                     : DivergedPrimerPair list * DNASlice list =
 
     (*
 What is the difference between prev and sliceOut?
@@ -1278,10 +1326,10 @@ can design (say) a primer against might be further back in the stack and it's ju
             "procAssembly: ==========================================================================================="
 
         printfn "procAssembly: TOP,  prev(%2d)=[%s]\n                    n(%2d)=[%s]\n                    l(%2d)=[%s]\n            slice out(%2d)=[%s]"
-            prev.Length (String.Join(";", (prev |> Seq.map (nameFromSlice)))) l.Length
-            (String.Join(";", (l |> Seq.map (nameFromSlice)))) primersOut.Length
-            (String.Join(";", (primersOut |> Seq.map (prettyPrintPrimer)))) (sliceOut.Length)
-            (String.Join(";", (sliceOut |> Seq.map (nameFromSlice))))
+            previousSlices.Length (String.Join(";", (previousSlices |> Seq.map (nameFromSlice)))) remainingSlices.Length
+            (String.Join(";", (remainingSlices |> Seq.map (nameFromSlice)))) emittedPrimers.Length
+            (String.Join(";", (emittedPrimers |> Seq.map (prettyPrintPrimer)))) (emittedSlices.Length)
+            (String.Join(";", (emittedSlices |> Seq.map (nameFromSlice))))
 
         printfn
             "procAssembly: ==========================================================================================="
@@ -1300,15 +1348,15 @@ can design (say) a primer against might be further back in the stack and it's ju
             p :: slices // add it to the out slices passed in (on front - we are pushing LIFO)
 
     // Main match for remaining cases
-    match l with // look at previous slices to consider sliceOut update
+    match remainingSlices with // look at previous slices to consider sliceOut update
     | [] ->
         // No remaining slices - everything processed.
-        let sliceOut' = sliceOut // daz  (I think this is now reincluding a slice)  //    incPrev prev sliceOut |> List.rev
+        let sliceOut' = emittedSlices // daz  (I think this is now reincluding a slice)  //    incPrev prev sliceOut |> List.rev
 
         if verbose
         then printfn "procAssembly: PACASE 0 - done with slices"
         // since we made primers and sliceOut with LIFO model, need to reverse them now
-        List.rev primersOut, List.rev sliceOut' // reverse the primers and the slices since we pushed as we built
+        List.rev emittedPrimers, List.rev sliceOut' // reverse the primers and the slices since we pushed as we built
     | hd :: next :: tl when hd.Type = SliceType.Fusion
                             && next.Type = SliceType.Inline ->
         // Fusing a slice to a following inline sequence is redundant as that's the
@@ -1318,19 +1366,19 @@ can design (say) a primer against might be further back in the stack and it's ju
         then printfn "procAssembly: PACASE 1 - skipping redudant FUSIONST/INLINEST (skip)"
         // hd was a vitual part (no sequence), so we skip adding it to the sliceOut and add next instead
         // also doesnt change prev - last real slice is still head of prev (since hd is virtual)
-        procAssembly verbose dp errorName prev sliceOut primersOut (next :: tl)
+        procAssembly verbose designParams errorName previousSlices emittedSlices emittedPrimers (next :: tl)
     | hd :: next :: tl when hd.Type = SliceType.Fusion ->
         // Slice hd is a fusion slice, which is virtual, it exists only to mark
         // the intention to fuse prev and next together
         if verbose
         then printfn "procAssembly: PACASE 2 - FUSIONST - generating primers (DPP)"
 
-        if prev = []
+        if previousSlices = []
         then failwith "INTERNAL ERROR: unexpected prev = [] in procAssembly\n"
         // make a seamless junction with head of prev (last slice we can design into) and next (next real
         // slice after the virtual fusion marker
         let primerF, offsetF, primerR, offsetR =
-            seamless verbose dp (List.head prev) next
+            seamless verbose designParams (List.head previousSlices) next
 
         // If we stitched fwd/rev off of linker hd then the previous and next elements (prev) and next
         // might need to be modified (chopped) if the ends were flexible
@@ -1347,21 +1395,21 @@ can design (say) a primer against might be further back in the stack and it's ju
         // sliceOut' is the updated version with chopped prev on the head
 
         let sliceOut' =
-            match prev with
-            | [] -> sliceOut
-            | p :: _ -> (cutRight verbose p offsetR) :: sliceOut
+            match previousSlices with
+            | [] -> emittedSlices
+            | p :: _ -> (cutRight verbose p offsetR) :: emittedSlices
 
         procAssembly
             verbose
-            dp
+            designParams
             errorName
-            (hd :: prev)  // hd becomes the next prev.  DP: Not sure how helpful this is since it's virtual..
+            (hd :: previousSlices)  // hd becomes the next prev.  DP: Not sure how helpful this is since it's virtual..
             sliceOut'  // updated sliceOut with prev emitted
             (DivergedPrimerPair
                 ({ Forward = primerF
                    Reverse = primerR
                    Name = next.SliceName })
-             :: primersOut)
+             :: emittedPrimers)
             ((cutLeft verbose next offsetF) :: tl) // Remove bases from the next slice if we moved the primer
 
     // linker::next
@@ -1378,7 +1426,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                                         |> PragmaCollection.contains BuiltIn.rabitStartPragmaDef
                                      || hd.Pragmas
                                         |> PragmaCollection.contains BuiltIn.ampPragmaDef)) // if directed to amplify, don't do as an inline
-                               && prev <> [] -> // must be a previous slice to do an inline
+                               && previousSlices <> [] -> // must be a previous slice to do an inline
 
         if verbose
         then printfn "procAssembly: PACASE 3 - LINKER or inline not rabitstart/end"
@@ -1405,7 +1453,7 @@ can design (say) a primer against might be further back in the stack and it's ju
             // head of prev becomes what we design against on the left
             // next is what we design against on the right
             let primerF, offsetF, primerR, offsetR =
-                seamless verbose dp (List.head prev) next
+                seamless verbose designParams (List.head previousSlices) next
 
             //
             // They can instruct us to keep the forward or reverse primers past a particular point.  If
@@ -1447,7 +1495,10 @@ can design (say) a primer against might be further back in the stack and it's ju
 
             // Up to how many bases can we use for tail?
             let fwdTailLen =
-                min fwdRunway.Length (dp.PrimerParams.maxLength - primerF.Body.Length)
+                min
+                    fwdRunway.Length
+                    (designParams.PrimerParams.maxLength
+                     - primerF.Body.Length)
                 |> min fwdTailLenMax // restrict if needed
 
             // Define the forward primer using the primerF into the body and the fwdRunway cut
@@ -1462,7 +1513,10 @@ can design (say) a primer against might be further back in the stack and it's ju
                 DnaOps.concat([ hd.Dna; primerF.Body ]).RevComp()
 
             let revTailLen =
-                min revRunway.Length (dp.PrimerParams.maxLength - primerR.Body.Length)
+                min
+                    revRunway.Length
+                    (designParams.PrimerParams.maxLength
+                     - primerR.Body.Length)
                 |> min revTailLenMax
             // Amplification part of fwd primer
             let a1F =
@@ -1506,11 +1560,11 @@ can design (say) a primer against might be further back in the stack and it's ju
             //  prevprevprevprevprevprevprev hdhdhdhdhdhdh nextnextnext
             //                                  ---------- ------>
             let sliceOut' =
-                match prev with
-                | [] -> sliceOut
+                match previousSlices with
+                | [] -> emittedSlices
                 | p :: _ ->
                     (cutRight verbose p offsetR)
-                    :: (List.tail sliceOut)
+                    :: (List.tail emittedSlices)
 
             // Note: next is also potentially chopped a bit if its leading edge is an approximate end.  Next will
             // include all the possible bases but primer design could have done this
@@ -1520,21 +1574,21 @@ can design (say) a primer against might be further back in the stack and it's ju
             // this is taken
             let next' = ((cutLeft verbose next offsetF) :: tl) // Remove bases from the next slice if we moved the primer
 
-            assert (primerF'.lenLE (dp.PrimerParams.maxLength))
-            assert (primerR'.lenLE (dp.PrimerParams.maxLength))
+            assert (primerF'.lenLE (designParams.PrimerParams.maxLength))
+            assert (primerR'.lenLE (designParams.PrimerParams.maxLength))
 
 
             procAssembly
                 verbose
-                dp
+                designParams
                 errorName
-                (hd :: prev)  // hd (inline sequence) becomes next head of prev sequence
+                (hd :: previousSlices)  // hd (inline sequence) becomes next head of prev sequence
                 (hd :: sliceOut')  // emit hd and sliceOut directly into slicesOut (we aren't going to chop hd more)
                 (DivergedPrimerPair
                     ({ Forward = primerF'
                        Reverse = primerR'
                        Name = "shortinline" + hd.SliceName })
-                 :: primersOut)
+                 :: emittedPrimers)
                 next' // Remove bases from the next slice if we moved the primer
         else // phew..
             // (as an aisde, this match case violates every last thing I was taught in school about reasonable function sizes).
@@ -1598,7 +1652,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             //let primerF',offsetF = linkerFwd dp errorName hd c d   // linker sandwich next
 
             // Design primer first into forward DNA segment, ignoring any sandwich slice for now
-            let primerF', offsetF = linkerFwd2 verbose dp errorName d
+            let primerF', offsetF =
+                linkerFwd2 verbose designParams errorName d
 
             // Complication - when we design a reverse primer, the immediately preceding slice
             // might just be a small inline (sandwich) slice, and we really want to reach back
@@ -1610,7 +1665,7 @@ can design (say) a primer against might be further back in the stack and it's ju
             //
             // skipped marks if we had to step over an inline/sandwich slice
             let sandwichR, b, skipped =
-                match prev with
+                match previousSlices with
                 | hd1 :: hd2 :: _ when hd1.Type = SliceType.Inline -> // hd1 needs to be skipped and hd2 is the slice to design again - sucks if there was more than 1 small slice :(
                     // skipped is set if we had to reach over a slice
                     Some(hd1), Some(hd2), true // yes we skipped hd1, design agaisnt hd2
@@ -1622,7 +1677,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             // <-----------------------
             //          linkerorinline
             //   sandwichR :: b ::    hd
-            let primerR', offsetR = linkerRev2 verbose dp errorName b // Design into next non sandwich segment first
+            let primerR', offsetR =
+                linkerRev2 verbose designParams errorName b // Design into next non sandwich segment first
 
             // Our scheme at the moment has produced fwd/rev primers that overlap exactly the
             // length of the hd slice which is either a linker or an inline slice.
@@ -1757,7 +1813,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                      Microsoft.FSharp.Core.int.MaxValue)
                 elif isLinker then
                     let linkerTm =
-                        temp dp.PrimerParams hd.Dna.arr hd.Dna.Length
+                        temp designParams.PrimerParams hd.Dna.arr hd.Dna.Length
                     ///beginning of linker.
                     let fwdTailLenMax = midArg.Length - lenSR
                     ///end of linker.
@@ -1788,19 +1844,19 @@ can design (say) a primer against might be further back in the stack and it's ju
                      ((0.8 * float revMiddleLen) |> int),
                      Microsoft.FSharp.Core.int.MaxValue)
 
-            if fwdTailLenMin > dp.PrimerParams.maxLength then
+            if fwdTailLenMin > designParams.PrimerParams.maxLength then
                 failwithf
                     "%s: required primer fwd primer tail length %d exceeds primer max length of %d"
                     errorName
                     fwdTailLenMin
-                    dp.PrimerParams.maxLength
+                    designParams.PrimerParams.maxLength
 
-            if revTailLenMin > dp.PrimerParams.maxLength then
+            if revTailLenMin > designParams.PrimerParams.maxLength then
                 failwithf
                     "%s: required primer revfwd primer tail length %d exceeds primer max length of %d"
                     errorName
                     revTailLenMin
-                    dp.PrimerParams.maxLength
+                    designParams.PrimerParams.maxLength
 
             // --------------------------------------------------------------------------------
             // main show - play with all the primer lengths to get optimal forward and reverse primers
@@ -1808,7 +1864,7 @@ can design (say) a primer against might be further back in the stack and it's ju
             let primerF, primerR =
                 tuneTails
                     verbose
-                    dp
+                    designParams
                     fwdTailLenFixed
                     fwdTailLenMin
                     fwdTailLenMax
@@ -1846,23 +1902,23 @@ can design (say) a primer against might be further back in the stack and it's ju
             //assert ( primerF.tail.Length >= fwdTailLenMin)
             //assert (primerR.tail.Length = 0 || primerR.tail.Length >= revTailLenMin)
 
-            if not (primerF.lenLE (dp.PrimerParams.maxLength)) then
+            if not (primerF.lenLE (designParams.PrimerParams.maxLength)) then
                 failwithf
                     "for %s primer design violates length constraint in procAssembly primerF %d not <= %d for %O"
                     errorName
                     primerF.Primer.Length
-                    dp.PrimerParams.maxLength
+                    designParams.PrimerParams.maxLength
                     primerF.Primer
 
-            if not (primerR.lenLE (dp.PrimerParams.maxLength)) then
+            if not (primerR.lenLE (designParams.PrimerParams.maxLength)) then
                 failwithf
                     "for %s primer design violates length constraint in procAssembly primerR %d not <= %d for %O"
                     errorName
                     primerR.Primer.Length
-                    dp.PrimerParams.maxLength
+                    designParams.PrimerParams.maxLength
                     primerR.Primer
 
-            assert (primerR.lenLE (dp.PrimerParams.maxLength))
+            assert (primerR.lenLE (designParams.PrimerParams.maxLength))
 
             // Ensure primers overlap
             // --------------------------------------------------
@@ -1889,19 +1945,19 @@ can design (say) a primer against might be further back in the stack and it's ju
                 printfn
                     "procAssembly: prepping for sliceOut' skipped=%s sliceOut=%s"
                     (if skipped then "yes" else "no")
-                    (String.Join(";", [ for x in sliceOut -> x.Description ]))
+                    (String.Join(";", [ for x in emittedSlices -> x.Description ]))
 
             let sliceOut' =
-                match sliceOut with // look at previous slices to consider sliceOut update
-                | [] -> sliceOut // no changes to sliceout
+                match emittedSlices with // look at previous slices to consider sliceOut update
+                | [] -> emittedSlices // no changes to sliceout
                 | p1 :: p2 :: tl when skipped -> // skipped means we had to reach over a small inline while generating reverse primer
-                    if verbose
-                    then printfn
-                             "cutRight p1=%s p2=%s offsetR=%d sliceOut=%A"
-                             p1.Description
-                             p2.Description
-                             offsetR
-                             sliceOut
+                    if verbose then
+                        printfn
+                            "cutRight p1=%s p2=%s offsetR=%d sliceOut=%A"
+                            p1.Description
+                            p2.Description
+                            offsetR
+                            emittedSlices
                     // take p2 (penultimate previous) and cut it by the offset of the primer from the floating end.  Keep p1, the inline slice and rest of sliceOut beyond first
 
                     // is List.tail sliceOut correct?  Shouldn't is be skipping two previous slices FIX? BUG?
@@ -1914,7 +1970,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                     then printfn "cutRight p=%s offsetR=%d" p.Description offsetR
                     //(cutRight p offsetR)::sliceOut
                     (cutRight verbose p offsetR)
-                    :: (List.tail sliceOut)
+                    :: (List.tail emittedSlices)
 
             let choppedD = // The next slice might have a flexible end in which case we need to respect where the primer chopped it
                 let chopped = cutLeft verbose d offsetF
@@ -1937,16 +1993,16 @@ can design (say) a primer against might be further back in the stack and it's ju
 
                 procAssembly
                     verbose
-                    dp
+                    designParams
                     errorName
-                    (choppedD :: hd :: prev)  // prev slices (emit chopped version of next slide choppedD, and this inline hd as well)
+                    (choppedD :: hd :: previousSlices)  // prev slices (emit chopped version of next slide choppedD, and this inline hd as well)
                     (choppedD :: hd :: sliceOut')  // updated slices we are emitting - everything is emitted already
                     (Gap
                      :: DivergedPrimerPair
                          ({ Forward = primerF
                             Reverse = primerR
                             Name = hd.Description })
-                        :: primersOut)  // primers out - GAP for the D slice and DPP for the primers on the hd/linker piece
+                        :: emittedPrimers)  // primers out - GAP for the D slice and DPP for the primers on the hd/linker piece
                     e // remaining unprocessed slices
             | Some x ->
                 if verbose
@@ -1954,9 +2010,9 @@ can design (say) a primer against might be further back in the stack and it's ju
 
                 procAssembly
                     verbose
-                    dp
+                    designParams
                     errorName
-                    (choppedD :: x :: hd :: prev)  // prev slices. Include the sandwich x and the downstream d which may have been chopped - note LIFO so choppedD right most
+                    (choppedD :: x :: hd :: previousSlices)  // prev slices. Include the sandwich x and the downstream d which may have been chopped - note LIFO so choppedD right most
                     (choppedD :: x :: hd :: sliceOut')  // updated slices we are emitting  - pair the sandwich with a SANDWICHGAP Dpp type in the primer out stream
                     (Gap
                      :: SandwichGap
@@ -1964,17 +2020,14 @@ can design (say) a primer against might be further back in the stack and it's ju
                             ({ Forward = primerF
                                Reverse = primerR
                                Name = hd.Description })
-                           :: primersOut)
+                           :: emittedPrimers)
                     e // todo slices
 
     // technically shouldn't end on a non linker (unless non ryse design) but..
     | [ last ] when (last.Type = SliceType.Linker
                      || last.Type = SliceType.Inline) ->
         if verbose
-        then printfn
-                 "procAssembly: PACASE 4 - ... last LINKER or INLINEST last=%A name=%s"
-                 last.Type
-                 last.Description
+        then printfn "procAssembly: PACASE 4 - ... last LINKER or INLINEST last=%A name=%s" last.Type last.Description
         // We are about to design a primer back into the previous sequence if it exists.
         // There is a catch if the previous sequence was a short inline sequence.
         // We should treat that as a sandwich sequence, build it into the primer but not
@@ -1982,7 +2035,7 @@ can design (say) a primer against might be further back in the stack and it's ju
         // hd2 :: hd (sandwich)             :: this slice..
         // <-- (skipped for primer design)..
         let sandwich, prevAmp, skipped =
-            match prev with
+            match previousSlices with
             | hd :: hd2 :: _ when hd.Type = SliceType.Inline -> Some(hd), Some(hd2), true // reach back past inline sequence hd
             | [ hd ] when hd.Type = SliceType.Inline ->
                 // Only one slice to the left (head of prev) and it's inline so not enough DNA to make a primer against
@@ -1993,7 +2046,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             | _ -> None, None, false // who knows whatever other cases... :)
 
         // design back into whichever slice we selected to amplify against. prevAmp is the slice that we design against
-        let primerR'', offsetR = linkerRev2 verbose dp errorName prevAmp
+        let primerR'', offsetR =
+            linkerRev2 verbose designParams errorName prevAmp
 
         // Now mark sandwich dna if anything or empty if nothing (flip for reverse primer)
         let sandwichDNA =
@@ -2013,7 +2067,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                 { primerR'' with
                       Tail = last.Dna.RevComp()
                       Body = DnaOps.append sandwichDNA primerR''.Body }
-                |> trimLinkerTailBody dp
+                |> trimLinkerTailBody designParams
         //
         // Body, [sandwich],  tail  (linker)
         // <-bbbbbbbbbbb sssssss TTTTTTTTTTTTTTT
@@ -2048,7 +2102,7 @@ can design (say) a primer against might be further back in the stack and it's ju
         // potentially adjust previously emitted slice if primer generation moved the boundary (it was approximate ended)
         // sliceOut' is the final slice list (reversed into the correct left to right order as we are finishing up)
         let sliceOut' =
-            match sliceOut with
+            match emittedSlices with
             | [] ->
                 // We are on the last element and there are no preceding elements.  This could
                 // be a stand-alone, single DNA slice.  Process it as such.  This is going to create
@@ -2057,7 +2111,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                 // Assume it's a stand-alone inline sequence that could be made with a pair of primers
                 printfn "procAssembly:  sliceout case 1: final sliceOut' prev empty branch"
 
-                if List.isEmpty sliceOut then // Assume it's a stand-alone inline sequence that could be made with a pair of primers
+                if List.isEmpty emittedSlices then // Assume it's a stand-alone inline sequence that could be made with a pair of primers
                     [ last ] // Fake slice for now.. TODO TODO
                 else
                     failwith "expected preceding linker adjacent to terminal inline sequence"
@@ -2089,7 +2143,7 @@ can design (say) a primer against might be further back in the stack and it's ju
 
                 last
                 :: (cutRight verbose p offsetR)
-                   :: (List.tail sliceOut)
+                   :: (List.tail emittedSlices)
                 |> List.rev // Finally reverse the slice out list since we pushed it as we created it  ( we are done - not recursing any more and this is the result)
 
         if verbose
@@ -2104,7 +2158,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                          Annotation = [] }
                    Reverse = primerR
                    Name = last.Description })
-             :: primersOut
+             :: emittedPrimers
              |> List.rev,
              sliceOut') // Last linker
 
@@ -2174,7 +2228,7 @@ can design (say) a primer against might be further back in the stack and it's ju
         // For now we don't know what is going to happen with this slice.  It will get created
         // as part of the next slice that gets processed (e.g. a slice or a linker).  For now
         // just put the slice onto the prev stack
-        let prevNew = hd :: prev
+        let prevNew = hd :: previousSlices
 
         // We also include any slice on head prev in the sliceOut. (incPrev)
         // todo:
@@ -2183,7 +2237,14 @@ can design (say) a primer against might be further back in the stack and it's ju
         // noting if/how it had been emitted and we could do a sanity check at end of the run to
         // make sure everything went out just once
 
-        procAssembly verbose dp errorName prevNew (incPrev prev sliceOut) (Gap :: primersOut) tl
+        procAssembly
+            verbose
+            designParams
+            errorName
+            prevNew
+            (incPrev previousSlices emittedSlices)
+            (Gap :: emittedPrimers)
+            tl
     // This cases catches inline sequences just before a linker marked rabitend
     // This slice will be implemented when linker goes out
     | hd :: tl when hd.Type = SliceType.Inline
@@ -2195,11 +2256,11 @@ can design (say) a primer against might be further back in the stack and it's ju
 
             printfn
                 "procAssembly: ... new sliceOut = %s"
-                (String.Join(";", [ for x in hd :: sliceOut -> x.Description ]))
+                (String.Join(";", [ for x in hd :: emittedSlices -> x.Description ]))
         // push the slice onto the prev stack (it's going to get implemented by next slice primer gen)
-        let prevNew = hd :: prev
+        let prevNew = hd :: previousSlices
         // push hd onto slices out.  It will be of type sandwich on primer side
-        procAssembly verbose dp errorName prevNew (hd :: sliceOut) (SandwichGap :: primersOut) tl
+        procAssembly verbose designParams errorName prevNew (hd :: emittedSlices) (SandwichGap :: emittedPrimers) tl
     // procAssembly verbose dp errorName prevNew (incPrev prev sliceOut) (GAP::primersOut) tl
     // Finally catch all case
     // -----------------------------------------------
@@ -2214,7 +2275,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                  else
                      "N")
             // emit some diagnostics on prev slice
-            match prev with
+            match previousSlices with
             | pHd :: _ ->
                 printfn
                     "procAssembly: ...                      phd.dna.Length=%d phd.containsAmp=%s"
@@ -2227,7 +2288,7 @@ can design (say) a primer against might be further back in the stack and it's ju
             | [] -> printfn "procAssembly: ...                      prev empty"
 
         // Check if this slice should have been fused with previous slice?
-        match prev with
+        match previousSlices with
         | pHd :: _ when
           // IF prev head long enough or using amp / pcr
           (pHd.Dna.Length > 100
@@ -2272,7 +2333,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                   printfn "procAssembly: revTailLenMax = %d" revTailLenMax
 
               // step 1, make seamless primers fwd and reverse to join segments without worrying about length constraints (pre chop)
-              let primerFPreChop, offsetF, primerRPreChop, offsetR = seamless verbose dp pHd hd
+              let primerFPreChop, offsetF, primerRPreChop, offsetR = seamless verbose designParams pHd hd
 
               // step 2, chop tails off maybe if the primer positioning requires it
               let primerFStep2 =
@@ -2295,7 +2356,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                       //    ---------------|--------------------
                       //          <------------oxxxxxxx
                       let maxTailLen =
-                          dp.PrimerParams.maxLength
+                          designParams.PrimerParams.maxLength
                           - primerRStep2.Body.Length
                           |> min (primerFStep2.Body.Length + x - 1)
 
@@ -2310,7 +2371,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                       //    ---------------|--------------------
                       //          <------o
                       let maxTailLen =
-                          dp.PrimerParams.maxLength
+                          designParams.PrimerParams.maxLength
                           - primerFStep2.Body.Length
                           |> min (primerRStep2.Body.Length + x - 1)
 
@@ -2326,11 +2387,11 @@ can design (say) a primer against might be further back in the stack and it's ju
               // If we stitched fwd/rev off of linker hd then the previous and next elements (prev) and next
               // might need to be modified (chopped) if the ends were flexible
               let sliceOut' =
-                  match prev with
-                  | [] -> sliceOut
+                  match previousSlices with
+                  | [] -> emittedSlices
                   | p :: _ ->
                       (cutRight verbose p offsetR)
-                      :: (List.tail sliceOut)
+                      :: (List.tail emittedSlices)
 
               // todo: feelings like this should defined elsewhere.  It's just an empty fusion slice
               let fusionSlice =
@@ -2362,16 +2423,16 @@ can design (say) a primer against might be further back in the stack and it's ju
 
               procAssembly
                   verbose
-                  dp
+                  designParams
                   errorName
-                  (hd :: prev)  // head goes onto previous
+                  (hd :: previousSlices)  // head goes onto previous
                   (hd :: fusionSlice :: sliceOut')  // push out the head with fusion slice to note what we did (there has to be a slice corresponding to the primer pair in that position)
                   (Gap
                    :: DivergedPrimerPair
                        ({ Forward = primerF
                           Reverse = primerR
                           Name = hd.SliceName })
-                      :: primersOut)
+                      :: emittedPrimers)
                   tl // Remove bases from the next slice if we moved the primer
         // FIXFIX - I am pretty sure this will result in a bug if the next slice has an approximate end.  We should minimally assert that this is not true...
         //((cutLeft hd offsetF)::tl) // Remove bases from the next slice if we moved the primer
@@ -2380,7 +2441,14 @@ can design (say) a primer against might be further back in the stack and it's ju
             if verbose
             then printfn "procAssembly: ... PACASE 7.2 regular branch of catch all"
             // hd just moves to prev and slices out (any primers will come from processing adjacent slices)
-            procAssembly verbose dp errorName (hd :: prev) (hd :: sliceOut) (Gap :: primersOut) tl
+            procAssembly
+                verbose
+                designParams
+                errorName
+                (hd :: previousSlices)
+                (hd :: emittedSlices)
+                (Gap :: emittedPrimers)
+                tl
 
 // --- end procAssembly ------------------------------------------------------------------------
 
@@ -2435,7 +2503,8 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
             | Gap -> x
             | SandwichGap -> x
             | DivergedPrimerPair (y) ->
-                if y.Forward.Tail.Length = 0 || y.Reverse.Tail.Length = 0 then
+                if y.Forward.Tail.Length = 0
+                   || y.Reverse.Tail.Length = 0 then
                     DivergedPrimerPair
                         ({ y with
                                Forward = filterAnneal y.Forward
@@ -2451,7 +2520,9 @@ let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
 
     let newTree =
         List.zip linkedTree newSlices
-        |> List.map (fun (a, b) -> { a with DnaParts = DNASlice.recalculatOffset b })
+        |> List.map (fun (a, b) ->
+            { a with
+                  DnaParts = DNASlice.recalculatOffset b })
     //let oldTree = linkedTree |> List.map (fun a -> a.dnaParts)
 
     // Validate primer annotation and primers are legit
