@@ -61,10 +61,10 @@ module VariableCapturing =
 
 type TypeCheckResult =
     | InternalTypeMismatch of boundValue: AstNode * targetType: GslVariableType
-    | VariableTypeMismatch of variableName: string * elidedType: GslVariableType * targetType: GslVariableType
+    | VariableTypeMismatch of elidedType: GslVariableType * targetType: GslVariableType
 
 type VariableResolutionError =
-    | TypeCheckError of TypeCheckResult * node: AstNode
+    | TypeCheckError of result: TypeCheckResult * node: AstNode * variableName: string
     | IllegalFunctionLocal of variableName: string * node: AstNode
     | UnresolvedVariable of variableName: string * node: AstNode
 
@@ -82,8 +82,7 @@ module VariableResolution =
 
     /// Perform type checking on a variable.
     /// If the variable is untyped but has a real payload, try to elide its type.
-    let internal typeCheck (varName: string)
-                           (targetType: GslVariableType)
+    let internal typeCheck (targetType: GslVariableType)
                            (boundValueType: GslVariableType)
                            (boundValue: AstNode)
                            : GslResult<AstNode, TypeCheckResult> =
@@ -97,16 +96,16 @@ module VariableResolution =
             | Some elidedType when elidedType = targetType -> // elides to correct type
                 GslResult.ok boundValue
             | Some elidedType -> // elides to incorrect type
-                GslResult.err (VariableTypeMismatch(varName, elidedType, targetType))
+                GslResult.err (VariableTypeMismatch( elidedType, targetType))
             | None -> // whatever this thing is, it shouldn't be inside a variable
                 GslResult.err (InternalTypeMismatch(boundValue, targetType))
         else
             // type mismatch
-            GslResult.err (VariableTypeMismatch(varName, boundValueType, targetType))
+            GslResult.err (VariableTypeMismatch(boundValueType, targetType))
 
 
     module VariableResolutionError =
-        let makeTypeCheckError node tcResult = TypeCheckError(tcResult, node)
+        let makeTypeCheckError node variableName tcResult = TypeCheckError(tcResult, node, variableName)
 
     /// Resolve a typed variable to a variable declaration.
     /// If that declaration itself was a variable aliasing (let foo = &bar), recurse
@@ -119,19 +118,19 @@ module VariableResolution =
                                              : GslResult<AstNode, VariableResolutionError> =
         let varName, _ = typeWrapper.Value
         // first see if we have this guy in our bindings at all
-        match capturedBindings.TryFind(varName) with
-        | Some (VariableResolutionWrapper.VariableBinding variableBinding) -> // this name is resolves to a bound variable
+        match capturedBindings |> Map.tryFind varName with
+        | Some (VariableResolutionWrapper.VariableBinding capturedBinding) -> // this name is resolves to a bound variable
             // does it have the right type in this context?
-            let declaredType = variableBinding.Value.Type
-
-            match declaredType, variableBinding.Value.Value with
-            | NotYetTyped, TypedVariable typedVariableInner ->
+            let declaredType = capturedBinding.Value.Type
+            let declaredValue = capturedBinding.Value.Value
+            match declaredType, declaredValue with
+            | NotYetTyped, TypedVariable declaredValueInner ->
                 // if this variable is just a reference to another variable, we need to recurse on it.
-                resolveVariableRecursive mode capturedBindings targetType typedVariableInner node
+                resolveVariableRecursive mode capturedBindings targetType declaredValueInner node
             | _, boundValue ->
                 // otherwise, perform type checking and resolve the variable if it type checks
-                typeCheck varName targetType declaredType boundValue
-                |> GslResult.mapError (VariableResolutionError.makeTypeCheckError node)
+                typeCheck targetType declaredType boundValue
+                |> GslResult.mapError (VariableResolutionError.makeTypeCheckError node varName)
         | Some VariableResolutionWrapper.FunctionLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
             match mode with
             | AllowUnresolvedFunctionLocals -> GslResult.ok node

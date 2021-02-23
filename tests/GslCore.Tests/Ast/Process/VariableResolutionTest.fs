@@ -78,24 +78,21 @@ type TestCasesForTypeCheck() =
         seq {
             // No matter what is the bound value type, if target type notyettyped it's a check
             for boundType in allPossibleTypes do
-                TestCaseData({| VariableName = "foo"
-                                TargetType = NotYetTyped
+                TestCaseData({| TargetType = NotYetTyped
                                 BoundValueType = boundType
                                 BoundValue = testBoundValue |})
                     .Returns(GslResult.ok testBoundValue: GslResult<AstNode, TypeCheckResult>)
 
             // if bound and target type are the same it's a check
             for sameType in allPossibleTypes do
-                TestCaseData({| VariableName = "foo"
-                                TargetType = sameType
+                TestCaseData({| TargetType = sameType
                                 BoundValueType = sameType
                                 BoundValue = testBoundValue |})
                     .Returns(GslResult.ok testBoundValue: GslResult<AstNode, TypeCheckResult>)
 
             for notNotYetTypedType in ``All types except NotYetTyped`` do
                 // if neither bound or target type is specified then type elision does the job
-                TestCaseData({| VariableName = "foo"
-                                TargetType = notNotYetTypedType
+                TestCaseData({| TargetType = notNotYetTypedType
                                 BoundValueType = NotYetTyped
                                 BoundValue = elisionTypeLookup.[notNotYetTypedType] |})
                     .Returns(GslResult.ok elisionTypeLookup.[notNotYetTypedType]: GslResult<AstNode, TypeCheckResult>)
@@ -109,34 +106,30 @@ type TestCasesForTypeCheck() =
                     nodeThatIsElidedToDifferentTypeThanTargetType
 
                 // if elision resolves to a different type than target type, it's a fail
-                TestCaseData({| VariableName = "foo"
-                                TargetType = notNotYetTypedType
+                TestCaseData({| TargetType = notNotYetTypedType
                                 BoundValueType = NotYetTyped
                                 BoundValue = boundValue |})
-                    .Returns(GslResult.err (VariableTypeMismatch("foo", elidedType, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
+                    .Returns(GslResult.err (VariableTypeMismatch(elidedType, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
 
                 // if elision fails then it's a fail
-                TestCaseData({| VariableName = "foo"
-                                TargetType = notNotYetTypedType
+                TestCaseData({| TargetType = notNotYetTypedType
                                 BoundValueType = NotYetTyped
                                 BoundValue = nonElidableValue |})
                     .Returns(GslResult.err (InternalTypeMismatch(nonElidableValue, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
 
                 for notNotYetTypedType2 in ``All types except NotYetTyped`` do
                     if notNotYetTypedType <> notNotYetTypedType2 then
-                        TestCaseData({| VariableName = "foo"
-                                        TargetType = notNotYetTypedType
+                        TestCaseData({| TargetType = notNotYetTypedType
                                         BoundValueType = notNotYetTypedType2
                                         BoundValue = testBoundValue |})
                             .Returns(GslResult.err
-                                         (VariableTypeMismatch("foo", notNotYetTypedType2, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
+                                         (VariableTypeMismatch(notNotYetTypedType2, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
 
         } :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForTypeCheck>, "TestCasesForTypeCheck")>]
-let testTypeCheck (input: {| VariableName: string
-                             TargetType: GslVariableType
+let testTypeCheck (input: {| TargetType: GslVariableType
                              BoundValueType: GslVariableType
                              BoundValue: AstNode |})
                   : GslResult<AstNode, TypeCheckResult> =
-    VariableResolution.typeCheck input.VariableName input.TargetType input.BoundValueType input.BoundValue
+    VariableResolution.typeCheck input.TargetType input.BoundValueType input.BoundValue

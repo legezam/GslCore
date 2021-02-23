@@ -8,11 +8,11 @@ module VariableResolutionMessage =
 
     let toAstMessage: VariableResolutionError -> AstMessage =
         function
-        | TypeCheckError (typeCheckResult, node) ->
+        | TypeCheckError (typeCheckResult, node, variableName) ->
             match typeCheckResult with
             | InternalTypeMismatch (boundValue, targetType) ->
                 AstResult.internalTypeMismatchMsg (Some("variable type checking")) (targetType.ToString()) boundValue
-            | VariableTypeMismatch (variableName, elidedType, targetType) ->
+            | VariableTypeMismatch (elidedType, targetType) ->
                 AstResult.variableTypeMismatchMsg variableName elidedType targetType node
 
         | IllegalFunctionLocal (variableName, node) ->
