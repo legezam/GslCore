@@ -3,7 +3,7 @@ module GslCore.Plugin.TaggingPlugin
 
 open System
 open FsToolkit.ErrorHandling
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open GslCore.Core.Types
 open GslCore.Core.CommandConfig
 open GslCore.GslResult

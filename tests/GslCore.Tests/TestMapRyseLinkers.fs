@@ -2,7 +2,7 @@
 
 open System
 open GslCore
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open GslCore.Core
 open GslCore.Core.Ryse
 open GslCore.GslResult

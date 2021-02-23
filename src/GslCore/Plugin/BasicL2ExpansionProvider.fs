@@ -6,7 +6,7 @@
 ///
 open GslCore.Ast.Process
 open GslCore.Pragma
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Constants
@@ -51,7 +51,8 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
 
             // Emit replacement DNA name for knockout
             let replacementName =
-                match args.Pragmas |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
+                match args.Pragmas
+                      |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
                 // if the user provided a pragma name, create the donor DNA name with .donor
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
@@ -111,15 +112,20 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
     let partsA, partsB = balance otherExp
     /// the flank length
-    let reference = args.ReferenceGenomes |> GenomeDefinitions.get
-    let flank = reference.[args.ReferenceGenome] |> GenomeDefinition.getFlank
+    let reference =
+        args.ReferenceGenomes |> GenomeDefinitions.get
+
+    let flank =
+        reference.[args.ReferenceGenome]
+        |> GenomeDefinition.getFlank
 
     let out =
         seq {
 
             // Emit replacement DNA name for promoter swap
             let replacementName =
-                match args.Pragmas |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
+                match args.Pragmas
+                      |> PragmaCollection.tryFind BuiltIn.namePragmaDef with
                 // if the user provided a pragma name, create the donor DNA name with .donor
                 // (we're not just using the name itself because it has to be distinguished
                 // from the gRNAs which will also be named a variant of the user provided name
@@ -128,11 +134,18 @@ let generateOutputsTitrations (args: L2DesignParams) =
                     sprintf "#name %s" providedName
 
                 // if no name is provided, use this as the default donor name
-                | None -> sprintf "#name u%s_%s_d%s" locusGene (AstNode.decompile locusExp.Promoter |> Naming.cleanHashName) locusGene
+                | None ->
+                    sprintf
+                        "#name u%s_%s_d%s"
+                        locusGene
+                        (AstNode.decompile locusExp.Promoter
+                         |> Naming.cleanHashName)
+                        locusGene
 
             // yield a new linker line because the default pattern will cause an A linker
             // to land on a marker (error: no A-9 markers)
-            match args.Pragmas |> PragmaCollection.tryFind BuiltIn.linkersPragmaDef with
+            match args.Pragmas
+                  |> PragmaCollection.tryFind BuiltIn.linkersPragmaDef with
             | Some _ -> yield ""
             | None -> yield "#linkers 0,2,A,3,9|0,A,2,9"
 

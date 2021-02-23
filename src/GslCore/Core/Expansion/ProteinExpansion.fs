@@ -3,7 +3,8 @@ module GslCore.Core.Expansion.ProteinExpansion
 open GslCore.Constants
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.Core
 open GslCore.Core.Expansion
 open GslCore.Pragma
@@ -68,7 +69,7 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
         |> List.map (rewritePPP configuredCodonProvider refGenome)
 
     { assembly with Parts = expandedParts }
-    |> prettyPrintAssembly
+    |> LegacyPrettyPrint.assembly
 
 /// Expand all inline protein sequences in an AST.
 let expandInlineProteins (parameters: Phase2Parameters) tree =

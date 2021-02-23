@@ -6,7 +6,8 @@ open GslCore.Ast
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Ast.Process
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.GslResult
 
 // ==================
@@ -171,7 +172,7 @@ let bootstrapExpandLegacyAssembly errorMsgType
 
     match node with
     | AssemblyPart (apUnpack) ->
-        convertAssembly assemblyConversionContext apUnpack
+        LegacyConversion.convertAssembly assemblyConversionContext apUnpack
         >>= expandCaptureException
         >>= (bootstrapOperation ((fst apUnpack).Positions))
     | _ -> GslResult.ok node
@@ -185,11 +186,11 @@ let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
     let foldmapParameters =
         { FoldMapParameters.Direction = TopDown
           Mode = mode
-          StateUpdate = updateConversionContext
+          StateUpdate = LegacyConversion.updateConversionContext
           Map = bootstrappedExpansionFunction }
 
     FoldMap.foldMap  // run the bootstrapped expand operation
-        emptyConversionContext
+        AssemblyConversionContext.empty
         foldmapParameters
         tree
     >>= healSplices // heal the splices

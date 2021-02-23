@@ -6,7 +6,8 @@ open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.Core.Expansion
 open GslCore.GslResult
 open GslCore.Pragma
@@ -134,7 +135,7 @@ let expandLevel2 (parameters: Phase1Parameters) (providers: L2Provider list) (rg
 
         match node with
         | L2Expression (l2e) ->
-            convertL2Line pragmaContext l2e
+            LegacyL2Conversion.convertL2Line pragmaContext l2e
             >>= expandCaptureException
             >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions)
         | _ -> GslResult.ok node

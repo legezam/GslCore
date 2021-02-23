@@ -4,9 +4,8 @@ open GslCore
 open GslCore.DesignParams
 open GslCore.GslResult
 open NUnit.Framework
-open Amyris.ErrorHandling
 open GslCore.GslcProcess
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.Dna

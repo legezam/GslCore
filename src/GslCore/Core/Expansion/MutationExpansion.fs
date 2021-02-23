@@ -3,7 +3,8 @@ module GslCore.Core.Expansion.MutationExpansion
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.Core.DnaCreation
 open GslCore.Core.Expansion
 open GslCore.Pragma
@@ -149,7 +150,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
                 "Tried to perform a mutation expansion on an assembly with more than one part: %A.  This is currently not supported."
                 x
 
-    prettyPrintAssembly { assembly with Parts = newParts }
+    LegacyPrettyPrint.assembly { assembly with Parts = newParts }
 // note that the assembly which contains a part which is expanded to literal GSL that actually may
 // amount to more than a single line.  Be careful.
 

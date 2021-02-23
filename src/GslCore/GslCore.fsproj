@@ -72,7 +72,8 @@
     <Compile Include="Ast\Process\PragmaWarning.fs" />
     <Compile Include="Ast\Process\RoughageExpansion.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
-    <Compile Include="Ast\LegacyParseTypes.fs" />
+    <Compile Include="Ast\Legacy\Types.fs" />
+    <Compile Include="Ast\Legacy\LegacyParseTypes.fs" />
     <Compile Include="Ast\MessageTranslation.fs" />
     <Compile Include="Ast\Phase1.fs" />
     <Compile Include="Core\Types.fs" />

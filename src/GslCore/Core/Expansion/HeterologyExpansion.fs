@@ -6,7 +6,8 @@ open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open Amyris.Dna
 open GslCore.Core.DnaCreation
 open GslCore.Core.Expansion
@@ -392,7 +393,8 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
         | [] -> List.rev res
     /// Easier to process part/pragma pairs if they are explicit tuples
     let tuplePPP (ppp: PartPlusPragma list) =
-        ppp |> List.map (fun p -> p.Part, p.Pragma, p.IsForward)
+        ppp
+        |> List.map (fun p -> p.Part, p.Pragma, p.IsForward)
 
     let untuplePPP ab =
         ab
@@ -411,7 +413,7 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
             | Part.HeterologyBlock -> true
             | _ -> false)
 
-    let newSource = prettyPrintAssembly res
+    let newSource = LegacyPrettyPrint.assembly res
 
     if remainingHetblocks
     then failwithf "Attempt to expand heterology block in design %s left remaining hetblock" newSource.String

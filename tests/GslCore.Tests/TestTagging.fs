@@ -9,7 +9,7 @@ open GslCore.Core.CommandConfig
 open GslCore.Plugin
 open GslCore.Reference
 open GslCore.Tests
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open NUnit.Framework
 open GslCore.Ast.Types
 open GslCore.AstAssertions

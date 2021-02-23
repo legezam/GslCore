@@ -10,7 +10,7 @@ open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.Ast.Types
 open GslCore.Pragma
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open GslCore.Reference
 open IO.CodonUsage
 open biolib

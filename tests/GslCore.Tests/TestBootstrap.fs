@@ -11,14 +11,14 @@ open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy
 
 [<TestFixture>]
 type TestBootstrapping() =
 
     /// Very dumb expansion rule that just reprints the asseembly.
     let reprintAssembly a =
-        let s = prettyPrintAssembly a
+        let s = LegacyPrettyPrint.assembly a
         printfn "Reprinted assembly: %s" s.String
         s
 

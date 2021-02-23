@@ -3,7 +3,8 @@
 open FsToolkit.ErrorHandling
 open GslCore.Core.Types
 open GslCore.Pragma
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.Core.Ryse
 open GslCore.Core
 open GslCore.Constants
@@ -73,7 +74,8 @@ module ResolveExtPart =
                     // Look for simple case.  If we are just using the part from the hutch unadulterated, then
                     // we specify things differently, referring to the external id
                     if partId.Modifiers.Length = 0 then
-                        let dna = if ppp.IsForward then dna else dna.RevComp()
+                        let dna =
+                            if ppp.IsForward then dna else dna.RevComp()
 
                         { Id = None
                           ExternalId = Some(pid.[1..])
@@ -126,7 +128,7 @@ module ResolveExtPart =
 
                         // Find the left and right hand ends of the slice
                         let x, y =
-                            getBoundsFromSlice finalSlice dna.Length (Library(partId.Id))
+                            LegacySliceContext.getBoundsFromSlice finalSlice dna.Length (Library(partId.Id))
                             |> Result.valueOr failwith
 
                         let finalDNA =
@@ -134,9 +136,12 @@ module ResolveExtPart =
                             |> DnaOps.revCompIf (not ppp.IsForward)
 
                         let name1 =
-                            if partId.Modifiers.Length = 0 then rabit.Name else (rabit.Name + (printSlice finalSlice))
+                            if partId.Modifiers.Length = 0
+                            then rabit.Name
+                            else (rabit.Name + (LegacyPrettyPrint.slice finalSlice))
 
-                        let name2 = if ppp.IsForward then name1 else "!" + name1
+                        let name2 =
+                            if ppp.IsForward then name1 else "!" + name1
 
                         { Id = None
                           ExternalId = None
@@ -210,8 +215,7 @@ module ResolveExtPart =
 
         match legalPartPrefix pid with
         | None ->
-            Error
-                (sprintf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid)
+            Error(sprintf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid)
         | Some (partSpace, _) ->
             match partSpace with
             | "rabit" ->
@@ -313,7 +317,7 @@ module ResolveExtPart =
             // DNA source and they are effectively building a new rabit
             // Find the left and right hand ends of the slice
             let x, y =
-                getBoundsFromSlice finalSlice extPart.Dna.Length (Library(extPart.Id))
+                LegacySliceContext.getBoundsFromSlice finalSlice extPart.Dna.Length (Library(extPart.Id))
                 |> Result.valueOr failwith
 
             let finalDNA =
@@ -321,7 +325,9 @@ module ResolveExtPart =
                 |> DnaOps.revCompIf (not fwd)
 
             let name1 =
-                if partId.Modifiers.Length = 0 then extPart.Name else (extPart.Name + (printSlice finalSlice))
+                if partId.Modifiers.Length = 0
+                then extPart.Name
+                else (extPart.Name + (LegacyPrettyPrint.slice finalSlice))
 
             let name2 = if fwd then name1 else "!" + name1
 

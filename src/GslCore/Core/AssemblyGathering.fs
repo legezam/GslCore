@@ -3,7 +3,8 @@ module GslCore.Core.AssemblyGathering
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.GslResult
 
 // ===============================
@@ -17,7 +18,7 @@ open GslCore.GslResult
 let private convertAndGatherAssembly (accum: ResizeArray<Assembly>) conversionContext node =
     match node with
     | AssemblyPart (pieces) ->
-        convertAssembly conversionContext pieces
+        LegacyConversion.convertAssembly conversionContext pieces
         |> GslResult.map (fun convertedAssembly ->
             accum.Add(convertedAssembly)
             node) // pass the node through unchanged
@@ -31,10 +32,10 @@ let convertAndGatherAssemblies tree =
     let foldmapParameters =
         { FoldMapParameters.Direction = TopDown
           Mode = Serial
-          StateUpdate = updateConversionContext
+          StateUpdate = LegacyConversion.updateConversionContext
           Map = convertAndGatherAssembly accum }
 
-    FoldMap.foldMap emptyConversionContext foldmapParameters tree
+    FoldMap.foldMap AssemblyConversionContext.empty foldmapParameters tree
     |> GslResult.map (fun treeOut ->
         // if successful, return the accumulated assemblies and the tree itself
         (accum |> List.ofSeq), treeOut)

@@ -1,7 +1,8 @@
 ﻿module GslCore.Plugin.BasicMarkerProvider
 
+open GslCore.Ast.Legacy.Types
 open GslCore.Constants
-open GslCore.Ast.LegacyParseTypes
+
 open GslCore.Core.Types
 open Amyris.Dna
 open GslCore.Core.PluginTypes
@@ -71,12 +72,12 @@ type BasicURA3MarkerProvider =
     { ura3: Dna option }
     interface IMarkerProvider with
         member __.ProvidedArgs() = []
-        member x.Configure(_) = x :> IMarkerProvider
+        member x.Configure _ = x :> IMarkerProvider
 
         member x.ConfigureFromOptions(_opts) =
             { x with ura3 = Some(Dna(basicURA3)) } :> IMarkerProvider
 
-        member x.Setup(_) = x :> IMarkerProvider
+        member x.Setup _ = x :> IMarkerProvider
 
         member x.CreateDna(task: MarkerMaterializationTask) =
             expandMarkerPartIntoURA3 task.DnaSource x.ura3.Value task.PartPlusPragma

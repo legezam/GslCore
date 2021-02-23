@@ -5,7 +5,8 @@ open System
 open FsToolkit.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Constants
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
+open GslCore.Ast.Legacy
 open GslCore.Core.ResolveExtPart
 open GslCore.GslResult
 open GslCore.Pragma
@@ -244,7 +245,7 @@ let realizeSequence (verbose: bool)
     if (left > right && feature.fwd)
        || (right > left && (not feature.fwd)) then
         failwithf "[realizeSequence] slice results in negatively lengthed DNA piece gene=%s slice=%s\n" feature.gene
-            (printSlice finalSlice)
+            (LegacyPrettyPrint.slice finalSlice)
 
     let left', right' =
         if feature.fwd then left, right else right, left
@@ -269,7 +270,8 @@ let getUri (ppp: PartPlusPragma): string option =
 
 let expandInlineDna (dnaSource: string) (ppp: PartPlusPragma) (dnaFwd: Dna): DNASlice =
 
-    let dna = dnaFwd |> DnaOps.revCompIf (not ppp.IsForward)
+    let dna =
+        dnaFwd |> DnaOps.revCompIf (not ppp.IsForward)
 
     { DNASlice.Id = None
       ExternalId = None
@@ -325,7 +327,9 @@ let expandGenePart (verbose: bool)
     let referenceGenome =
         getReferenceGenome assembly referenceGenomes ppp.Pragma
 
-    if not (referenceGenome |> GenomeDefinition.isValidFeature gene) then
+    if not
+        (referenceGenome
+         |> GenomeDefinition.isValidFeature gene) then
         // Not a genomic reference but might still be in our library
         if sequenceLookup |> Map.containsKey gene then
             // Yes! =- make up a little island of sequence for it
@@ -351,12 +355,12 @@ let expandGenePart (verbose: bool)
             // Ban approx slices to stay sane for now
             if finalSlice.LeftApprox || finalSlice.RightApprox then
                 failwithf "sorry, approximate slices of library genes not supported yet in %A\n"
-                    (prettyPrintAssembly assembly)
+                    (LegacyPrettyPrint.assembly assembly)
 
             let sliceContext = Library(genePartWithLinker.Part.Gene)
 
             let x, y =
-                getBoundsFromSlice finalSlice dna.Length sliceContext
+                LegacySliceContext.getBoundsFromSlice finalSlice dna.Length sliceContext
                 |> Result.valueOr failwith
 
             let finalDNA =
@@ -371,9 +375,10 @@ let expandGenePart (verbose: bool)
                     genePartWithLinker.Part.Gene
                 else
                     (genePartWithLinker.Part.Gene
-                     + (printSlice finalSlice))
+                     + (LegacyPrettyPrint.slice finalSlice))
 
-            let name2 = if ppp.IsForward then name1 else "!" + name1
+            let name2 =
+                if ppp.IsForward then name1 else "!" + name1
 
             { DNASlice.Id = None
               ExternalId = None
@@ -414,7 +419,9 @@ let expandGenePart (verbose: bool)
             lookupGenePart errorDesc (genePartWithLinker.Part.Gene.[0]) (genePartWithLinker.Part.Modifiers)
 
 
-        let feature = referenceGenome |> GenomeDefinition.getFeature gene
+        let feature =
+            referenceGenome
+            |> GenomeDefinition.getFeature gene
 
         let breed1 =
             match genePart with
@@ -467,12 +474,13 @@ let expandGenePart (verbose: bool)
               Right = if finalSlice.RightApprox then rightAdj else finalSlice.Right }
 
         if verbose then
-            printf "log: finalSlice: %s%s %s%s\n" (if finalSlice.LeftApprox then "~" else "") (printRP finalSlice.Left)
-                (if finalSlice.RightApprox then "~" else "") (printRP finalSlice.Right)
+            printf "log: finalSlice: %s%s %s%s\n" (if finalSlice.LeftApprox then "~" else "")
+                (LegacyPrettyPrint.relativePosition finalSlice.Left) (if finalSlice.RightApprox then "~" else "")
+                (LegacyPrettyPrint.relativePosition finalSlice.Right)
 
             printf "log: finalSliceWA: %s%s %s%s\n" (if finalSliceWithApprox.LeftApprox then "~" else "")
-                (printRP finalSliceWithApprox.Left) (if finalSliceWithApprox.RightApprox then "~" else "")
-                (printRP finalSliceWithApprox.Right)
+                (LegacyPrettyPrint.relativePosition finalSliceWithApprox.Left) (if finalSliceWithApprox.RightApprox then "~" else "")
+                (LegacyPrettyPrint.relativePosition finalSliceWithApprox.Right)
 
         // FinalSliceWithApprox is a gene relative coordinate system, but we
         // need genomic coordinates for the gene
@@ -500,7 +508,7 @@ let expandGenePart (verbose: bool)
            || (threePrime > fivePrime && (not feature.fwd)) then
             failwithf "slice results in negatively lengthed DNA piece for %s\n"
                 (genePartWithLinker.Part.Gene
-                 + (printSlice finalSlice))
+                 + (LegacyPrettyPrint.slice finalSlice))
 
         /// left' is the genomic coordinate of the genomic left
         let left', right' =
@@ -537,7 +545,7 @@ let expandGenePart (verbose: bool)
             | _ ->
                 "g"
                 + genePartWithLinker.Part.Gene.[1..]
-                + (printSlice finalSlice)
+                + (LegacyPrettyPrint.slice finalSlice)
 
         let description2 =
             if ppp.IsForward then description1 else "!" + description1

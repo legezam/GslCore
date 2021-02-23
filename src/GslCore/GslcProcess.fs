@@ -1,12 +1,10 @@
 ﻿/// Top-level compiler operations.
 module GslCore.GslcProcess
 
-open System
-open GslCore.Ast.ErrorHandling
 open Amyris.Bio
 open GslCore.Constants
 open GslCore.Core
-open GslCore.Ast.LegacyParseTypes
+open GslCore.Ast.Legacy.Types
 open GslCore.Core.Expansion
 open GslCore.Core.Types
 open GslCore.Core.DnaCreation
