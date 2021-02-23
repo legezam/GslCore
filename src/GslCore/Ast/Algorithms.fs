@@ -408,13 +408,13 @@ type FoldMapParameters<'State, 'Msg> =
 module FoldMap =
 
     /// Inner recursive call.
-    let rec private loop (state: 'State)
-                         (node: AstNode)
-                         (parameters: FoldMapParameters<'State, 'Msg>)
-                         : 'State * GslResult<AstNode, 'Msg> =
+    let rec internal loop (state: 'State)
+                          (node: AstNode)
+                          (parameters: FoldMapParameters<'State, 'Msg>)
+                          : 'State * GslResult<AstNode, 'Msg> =
 
         /// Fold over this node and produce an updated state.
-        let updatedState =
+        let preTransformedState =
             parameters.StateUpdate PreTransform state node
 
         // depending on the direction switch, either first transform the node and then its children,
@@ -423,76 +423,195 @@ module FoldMap =
         let transformedTree =
             match parameters.Direction with
             | TopDown ->
-                parameters.Map updatedState node
-                >>= (transformChildren updatedState parameters)
+                parameters.Map preTransformedState node
+                >>= transformChildren preTransformedState parameters
             | BottomUp ->
                 // transform the children of the node
-                transformChildren updatedState parameters node
+                transformChildren preTransformedState parameters node
                 // then transform the node with transformed children
-                >>= parameters.Map updatedState
+                >>= parameters.Map preTransformedState
 
         // run the state update function in PostTransform mode, using the original node
         // this allows block-scoped cleanup to occur.
-        let finalState =
-            parameters.StateUpdate PostTransform updatedState node
+        let postTransformedState =
+            parameters.StateUpdate PostTransform preTransformedState node
         // return the transformed node and the state from folding only it, not its children
-        finalState, transformedTree
+        postTransformedState, transformedTree
+
+    /// Recursive into the children of a node.
+    and internal transformChildren (state: 'State)
+                                   (parameters: FoldMapParameters<'State, 'Msg>)
+                                   (node: AstNode)
+                                   : GslResult<AstNode, 'Msg> =
+        // recurse into children of the revised node
+        match node with
+        | Leaf leaf -> GslResult.ok leaf // leaf nodes need no recursion
+        | VariableBinding variableBindingWrapper -> processVariableBinding state parameters variableBindingWrapper
+        | TypedValue typedValueWrapper -> processTypedValue state parameters typedValueWrapper
+        | BinaryOperation binaryOperationWrapper -> processBinaryOperation state parameters binaryOperationWrapper
+        | Negation negationWrapper -> processNegation state parameters negationWrapper
+        | ParseRelPos relativePositionWrapper -> processRelativePosition state parameters relativePositionWrapper
+        | Slice sliceWrapper -> processSlice state parameters sliceWrapper
+        | Part partWrapper -> processPart state parameters partWrapper
+        | L2Element level2Wrapper -> processL2Element state parameters level2Wrapper
+        | L2Expression expressionWrapper -> processL2Expression state parameters expressionWrapper
+        | ParsePragma pragmaWrapper -> processPragma state parameters pragmaWrapper
+        | Block blockWrapper ->
+            match parameters.Mode with
+            | Parallel -> processBlockParallel state parameters blockWrapper
+            | Serial -> processBlock state parameters blockWrapper
+        // Function definition and call
+        | FunctionDef functionDefinitionWrapper -> processFunctionDefinition state parameters functionDefinitionWrapper
+        | FunctionCall functionCallWrapper -> processFunctionCall state parameters functionCallWrapper
+        | Assembly assemblyWrapper -> processAssembly state parameters assemblyWrapper
+        | x -> Utils.nonExhaustiveError x
 
     /// Make the recursive call to fold, with updated state from this node.
     /// Discard the state returned from the call.
     /// The only recursive call which should not use this variant is that made
     /// in processBlock, to ensure that state only accumulates over top-level nodes inside
     /// blocks.
-    and private foldDropState (state: 'State)
-                              (parameters: FoldMapParameters<'State, 'Msg>)
-                              (node: AstNode)
-                              : GslResult<AstNode, 'Msg> =
+    and internal foldAndDropState (state: 'State)
+                                  (parameters: FoldMapParameters<'State, 'Msg>)
+                                  (node: AstNode)
+                                  : GslResult<AstNode, 'Msg> =
         snd (loop state node parameters)
+
+    and internal processRelativePosition (state: 'State)
+                                         (parameters: FoldMapParameters<'State, 'Msg>)
+                                         (node: Node<ParseRelativePosition>)
+                                         : GslResult<AstNode, 'Msg> =
+        foldAndDropState state parameters node.Value.Item
+        |> GslResult.map (fun updatedValue ->
+            let updatedWrapper = { node.Value with Item = updatedValue }
+
+            ParseRelPos { node with Value = updatedWrapper })
+
+    and internal processSlice (state: 'State)
+                              (parameters: FoldMapParameters<'State, 'Msg>)
+                              (node: Node<ParseSlice>)
+                              : GslResult<AstNode, 'Msg> =
+        let newLeft =
+            foldAndDropState state parameters node.Value.Left
+
+        let newRight =
+            foldAndDropState state parameters node.Value.Right
+
+        (newLeft, newRight)
+        ||> GslResult.map2 (fun newLeft newRight ->
+                let updatedWrapper =
+                    { node.Value with
+                          Left = newLeft
+                          Right = newRight }
+
+                Slice { node with Value = updatedWrapper })
+
+    and internal processL2Element (state: 'State)
+                                  (parameters: FoldMapParameters<'State, 'Msg>)
+                                  (node: Node<L2Element>)
+                                  : GslResult<AstNode, 'Msg> =
+        let newPromoter =
+            foldAndDropState state parameters node.Value.Promoter
+
+        let newTarget =
+            foldAndDropState state parameters node.Value.Target
+
+        (newPromoter, newTarget)
+        ||> GslResult.map2 (fun newPromoter newTarget ->
+                let updatedWrapperValue =
+                    { node.Value with
+                          Promoter = newPromoter
+                          Target = newTarget }
+
+                L2Element
+                    ({ node with
+                           Value = updatedWrapperValue }))
+
+    and internal processPragma (state: 'State)
+                               (parameters: FoldMapParameters<'State, 'Msg>)
+                               (node: Node<ParsePragma>)
+                               : GslResult<AstNode, 'Msg> =
+        node.Value.Values
+        |> List.map (foldAndDropState state parameters)
+        |> GslResult.collectA
+        |> GslResult.map (fun newVals ->
+            let updatedValue = { node.Value with Values = newVals }
+
+            ParsePragma { node with Value = updatedValue })
+
+    and internal processFunctionDefinition (state: 'State)
+                                           (parameters: FoldMapParameters<'State, 'Msg>)
+                                           (node: Node<ParseFunction>)
+                                           : GslResult<AstNode, 'Msg> =
+        foldAndDropState state parameters node.Value.Body
+        |> GslResult.map (fun newBody ->
+            let updatedValue = { node.Value with Body = newBody }
+
+            FunctionDef { node with Value = updatedValue })
+
+    and internal processFunctionCall (state: 'State)
+                                     (parameters: FoldMapParameters<'State, 'Msg>)
+                                     (node: Node<FunctionCall>)
+                                     : GslResult<AstNode, 'Msg> =
+        GslResult.collectA (List.map (foldAndDropState state parameters) node.Value.Arguments)
+        |> GslResult.map (fun newArgs ->
+            let updatedValue = { node.Value with Arguments = newArgs }
+
+            FunctionCall { node with Value = updatedValue })
+
+    and internal processAssembly (state: 'State)
+                                 (parameters: FoldMapParameters<'State, 'Msg>)
+                                 (node: Node<AstNode list>)
+                                 : GslResult<AstNode, 'Msg> =
+        GslResult.collectA (List.map (foldAndDropState state parameters) node.Value)
+        |> GslResult.map (fun newParts -> Assembly { node with Value = newParts })
+
     // Parts have quite a few children, so break this out as a function for cleanliness.
-    and private processPart (state: 'State)
-                            (parameters: FoldMapParameters<'State, 'Msg>)
-                            (partWrapper: Node<ParsePart>)
-                            : GslResult<AstNode, 'Msg> =
+    and internal processPart (state: 'State)
+                             (parameters: FoldMapParameters<'State, 'Msg>)
+                             (partWrapper: Node<ParsePart>)
+                             : GslResult<AstNode, 'Msg> =
         let parsePart = partWrapper.Value
 
         let updatedBasePart =
-            foldDropState state parameters parsePart.BasePart
+            foldAndDropState state parameters parsePart.BasePart
 
         let updatedModifiers =
             parsePart.Modifiers
-            |> List.map (foldDropState state parameters)
+            |> List.map (foldAndDropState state parameters)
             |> GslResult.collectA
 
         let updatedPragmas =
             parsePart.Pragmas
-            |> List.map (foldDropState state parameters)
+            |> List.map (foldAndDropState state parameters)
             |> GslResult.collectA
 
-        GslResult.map3 (fun basePart modifiers pragmas ->
-            let updatedParsePart =
-                { parsePart with
-                      BasePart = basePart
-                      Modifiers = modifiers
-                      Pragmas = pragmas }
+        (updatedBasePart, updatedModifiers, updatedPragmas)
+        |||> GslResult.map3 (fun basePart modifiers pragmas ->
+                 let updatedParsePart =
+                     { parsePart with
+                           BasePart = basePart
+                           Modifiers = modifiers
+                           Pragmas = pragmas }
 
-            Part
-                { partWrapper with
-                      Value = updatedParsePart }) updatedBasePart updatedModifiers updatedPragmas
+                 Part
+                     { partWrapper with
+                           Value = updatedParsePart })
 
     // L2 expressions are a bit complicated, so break this out for cleanliness.
-    and private processL2Expression (state: 'State)
-                                    (parameters: FoldMapParameters<'State, 'Msg>)
-                                    (level2Wrapper: Node<L2Expression>)
-                                    : GslResult<AstNode, 'Msg> =
+    and internal processL2Expression (state: 'State)
+                                     (parameters: FoldMapParameters<'State, 'Msg>)
+                                     (level2Wrapper: Node<L2Expression>)
+                                     : GslResult<AstNode, 'Msg> =
         let level2Expression = level2Wrapper.Value
 
         let updatedLocus =
             level2Expression.Locus
-            |> GslResult.optionalResult (foldDropState state parameters)
+            |> GslResult.optionalResult (foldAndDropState state parameters)
 
         let updatedParts =
             level2Expression.Parts
-            |> List.map (foldDropState state parameters)
+            |> List.map (foldAndDropState state parameters)
             |> GslResult.collectA
 
         (updatedLocus, updatedParts)
@@ -511,10 +630,10 @@ module FoldMap =
     /// this level, we only cascade the state after processing the node one level below this
     /// and no further.  So, simple rule: anything that needs to involve block-scoped state update
     /// needs to be a rule that operates on an immediate child of a block.</summary>
-    and private processBlock (state: 'State)
-                             (parameters: FoldMapParameters<'State, 'Msg>)
-                             (blockWrapper: Node<AstNode list>)
-                             : GslResult<AstNode, 'Msg> =
+    and internal processBlock (state: 'State)
+                              (parameters: FoldMapParameters<'State, 'Msg>)
+                              (blockWrapper: Node<AstNode list>)
+                              : GslResult<AstNode, 'Msg> =
         /// Folding function that collects the results of node transformation while accumulating state.
         /// The resulting list of nodes needs to be reversed.
         let foldAndAccum (s, transformedNodes) n =
@@ -528,14 +647,14 @@ module FoldMap =
         newLineResults
         |> List.rev
         |> GslResult.collectA
-        >>= fun newLines -> GslResult.ok (Block({ blockWrapper with Value = newLines }))
+        |> GslResult.map (fun newLines -> Block({ blockWrapper with Value = newLines }))
 
 
     /// Performs processing of each node in a block in parallel, with the same semantics as serial.
-    and private processBlockParallel (state: 'State)
-                                     (parameters: FoldMapParameters<'State, 'Msg>)
-                                     (blockWrapper: Node<AstNode list>)
-                                     : GslResult<AstNode, 'Msg> =
+    and internal processBlockParallel (state: 'State)
+                                      (parameters: FoldMapParameters<'State, 'Msg>)
+                                      (blockWrapper: Node<AstNode list>)
+                                      : GslResult<AstNode, 'Msg> =
         let nodeArray = blockWrapper.Value |> Array.ofList
         // We need to compute all of the block-accumulated state up-front and pass it in to each step.
         // This implies a bit of redundent computation as each inner call will recompute.
@@ -554,7 +673,7 @@ module FoldMap =
                 outputState :: inputStates) [ state ]
             |> List.tail // we don't need the output from the last node
             |> List.rev
-            |> Array.ofList
+            |> List.toArray
 
         assert (statesForNodes.Length = nodeArray.Length)
 
@@ -567,149 +686,52 @@ module FoldMap =
         |> PSeq.withDegreeOfParallelism useNCores
         |> PSeq.toList
         |> GslResult.collectA
-        >>= fun newLines -> GslResult.ok (Block({ blockWrapper with Value = newLines }))
-    /// Recursive into the children of a node.
-    and private transformChildren (state: 'State)
-                                  (parameters: FoldMapParameters<'State, 'Msg>)
-                                  (node: AstNode)
-                                  : GslResult<AstNode, 'Msg> =
-        // recurse into children of the revised node
-        match node with
-        | Leaf leaf -> GslResult.ok leaf // leaf nodes need no recursion
-        | VariableBinding variableBindingWrapper ->
-            (foldDropState state parameters variableBindingWrapper.Value.Value)
-            >>= fun newInner ->
-                    let updatedWrapper =
-                        { variableBindingWrapper.Value with
-                              Value = newInner }
+        |> GslResult.map (fun newLines -> Block({ blockWrapper with Value = newLines }))
 
-                    VariableBinding
-                        { variableBindingWrapper with
-                              Value = updatedWrapper }
-                    |> GslResult.ok
-        | TypedValue typedValueWrapper ->
-            let gslType, typedValue = typedValueWrapper.Value
+    and internal processVariableBinding (state: 'State)
+                                        (parameters: FoldMapParameters<'State, 'Msg>)
+                                        (node: Node<VariableBinding>)
+                                        : GslResult<AstNode, 'Msg> =
+        (foldAndDropState state parameters node.Value.Value)
+        |> GslResult.map (fun newInner ->
+            let updatedNodeValue = { node.Value with Value = newInner }
 
-            (foldDropState state parameters typedValue)
-            >>= fun newInner ->
-                    TypedValue
-                        { typedValueWrapper with
-                              Value = (gslType, newInner) }
-                    |> GslResult.ok
+            VariableBinding { node with Value = updatedNodeValue })
 
-        | BinaryOperation bindaryOperationWrapper ->
-            let newLeft =
-                foldDropState state parameters bindaryOperationWrapper.Value.Left
+    and internal processTypedValue (state: 'State)
+                                   (parameters: FoldMapParameters<'State, 'Msg>)
+                                   (node: Node<GslVariableType * AstNode>)
+                                   : GslResult<AstNode, 'Msg> =
+        let gslType, typedValue = node.Value
 
-            let newRight =
-                foldDropState state parameters bindaryOperationWrapper.Value.Right
+        (foldAndDropState state parameters typedValue)
+        |> GslResult.map (fun newInner -> TypedValue { node with Value = gslType, newInner })
 
-            (newLeft, newRight)
-            ||> GslResult.map2 (fun newLeft newRight ->
-                    let updatedWrapper =
-                        { bindaryOperationWrapper.Value with
-                              Left = newLeft
-                              Right = newRight }
+    and internal processBinaryOperation (state: 'State)
+                                        (parameters: FoldMapParameters<'State, 'Msg>)
+                                        (node: Node<BinaryOperation>)
+                                        : GslResult<AstNode, 'Msg> =
+        let newLeft =
+            foldAndDropState state parameters node.Value.Left
 
-                    BinaryOperation
-                        { bindaryOperationWrapper with
-                              Value = updatedWrapper })
+        let newRight =
+            foldAndDropState state parameters node.Value.Right
 
-        | Negation negationWrapper ->
-            foldDropState state parameters negationWrapper.Value
-            >>= fun node -> GslResult.ok (Negation({ negationWrapper with Value = node }))
-        // Slicing
-        | ParseRelPos relativePositionWrapper ->
-            foldDropState state parameters relativePositionWrapper.Value.Item
-            >>= fun node ->
-                    let updatedWrapper =
-                        { relativePositionWrapper.Value with
-                              Item = node }
+        (newLeft, newRight)
+        ||> GslResult.map2 (fun newLeft newRight ->
+                let updatedWrapper =
+                    { node.Value with
+                          Left = newLeft
+                          Right = newRight }
 
-                    ParseRelPos
-                        { relativePositionWrapper with
-                              Value = updatedWrapper }
-                    |> GslResult.ok
-        | Slice sliceWrapper ->
-            let newLeft =
-                foldDropState state parameters sliceWrapper.Value.Left
+                BinaryOperation { node with Value = updatedWrapper })
 
-            let newRight =
-                foldDropState state parameters sliceWrapper.Value.Right
-
-            (newLeft, newRight)
-            ||> GslResult.map2 (fun newLeft newRight ->
-                    let updatedWrapper =
-                        { sliceWrapper.Value with
-                              Left = newLeft
-                              Right = newRight }
-
-                    Slice
-                        { sliceWrapper with
-                              Value = updatedWrapper })
-        | Part partWrapper -> processPart state parameters partWrapper
-        | L2Element level2Wrapper ->
-            let newPromoter =
-                foldDropState state parameters level2Wrapper.Value.Promoter
-
-            let newTarget =
-                foldDropState state parameters level2Wrapper.Value.Target
-
-            (newPromoter, newTarget)
-            ||> GslResult.map2 (fun newPromoter newTarget ->
-                    let updatedWrapperValue =
-                        { level2Wrapper.Value with
-                              Promoter = newPromoter
-                              Target = newTarget }
-
-                    L2Element
-                        ({ level2Wrapper with
-                               Value = updatedWrapperValue }))
-        | L2Expression expressionWrapper -> processL2Expression state parameters expressionWrapper
-        | ParsePragma pragmaWrapper ->
-            pragmaWrapper.Value.Values
-            |> List.map (foldDropState state parameters)
-            |> GslResult.collectA
-            >>= fun newVals ->
-                    let updated =
-                        { pragmaWrapper.Value with
-                              Values = newVals }
-
-                    ParsePragma { pragmaWrapper with Value = updated }
-                    |> GslResult.ok
-        | Block blockWrapper ->
-            match parameters.Mode with
-            | Parallel -> processBlockParallel state parameters blockWrapper
-            | Serial -> processBlock state parameters blockWrapper
-        // Function definition and call
-        | FunctionDef functionDefinitionWrapper ->
-            foldDropState state parameters functionDefinitionWrapper.Value.Body
-            >>= fun newBody ->
-                    let updated =
-                        { functionDefinitionWrapper.Value with
-                              Body = newBody }
-
-                    FunctionDef
-                        { functionDefinitionWrapper with
-                              Value = updated }
-                    |> GslResult.ok
-        | FunctionCall functionCallWrapper ->
-            GslResult.collectA (List.map (foldDropState state parameters) functionCallWrapper.Value.Arguments)
-            |> GslResult.map (fun newArgs ->
-                let updated =
-                    { functionCallWrapper.Value with
-                          Arguments = newArgs }
-
-                FunctionCall
-                    { functionCallWrapper with
-                          Value = updated })
-        | Assembly assemblyWrapper ->
-            GslResult.collectA (List.map (foldDropState state parameters) assemblyWrapper.Value)
-            |> GslResult.map (fun newParts ->
-                Assembly
-                    { assemblyWrapper with
-                          Value = newParts })
-        | x -> Utils.nonExhaustiveError x
+    and internal processNegation (state: 'State)
+                                 (parameters: FoldMapParameters<'State, 'Msg>)
+                                 (node: Node<AstNode>)
+                                 : GslResult<AstNode, 'Msg> =
+        foldAndDropState state parameters node.Value
+        |> GslResult.map (fun updatedValue -> Negation({ node with Value = updatedValue }))
 
     ///<summary>
     /// Produce a new AST by recursively transforming nodes, keeping track of block-accumulated state.

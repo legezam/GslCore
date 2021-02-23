@@ -16,37 +16,45 @@ type VariableResolutionMode =
     | AllowUnresolvedFunctionLocals
 
 /// Wrapper type for variable resolution.  Node helper functions below.
+[<RequireQualifiedAccess>]
 type VariableResolutionWrapper =
-    | VBinding of Node<VariableBinding>
-    | FLocal
+    /// Classic let binding to a variable
+    | VariableBinding of Node<VariableBinding>
+    /// Local variable binding in a function
+    | FunctionLocal
 
 /// Map to keep track of what variables and function locals are in scope.
 /// Function locals are items in the map with None rather that an explicit binding.
 /// Shadowing is allowed, and the latest declared name takes precedence.
-type VariableBindings = Map<string, VariableResolutionWrapper>
+type CapturedVariableBindings = Map<string, VariableResolutionWrapper>
 
 module VariableResolution =
-    let private addBinding (bindings: VariableBindings) (variableBinding: Node<VariableBinding>) =
-        bindings
-        |> Map.add variableBinding.Value.Name (VBinding variableBinding)
+    let private captureVariableBinding (capturedBindings: CapturedVariableBindings)
+                                       (variableBinding: Node<VariableBinding>)
+                                       : CapturedVariableBindings =
+        capturedBindings
+        |> Map.add variableBinding.Value.Name (VariableResolutionWrapper.VariableBinding variableBinding)
 
-    let private addFuncLocal (bindings: VariableBindings) (name: string) = bindings |> Map.add name FLocal
+    let private captureFunctionLocalBinding (bindings: CapturedVariableBindings) (name: string): CapturedVariableBindings =
+        bindings
+        |> Map.add name VariableResolutionWrapper.FunctionLocal
 
     /// Given an AST node, update the variable resolution state.
     /// We need to be a little careful here due to a tricky issue.
     /// Namely, we need to ensure that the construction let bar = &bar
     /// doesn't wipe out the upstream binding to bar, lest we end up
     /// in an infinite recursive loop trying to resolve a self-reference.
-    let private updateVariableResolutionInner (variableBindings: VariableBindings) (node: AstNode): VariableBindings =
-        match node with
+    let private updateVariableResolutionInner (capturedBindings: CapturedVariableBindings)
+                                              : AstNode -> CapturedVariableBindings =
+        function
         | SelfReferentialVariable _ ->
             // variable that aliases itself from an outer scope.  Ignore this.
-            variableBindings
-        | VariableBinding variableBinding -> addBinding variableBindings variableBinding
+            capturedBindings
+        | VariableBinding variableBinding -> captureVariableBinding capturedBindings variableBinding
         | FunctionLocals functionLocals ->
             functionLocals.Value.Names
-            |> List.fold addFuncLocal variableBindings
-        | _ -> variableBindings
+            |> List.fold captureFunctionLocalBinding capturedBindings
+        | _ -> capturedBindings
 
     let internal updateVariableResolution =
         StateUpdateMode.pretransformOnly updateVariableResolutionInner
@@ -90,26 +98,26 @@ module VariableResolution =
     /// If that declaration itself was a variable aliasing (let foo = &bar), recurse
     /// down until we resolve to a fully typed variable.
     let rec private resolveVariableRecursive (mode: VariableResolutionMode)
-                                             (variableBindings: VariableBindings)
+                                             (capturedBindings: CapturedVariableBindings)
                                              (targetType: GslVariableType)
                                              (typeWrapper: Node<string * GslVariableType>)
                                              (node: AstNode)
                                              : AstResult<AstNode> =
         let varName, _ = typeWrapper.Value
         // first see if we have this guy in our bindings at all
-        match variableBindings.TryFind(varName) with
-        | Some (VBinding variableBinding) -> // this name is resolves to a bound variable
+        match capturedBindings.TryFind(varName) with
+        | Some (VariableResolutionWrapper.VariableBinding variableBinding) -> // this name is resolves to a bound variable
             // does it have the right type in this context?
             let declaredType = variableBinding.Value.Type
 
             match declaredType, variableBinding.Value.Value with
             | NotYetTyped, TypedVariable typedVariableInner ->
                 // if this variable is just a reference to another variable, we need to recurse on it.
-                resolveVariableRecursive mode variableBindings targetType typedVariableInner node
+                resolveVariableRecursive mode capturedBindings targetType typedVariableInner node
             | _, boundValue ->
                 // otherwise, perform type checking and resolve the variable if it type checks
                 typeCheck varName node targetType declaredType boundValue
-        | Some FLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
+        | Some VariableResolutionWrapper.FunctionLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
             match mode with
             | AllowUnresolvedFunctionLocals -> GslResult.ok node
             | Strict ->
@@ -122,14 +130,14 @@ module VariableResolution =
 
     ///Given resolution state and an AST node, possibly resolve a reference.
     let internal resolveVariable (mode: VariableResolutionMode)
-                                 (variableBindings: VariableBindings)
+                                 (capturedBindings: CapturedVariableBindings)
                                  (node: AstNode)
                                  : AstResult<AstNode> =
         match node with
         | TypedVariable typedVariable ->
             let targetType = snd typedVariable.Value
             // might resolve to another variable, so we need to do this recursively
-            resolveVariableRecursive mode variableBindings targetType typedVariable node
+            resolveVariableRecursive mode capturedBindings targetType typedVariable node
         | x -> GslResult.ok x
 
     /// Transform an AST with unresolved scoped variables into a tree with resolved scoped variables.

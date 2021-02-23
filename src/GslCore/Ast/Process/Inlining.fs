@@ -15,7 +15,7 @@ type CollectedFunctionDefs = Map<string, ParseFunction>
 
 type FunctionInliningState =
     { Definitions: CollectedFunctionDefs
-      Variables: VariableBindings
+      Variables: CapturedVariableBindings
       Depth: int }
 
 module FunctionInliningState =
@@ -71,7 +71,7 @@ module Inlining =
             GslResult.ok (parseFunction, functionCall)
 
     /// Create a local variable from a typed value.
-    let private localVarFromTypedValueAndName (variableBindings: VariableBindings)
+    let private localVarFromTypedValueAndName (variableBindings: CapturedVariableBindings)
                                               (name: string, node: AstNode)
                                               : AstResult<AstNode> =
         match node with
@@ -93,7 +93,7 @@ module Inlining =
 
     /// Inline the passed function args in place of the FunctionLocals placeholder.
     /// Return a revised block.
-    let private inlinePassedArgs (variableBindings: VariableBindings)
+    let private inlinePassedArgs (variableBindings: CapturedVariableBindings)
                                  (parseFunction: ParseFunction, functionCall: FunctionCall)
                                  : AstResult<AstNode> =
         match parseFunction.Body with
