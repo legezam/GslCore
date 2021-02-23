@@ -1,11 +1,13 @@
 ﻿namespace GslCore.Tests
 
 open GslCore
+open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.GslResult
 open GslCore.Ast.Types
+open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast
 open GslCore.AstFixtures
@@ -59,7 +61,10 @@ type TestValidation() =
     [<Test>]
     member x.NoModsAllowed() =
         let source = GslSourceCode("###[2:20]")
-        let tree = lexparse source |> GslResult.valueOr (failwithf "%A")
+
+        let tree =
+            lexparse source
+            |> GslResult.valueOr (failwithf "%A")
 
         assertValidationFail
             PartError
@@ -71,7 +76,10 @@ type TestValidation() =
     [<Test>]
     member x.NoModsOnAssemblies() =
         let source = GslSourceCode("(pFOO; gFOO)[2:20]")
-        let tree = lexparse source |> GslResult.valueOr (failwithf "%A")
+
+        let tree =
+            lexparse source
+            |> GslResult.valueOr (failwithf "%A")
 
         assertValidationFail
             PartError
@@ -85,16 +93,20 @@ type TestTransformation() =
 
 
     let variableTest =
-        sourceCompareTest VariableResolution.resolveVariables
+        sourceCompareTest
+            (VariableResolution.resolveVariables
+             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
 
     let mathReductionTest =
         sourceCompareTest
-            (VariableResolution.resolveVariables
+            ((VariableResolution.resolveVariables
+              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
              >=> ExpressionReduction.reduceMathExpressions)
 
     let functionInliningTest =
         sourceCompareTest
-            (VariableResolution.resolveVariables
+            ((VariableResolution.resolveVariables
+              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
              >=> Inlining.inlineFunctionCalls
              >=> Cleanup.stripFunctions)
 
@@ -105,15 +117,18 @@ type TestTransformation() =
 
     let flattenPartTest =
         sourceCompareTest
-            (VariableResolution.resolveVariables
+            ((VariableResolution.resolveVariables
+              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
              >=> AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters)
 
     let variableResolutionPipeline =
         Validation.checkRecursiveCalls
-        >=> VariableResolution.resolveVariables
+        >=> (VariableResolution.resolveVariables
+             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         >=> Inlining.inlineFunctionCalls
         >=> Cleanup.stripFunctions
-        >=> VariableResolution.resolveVariablesStrict
+        >=> (VariableResolution.resolveVariablesStrict
+             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
 
     let fullVariableResolutionTest =
         sourceCompareTest variableResolutionPipeline
@@ -151,7 +166,9 @@ end
 """
 
         GslSourceCode(source)
-        |> compile VariableResolution.resolveVariables
+        |> compile
+            (VariableResolution.resolveVariables
+             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         |> assertFailMany [ UnresolvedVariable
                             UnresolvedVariable ] [
             Some("bar")

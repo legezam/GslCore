@@ -102,7 +102,7 @@ module AstResult =
         |> GslResult.err
 
     ///Create an error representing a type mismatch resulting from a bugged GSL program.
-    let variableTypeMismatch (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstResult<'c> =
+    let variableTypeMismatchMsg (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstMessage =
         let message =
             sprintf
                 "The variable %s has been inferred to have the type %O, but is required to have the type %O in this context."
@@ -110,8 +110,12 @@ module AstResult =
                 declaredType
                 expectedType
 
-        errString TypeError message node
+        errStringMsg TypeError message node
 
+    let variableTypeMismatch (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstResult<'a> =
+        variableTypeMismatchMsg variableName declaredType expectedType node
+        |> GslResult.err
+    
 
     ///<summary>
     ///Create an internal error representing a type mismatch.

@@ -1,6 +1,8 @@
 ﻿namespace GslCore
 
+open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
+open GslCore.Ast.Process.VariableResolution
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.Pragma
@@ -67,10 +69,12 @@ type TestPragmasAST() =
           LegalCapabilities = [ "capa1"; "capa2" ] |> Set.ofList }
 
     let pragmaBuildPipeline =
-        VariableResolution.resolveVariables
+        (VariableResolution.resolveVariables
+         >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         >=> Inlining.inlineFunctionCalls
         >=> Cleanup.stripFunctions
-        >=> VariableResolution.resolveVariablesStrict
+        >=> (VariableResolution.resolveVariablesStrict
+             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         >=> Cleanup.stripVariables
         >=> ExpressionReduction.reduceMathExpressions
         >=> (PragmaBuilding.buildPragmas phase1Params)

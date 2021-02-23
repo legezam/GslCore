@@ -32,10 +32,11 @@ let validatePart op node =
 
 // FIXME: this may be either a step too far, or just on example of something we need a lot more of
 // Ideally the parser structure should make this kind of check unnecessary.
-let private validBasePartPP pp =
+let private validBasePartPP (pp: ParsePart): ValidationResult =
     match pp.BasePart with
     | ValidBasePart _ -> Validation.good
-    | x -> AstResult.errStringF (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
+    | x ->
+        AstResult.errStringF (InternalError(PartError)) "%s is not a valid base part." x.TypeName x
 
 let validBasePart = validatePart validBasePartPP
 

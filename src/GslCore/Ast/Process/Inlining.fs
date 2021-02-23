@@ -1,7 +1,9 @@
 namespace GslCore.Ast.Process
 
 
+open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
+open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
@@ -81,6 +83,7 @@ module Inlining =
             // this ensures that function locals never resolve to each other.
             AstTreeHead(typedValue)
             |> FoldMap.map Serial TopDown (VariableResolution.resolveVariable Strict variableBindings)
+            |> GslResult.mapError VariableResolutionMessage.toAstMessage
             |> GslResult.map (fun (AstTreeHead newVal) ->
                 VariableBinding
                     { Value =

@@ -28,6 +28,7 @@
     <Compile Include="RunCompilerTest.fs" />
     <Compile Include="Ast\Process\RelativePositionTranslationTest.fs" />
     <Compile Include="Ast\Process\VariableCapturingTest.fs" />
+    <Compile Include="Ast\Process\VariableResolutionTest.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\GslCore\GslCore.fsproj" />

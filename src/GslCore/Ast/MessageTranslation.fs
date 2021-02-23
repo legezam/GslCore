@@ -1,12 +1,12 @@
-module GslCore.Ast.MessageTranslation
+namespace GslCore.Ast.MessageTranslation
 
 open GslCore.Ast.ErrorHandling
 
 module RelativePositionTranslationMessage =
     open GslCore.Ast.Process.RelativePositionTranslation
 
-    let toAstMessage (error: RelativePositionTranslationMessage): AstMessage =
-        match error with
+    let toAstMessage: RelativePositionTranslationMessage -> AstMessage =
+        function
         | CalculationError (node, calcError) ->
             match calcError with
             | NegativeLeftAminoAcidStartPosition position ->
