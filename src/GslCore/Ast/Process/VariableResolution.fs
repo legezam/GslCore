@@ -96,7 +96,7 @@ module VariableResolution =
             | Some elidedType when elidedType = targetType -> // elides to correct type
                 GslResult.ok boundValue
             | Some elidedType -> // elides to incorrect type
-                GslResult.err (VariableTypeMismatch( elidedType, targetType))
+                GslResult.err (VariableTypeMismatch(elidedType, targetType))
             | None -> // whatever this thing is, it shouldn't be inside a variable
                 GslResult.err (InternalTypeMismatch(boundValue, targetType))
         else
@@ -105,7 +105,8 @@ module VariableResolution =
 
 
     module VariableResolutionError =
-        let makeTypeCheckError node variableName tcResult = TypeCheckError(tcResult, node, variableName)
+        let makeTypeCheckError node variableName tcResult =
+            TypeCheckError(tcResult, node, variableName)
 
     /// Resolve a typed variable to a variable declaration.
     /// If that declaration itself was a variable aliasing (let foo = &bar), recurse
@@ -114,28 +115,29 @@ module VariableResolution =
                                              (capturedBindings: CapturedVariableBindings)
                                              (targetType: GslVariableType)
                                              (typeWrapper: Node<string * GslVariableType>)
-                                             (node: AstNode)
+                                             (topNode: AstNode)
                                              : GslResult<AstNode, VariableResolutionError> =
-        let varName, _ = typeWrapper.Value
+        let variableName, _ = typeWrapper.Value
         // first see if we have this guy in our bindings at all
-        match capturedBindings |> Map.tryFind varName with
+        match capturedBindings |> Map.tryFind variableName with
         | Some (VariableResolutionWrapper.VariableBinding capturedBinding) -> // this name is resolves to a bound variable
             // does it have the right type in this context?
             let declaredType = capturedBinding.Value.Type
             let declaredValue = capturedBinding.Value.Value
+
             match declaredType, declaredValue with
             | NotYetTyped, TypedVariable declaredValueInner ->
                 // if this variable is just a reference to another variable, we need to recurse on it.
-                resolveVariableRecursive mode capturedBindings targetType declaredValueInner node
+                resolveVariableRecursive mode capturedBindings targetType declaredValueInner topNode
             | _, boundValue ->
                 // otherwise, perform type checking and resolve the variable if it type checks
                 typeCheck targetType declaredType boundValue
-                |> GslResult.mapError (VariableResolutionError.makeTypeCheckError node varName)
+                |> GslResult.mapError (VariableResolutionError.makeTypeCheckError topNode variableName)
         | Some VariableResolutionWrapper.FunctionLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
             match mode with
-            | AllowUnresolvedFunctionLocals -> GslResult.ok node
-            | Strict -> GslResult.err (IllegalFunctionLocal(varName, node))
-        | None -> GslResult.err (UnresolvedVariable(varName, node))
+            | AllowUnresolvedFunctionLocals -> GslResult.ok topNode
+            | Strict -> GslResult.err (IllegalFunctionLocal(variableName, topNode))
+        | None -> GslResult.err (UnresolvedVariable(variableName, topNode))
 
     ///Given resolution state and an AST node, possibly resolve a reference.
     let internal resolveVariable (mode: VariableResolutionMode)

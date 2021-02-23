@@ -43,7 +43,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
             match part.mods |> List.choose modIsMutation with
             | [] -> p
             | [ mutMod ] ->
-                let rg' = getRG a parameters.References p.pr
+                let rg' = getReferenceGenome a parameters.References p.pr
 
                 let asAACheck =
                     match a.pragmas
@@ -71,7 +71,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
                         (gp.part.gene.[0])
                         gp.part.gene
 
-                let rg' = getRG a parameters.References p.pr
+                let rg' = getReferenceGenome a parameters.References p.pr
 
                 // FIXME: unclear if this was the right behavior, as the rg is selected from both
                 // assembly and part pragmas yet the actual ref genome selected here was only using

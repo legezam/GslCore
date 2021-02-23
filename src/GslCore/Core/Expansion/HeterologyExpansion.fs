@@ -74,8 +74,8 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
         match p with
         // Lone heterology block with no inlined sequence adjacent
         | (GENEPART (gpUp), pr1, fwd1) :: (HETBLOCK, pr2, fwd2) :: (GENEPART (gp), pr3, fwd3) :: tl ->
-            let rg' = getRG a references pr3
-            let rg'' = getRG a references pr1
+            let rg' = getReferenceGenome a references pr3
+            let rg'' = getReferenceGenome a references pr1
 
             let sliceSeq =
                 realizeSequence verbose a.pragmas fwd3 rg' gp // Get DNA sequence for this slice
@@ -143,8 +143,8 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
         | (GENEPART (gpUp), pr1, fwd1) :: (INLINEDNA (i), pr2, fwd2) :: (HETBLOCK, pr3, _ (*fwd3*) ) :: (GENEPART (gp),
                                                                                                          pr4,
                                                                                                          fwd4) :: tl ->
-            let rg' = getRG a references pr4
-            let rg'' = getRG a references pr1
+            let rg' = getReferenceGenome a references pr4
+            let rg'' = getReferenceGenome a references pr1
 
             // Get DNA sequence for this slice
             let sliceSeq =
@@ -216,8 +216,8 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
                                                                                                         fwd4) :: tl ->
 
             // get reference genomes warmed up
-            let rg' = getRG a references pr1
-            let rg'' = getRG a references pr4
+            let rg' = getReferenceGenome a references pr1
+            let rg'' = getReferenceGenome a references pr4
 
             // get actual sequence for slices (with mods applied)
             let sliceSeq =

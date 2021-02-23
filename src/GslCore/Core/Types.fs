@@ -201,7 +201,7 @@ module OrfAnnotation =
             |> max 0<ZeroOffset>
             |> min (sliceLen * 1<ZeroOffset> - 1<ZeroOffset>)
 
-        { Left = constrain left
+        { OrfAnnotation.Left = constrain left
           Right = constrain right
           FrameOffset = frameOffset
           IsForward = fwd }
