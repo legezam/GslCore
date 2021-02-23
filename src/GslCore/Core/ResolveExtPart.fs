@@ -30,18 +30,18 @@ module ResolveExtPart =
 
         checkPrefix legalPrefixes
 
-    let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PPP) (partId: PartIdLegacy) =
+    let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PartPlusPragma) (partId: LegacyPartId) =
         // Sequence can come either from the libary or preferably from the hutch directly
-        let pid = partId.id
+        let pid = partId.Id
 
         let sliceName =
-            match ppp.pr
+            match ppp.Pragma
                   |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef with
             | Some (name) -> name
             | None -> ""
 
         let uri =
-            ppp.pr
+            ppp.Pragma
             |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
         match legalPartPrefix pid with
@@ -63,17 +63,17 @@ module ResolveExtPart =
 
                     // Check for slice modifications.  We can't handle any other type of mod at this point, so
                     // ensure there are none.
-                    if partId.mods
+                    if partId.Modifiers
                        |> List.exists (fun m ->
                            match m with
-                           | SLICE _ -> false
+                           | Modifier.Slice _ -> false
                            | _ -> true) then
-                        failwithf "ERROR:  could not process mods for rabit %s %A\n" partId.id partId.mods
+                        failwithf "ERROR:  could not process mods for rabit %s %A\n" partId.Id partId.Modifiers
 
                     // Look for simple case.  If we are just using the part from the hutch unadulterated, then
                     // we specify things differently, referring to the external id
-                    if partId.mods.Length = 0 then
-                        let dna = if ppp.fwd then dna else dna.RevComp()
+                    if partId.Modifiers.Length = 0 then
+                        let dna = if ppp.IsForward then dna else dna.RevComp()
 
                         { Id = None
                           ExternalId = Some(pid.[1..])
@@ -83,24 +83,24 @@ module ResolveExtPart =
                           SourceChromosome = "library"
                           SourceFrom = 0<ZeroOffset>
                           SourceTo = (dna.Length - 1) * 1<ZeroOffset>
-                          SourceForward = ppp.fwd
+                          SourceForward = ppp.IsForward
                           SourceFromApprox = false
                           SourceToApprox = false
                           // Don't assign coordinates to pieces until later when we decide
                           // how they are getting joined up
                           DestinationFrom = 0<ZeroOffset>
                           DestinationTo = 0<ZeroOffset>
-                          DestinationForward = ppp.fwd
+                          DestinationForward = ppp.IsForward
                           Description = rabit.Name
                           Type = SliceType.Regular
                           IsAmplified = false
                           Template = Some dna // not amplifying from this
                           DnaSource =
-                              match ppp.pr
+                              match ppp.Pragma
                                     |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                               | Some (d) -> d
                               | None -> pid
-                          Pragmas = ppp.pr
+                          Pragmas = ppp.Pragma
                           Breed = Breed.X // will be replaced at final submission
                           MaterializedFrom = Some(ppp)
                           Annotations = [] }
@@ -111,32 +111,32 @@ module ResolveExtPart =
 
                         // Start off assuming it's the full DNA slice
                         let startSlice =
-                            { left =
+                            { Left =
                                   { Position = 1<OneOffset>
                                     RelativeTo = FivePrime }
-                              lApprox = false
-                              rApprox = false
-                              right =
+                              LeftApprox = false
+                              RightApprox = false
+                              Right =
                                   { Position = -1<OneOffset>
                                     RelativeTo = ThreePrime } }
 
                         // Apply the slice(s) to get a final coordinate range
                         let finalSlice =
-                            ApplySlices.applySlices verbose partId.mods startSlice
+                            ApplySlices.applySlices verbose partId.Modifiers startSlice
 
                         // Find the left and right hand ends of the slice
                         let x, y =
-                            getBoundsFromSlice finalSlice dna.Length (Library(partId.id))
+                            getBoundsFromSlice finalSlice dna.Length (Library(partId.Id))
                             |> Result.valueOr failwith
 
                         let finalDNA =
                             dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]
-                            |> DnaOps.revCompIf (not ppp.fwd)
+                            |> DnaOps.revCompIf (not ppp.IsForward)
 
                         let name1 =
-                            if partId.mods.Length = 0 then rabit.Name else (rabit.Name + (printSlice finalSlice))
+                            if partId.Modifiers.Length = 0 then rabit.Name else (rabit.Name + (printSlice finalSlice))
 
-                        let name2 = if ppp.fwd then name1 else "!" + name1
+                        let name2 = if ppp.IsForward then name1 else "!" + name1
 
                         { Id = None
                           ExternalId = None
@@ -147,10 +147,10 @@ module ResolveExtPart =
                           Template = Some finalDNA
                           SourceChromosome = "library"
                           SourceFrom =
-                              (finalSlice.left.Position / (1<OneOffset>) - 1)
+                              (finalSlice.Left.Position / (1<OneOffset>) - 1)
                               * 1<ZeroOffset>
                           SourceTo =
-                              (finalSlice.right.Position / (1<OneOffset>) - 1)
+                              (finalSlice.Right.Position / (1<OneOffset>) - 1)
                               * 1<ZeroOffset>
                           SourceForward = true
                           SourceFromApprox = false
@@ -158,15 +158,15 @@ module ResolveExtPart =
                           // Don't assign coordinates to pieces until later when we decide how they are getting joined up
                           DestinationFrom = 0<ZeroOffset>
                           DestinationTo = 0<ZeroOffset>
-                          DestinationForward = ppp.fwd
+                          DestinationForward = ppp.IsForward
                           Description = name2
                           Type = SliceType.Regular
                           DnaSource =
-                              match ppp.pr
+                              match ppp.Pragma
                                     |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                               | Some (d) -> d
                               | None -> pid
-                          Pragmas = ppp.pr
+                          Pragmas = ppp.Pragma
                           Breed = Breed.X // they are hacking rabit, all bets are off
                           MaterializedFrom = Some(ppp)
                           Annotations = [] }
@@ -191,11 +191,11 @@ module ResolveExtPart =
                       // how they are getting joined up
                       DestinationFrom = 0<ZeroOffset>
                       DestinationTo = 0<ZeroOffset>
-                      DestinationForward = ppp.fwd
+                      DestinationForward = ppp.IsForward
                       Description = libName
                       Type = SliceType.Regular
                       DnaSource = "library"
-                      Pragmas = ppp.pr
+                      Pragmas = ppp.Pragma
                       Breed = Breed.X
                       MaterializedFrom = Some(ppp)
                       Annotations = [] }
@@ -204,9 +204,9 @@ module ResolveExtPart =
 
 
     /// Get the full part sequence for this external reference, don't apply any slice mods to it
-    let fetchFullPartSequence (_ (* verbose*) : bool) (library: SequenceLibrary) (partId: PartIdLegacy) =
+    let fetchFullPartSequence (_ (* verbose*) : bool) (library: SequenceLibrary) (partId: LegacyPartId) =
         // Sequence can come either from the libary or preferably from the hutch directly
-        let pid = partId.id
+        let pid = partId.Id
 
         match legalPartPrefix pid with
         | None ->
@@ -241,21 +241,21 @@ module ResolveExtPart =
                           Name = libName }
             | x -> failwithf "ERROR: unimplemented external partSpace %s\n" x
 
-    let getExtPartSlice (verbose: bool) (partId: PartIdLegacy) =
+    let getExtPartSlice (verbose: bool) (partId: LegacyPartId) =
         // Start off assuming it's the full DNA slice
         let startSlice =
-            { left =
+            { Left =
                   { Position = 1<OneOffset>
                     RelativeTo = FivePrime }
-              lApprox = false
-              rApprox = false
-              right =
+              LeftApprox = false
+              RightApprox = false
+              Right =
                   { Position = -1<OneOffset>
                     RelativeTo = ThreePrime } }
 
         // Apply the slice(s) to get a final coordinate range
         let finalSlice =
-            ApplySlices.applySlices verbose partId.mods startSlice
+            ApplySlices.applySlices verbose partId.Modifiers startSlice
 
         finalSlice
 
@@ -263,7 +263,7 @@ module ResolveExtPart =
                                 (extPart: ExtFetchSeq)
                                 (pr: PragmaCollection)
                                 (fwd: bool)
-                                (partId: PartIdLegacy)
+                                (partId: LegacyPartId)
                                 (finalSlice: Slice)
                                 =
         let sliceName =
@@ -276,7 +276,7 @@ module ResolveExtPart =
             pr
             |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
-        if partId.mods.Length = 0 then
+        if partId.Modifiers.Length = 0 then
             let dna =
                 extPart.Dna |> DnaOps.revCompIf (not fwd)
 
@@ -321,7 +321,7 @@ module ResolveExtPart =
                 |> DnaOps.revCompIf (not fwd)
 
             let name1 =
-                if partId.mods.Length = 0 then extPart.Name else (extPart.Name + (printSlice finalSlice))
+                if partId.Modifiers.Length = 0 then extPart.Name else (extPart.Name + (printSlice finalSlice))
 
             let name2 = if fwd then name1 else "!" + name1
 
@@ -334,10 +334,10 @@ module ResolveExtPart =
               IsAmplified = true
               SourceChromosome = extPart.Source
               SourceFrom =
-                  (finalSlice.left.Position / (1<OneOffset>) - 1)
+                  (finalSlice.Left.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
               SourceTo =
-                  (finalSlice.right.Position / (1<OneOffset>) - 1)
+                  (finalSlice.Right.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
               SourceForward = true
               SourceFromApprox = false

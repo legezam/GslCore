@@ -14,15 +14,15 @@ open GslCore.Constants
 
 module AssemblyTestBase =
     let emptyAssembly: Assembly =
-        { parts = []
-          name = None
-          uri = None
-          linkerHint = ""
-          pragmas = PragmaCollection.empty
-          designParams = DesignParams.identity
-          capabilities = Set.empty
-          docStrings = []
-          sourcePosition = [] }
+        { Parts = []
+          Name = None
+          Uri = None
+          LinkerHint = ""
+          Pragmas = PragmaCollection.empty
+          DesignParams = DesignParams.identity
+          Capabilities = Set.empty
+          DocStrings = []
+          SourcePosition = [] }
 
     let testSlice pragmas =
         { Id = None

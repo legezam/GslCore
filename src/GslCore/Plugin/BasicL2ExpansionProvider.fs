@@ -47,7 +47,7 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
 
     let out =
         seq {
-            let partsA, partsB = balance args.Line.parts
+            let partsA, partsB = balance args.Line.Parts
 
             // Emit replacement DNA name for knockout
             let replacementName =
@@ -68,13 +68,13 @@ let generateOutputsExplicitLocus (locus: L2Id) (args: L2DesignParams) =
             yield sprintf "u%s" locusWithoutPrefix
             // First half of the parts before the marker
             for expItem in partsA do
-                yield AstNode.decompile expItem.promoter
-                yield sprintf "%s" (expItem.target.String)
+                yield AstNode.decompile expItem.Promoter
+                yield sprintf "%s" (expItem.Target.String)
 
             if args.IsMegastitch then yield "###" // Marker
             // Second half of the parts after the marker
             for expItem in partsB do
-                yield (sprintf "!%s;!(%s)" expItem.target.String (AstNode.decompile expItem.promoter))
+                yield (sprintf "!%s;!(%s)" expItem.Target.String (AstNode.decompile expItem.Promoter))
             // Emit downstream flanking region
             yield sprintf "d%s" locusWithoutPrefix
         }
@@ -98,16 +98,16 @@ let generateOutputsTitrations (args: L2DesignParams) =
 
     // separates the expression pGene>gGene from the rest of the line
     let locusExp, otherExp =
-        match args.Line.parts with
+        match args.Line.Parts with
         | [] -> failwithf "ERROR: unexpected empty L2 expression construct with no locus or parts\n"
         | hd :: tl -> hd, tl
     /// the titrated gene
-    let locusGene = locusExp.target.Id.Value.Substring(1)
+    let locusGene = locusExp.Target.Id.Value.Substring(1)
 
-    if not (locusExp.target.Id.Value.ToUpper().StartsWith("G")) then
+    if not (locusExp.Target.Id.Value.ToUpper().StartsWith("G")) then
         failwithf
             "ERROR: titrating expression target %s must start with g tag (e.g. gADH1). Variables not supported for titrations."
-            locusExp.target.String
+            locusExp.Target.String
 
     let partsA, partsB = balance otherExp
     /// the flank length
@@ -128,7 +128,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
                     sprintf "#name %s" providedName
 
                 // if no name is provided, use this as the default donor name
-                | None -> sprintf "#name u%s_%s_d%s" locusGene (AstNode.decompile locusExp.promoter |> Naming.cleanHashName) locusGene
+                | None -> sprintf "#name u%s_%s_d%s" locusGene (AstNode.decompile locusExp.Promoter |> Naming.cleanHashName) locusGene
 
             // yield a new linker line because the default pattern will cause an A linker
             // to land on a marker (error: no A-9 markers)
@@ -141,17 +141,17 @@ let generateOutputsTitrations (args: L2DesignParams) =
             yield (sprintf "u%s" locusGene) // regular locus flanking seq
             // First half of the parts before the marker
             for expItem in partsA do
-                yield AstNode.decompile expItem.promoter
-                yield expItem.target.String
+                yield AstNode.decompile expItem.Promoter
+                yield expItem.Target.String
 
             if args.IsMegastitch then yield "###"
             // Second half of the parts after the marker
             for expItem in partsB do
-                yield (sprintf "!%s;!(%s)" expItem.target.String (AstNode.decompile expItem.promoter))
+                yield (sprintf "!%s;!(%s)" expItem.Target.String (AstNode.decompile expItem.Promoter))
             // Finally the titrating promoter
-            yield AstNode.decompile locusExp.promoter
+            yield AstNode.decompile locusExp.Promoter
             // Emit downstream flanking region
-            yield sprintf "%s[1:~%A] {#breed DS_CDS}" locusExp.target.String flank
+            yield sprintf "%s[1:~%A] {#breed DS_CDS}" locusExp.Target.String flank
         }
         |> List.ofSeq
 

@@ -12,7 +12,7 @@ let jobScorerBasicMarkerProvider _ = Some 0.0<PluginScore>
 
 /// Expand a marker part into DNA pieces.
 /// Exception on failure.
-let expandMarkerPartIntoURA3 dnaSource (dna: Dna) (ppp: PPP) =
+let expandMarkerPartIntoURA3 dnaSource (dna: Dna) (ppp: PartPlusPragma) =
 
     { Id = None
       ExternalId = None
@@ -31,11 +31,11 @@ let expandMarkerPartIntoURA3 dnaSource (dna: Dna) (ppp: PPP) =
       IsAmplified = false
       DestinationFrom = 0<ZeroOffset>
       DestinationTo = 0<ZeroOffset>
-      DestinationForward = ppp.fwd
+      DestinationForward = ppp.IsForward
       Description = "URA3 marker"
       Type = SliceType.Marker
       DnaSource = dnaSource
-      Pragmas = ppp.pr
+      Pragmas = ppp.Pragma
       Breed = Breed.Marker
       MaterializedFrom = Some(ppp)
       Annotations = [] }

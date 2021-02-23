@@ -12,10 +12,10 @@ open GslCore.Ast.ErrorHandling
 open GslCore.DesignParams
 
 type Slice =
-    { left: RelativePosition
-      lApprox: bool
-      right: RelativePosition
-      rApprox: bool }
+    { Left: RelativePosition
+      LeftApprox: bool
+      Right: RelativePosition
+      RightApprox: bool }
 
 type SliceContext =
     | Genomic
@@ -24,20 +24,20 @@ type SliceContext =
 /// Return a tuple of OneOffset left/right slice bounds from a slice record.
 /// These bounds are both relative to the FivePrime end.
 /// Requires the length of the feature being sliced to be interpreted correctly.
-let getBoundsFromSlice (slice: Slice) featureLength context =
+let getBoundsFromSlice (slice: Slice) (featureLength: int) (context: SliceContext) =
     let left =
-        match slice.left.RelativeTo with
-        | FivePrime -> slice.left.Position
+        match slice.Left.RelativeTo with
+        | FivePrime -> slice.Left.Position
         | ThreePrime ->
             (featureLength + 1) * 1<OneOffset>
-            + slice.left.Position
+            + slice.Left.Position
 
     let right =
-        match slice.right.RelativeTo with
-        | FivePrime -> slice.right.Position
+        match slice.Right.RelativeTo with
+        | FivePrime -> slice.Right.Position
         | ThreePrime ->
             (featureLength + 1) * 1<OneOffset>
-            + slice.right.Position
+            + slice.Right.Position
 
     match context with
     | Genomic ->
@@ -53,52 +53,54 @@ let getBoundsFromSlice (slice: Slice) featureLength context =
         else
             Ok(left, right)
 
-type Mod =
-    | MUTATION of Mutation
-    | SLICE of Slice
-    | DOTMOD of string
+[<RequireQualifiedAccess>]
+type Modifier =
+    | Mutation of Mutation
+    | Slice of Slice
+    | Dot of string
 
-type PartIdLegacy = { id: string; mods: Mod list }
+type LegacyPartId = { Id: string; Modifiers: Modifier list }
 
 type GenePart =
-    { gene: string
-      mods: Mod list
-      where: SourcePosition list }
+    { Gene: string
+      Modifiers: Modifier list
+      Where: SourcePosition list }
 
 type GenePartWithLinker =
-    { part: GenePart
-      linker: Linker option }
+    { Part: GenePart
+      Linker: Linker option }
 
+[<RequireQualifiedAccess>]
 type Part =
-    | GENEPART of GenePartWithLinker
-    | MARKERPART
-    | INLINEDNA of Dna
-    | INLINEPROT of string
-    | HETBLOCK
-    | SOURCE_CODE of GslSourceCode
-    | PARTID of PartIdLegacy
+    | GenePart of GenePartWithLinker
+    | MarkerPart
+    | InlineDna of Dna
+    | InlineProtein of string
+    | HeterologyBlock
+    | SourceCode of GslSourceCode
+    | PartId of LegacyPartId
 
 /// Part plus a Pragma
-and PPP =
-    { part: Part
-      pr: PragmaCollection
-      fwd: bool }
+and PartPlusPragma =
+    { Part: Part
+      Pragma: PragmaCollection
+      IsForward: bool }
 
 /// Namespace bounded tag for an assembly (Used in Assembly)
-type AssemblyTag = { nameSpace: string; tag: string }
+type AssemblyTag = { Namespace: string; Tag: string }
 
 type Assembly =
-    { parts: PPP list
-      name: string option
-      uri: Uri option
-      linkerHint: string
-      pragmas: PragmaCollection
-      designParams: DesignParams
-      capabilities: Capabilities
-      docStrings: string list
-      sourcePosition: SourcePosition list }
+    { Parts: PartPlusPragma list
+      Name: string option
+      Uri: Uri option
+      LinkerHint: string
+      Pragmas: PragmaCollection
+      DesignParams: DesignParams
+      Capabilities: Capabilities
+      DocStrings: string list
+      SourcePosition: SourcePosition list }
     interface ISourcePosition with
-        member x.OptionalSourcePosition = x.sourcePosition
+        member x.OptionalSourcePosition = x.SourcePosition
 
 
 // ================================================
@@ -106,53 +108,53 @@ type Assembly =
 // ================================================
 
 /// Element of a level 2 line  e.g.  pABC1>gDEF2
-type BuiltL2Element = { promoter: AstNode; target: L2Id }
+type BuiltL2Element = { Promoter: AstNode; Target: L2Id }
 
 /// L2 Top level container for the expression line  z^ ; a>b ; c > d etc
 type BuiltL2Expression =
-    { l2Locus: L2Id option
-      parts: BuiltL2Element List }
+    { L2Locus: L2Id option
+      Parts: BuiltL2Element List }
 
 /// L2 Top level container
 type L2Line =
-    { l2Design: BuiltL2Expression
-      name: string option
-      uri: Uri option
-      pragmas: PragmaCollection
-      capabilities: Capabilities }
+    { L2Design: BuiltL2Expression
+      Name: string option
+      Uri: Uri option
+      Pragmas: PragmaCollection
+      Capabilities: Capabilities }
 
 // ========================
 // pretty-printing legacy assemblies as GSL source code
 // ========================
 
 /// Pretty print a RelPos
-let printRP (l: RelativePosition) =
+let printRP (position: RelativePosition) =
     sprintf
         "%A/%s"
-        l.Position
-        (match l.RelativeTo with
+        position.Position
+        (match position.RelativeTo with
          | FivePrime -> "S"
          | ThreePrime -> "E")
 
 let printSlice (s: Slice) =
     sprintf
         "[%s%A%s:%s%A%s]"
-        (if s.lApprox then "~" else "")
-        s.left.Position
-        (match s.left.RelativeTo with
+        (if s.LeftApprox then "~" else "")
+        s.Left.Position
+        (match s.Left.RelativeTo with
          | FivePrime -> "S"
          | ThreePrime -> "E")
-        (if s.rApprox then "~" else "")
-        s.right.Position
-        (match s.right.RelativeTo with
+        (if s.RightApprox then "~" else "")
+        s.Right.Position
+        (match s.Right.RelativeTo with
          | FivePrime -> "S"
          | ThreePrime -> "E")
 
-let expandMods (ml: Mod list) =
+let expandMods (ml: Modifier list) =
     seq {
         for m in ml do
             match m with
-            | MUTATION (m) ->
+            | Modifier.Mutation (m) ->
                 yield
                     sprintf
                         "%c%c%d%c"
@@ -162,47 +164,47 @@ let expandMods (ml: Mod list) =
                         m.From
                         m.Location
                         m.To
-            | SLICE (s) -> yield printSlice s
-            | DOTMOD (d) -> yield sprintf ".%s" d
+            | Modifier.Slice (s) -> yield printSlice s
+            | Modifier.Dot (d) -> yield sprintf ".%s" d
     }
     |> fun x -> String.Join("", x)
 
 let rec printPPP ppp =
     let partOut =
-        match ppp.part with
-        | HETBLOCK -> "~ " // don't do anything at this level
-        | INLINEDNA (s) -> sprintf "/%O/ " s // inline DNA sequence
-        | INLINEPROT (s) -> sprintf "/$%s/ " s // inline protein sequence
-        | MARKERPART -> "### "
-        | PARTID (p) -> sprintf "@%s" p.id + (expandMods p.mods)
-        | SOURCE_CODE (s) -> s.String // Part that was already expanded into a string
-        | GENEPART (gp) ->
+        match ppp.Part with
+        | Part.HeterologyBlock -> "~ " // don't do anything at this level
+        | Part.InlineDna (s) -> sprintf "/%O/ " s // inline DNA sequence
+        | Part.InlineProtein (s) -> sprintf "/$%s/ " s // inline protein sequence
+        | Part.MarkerPart -> "### "
+        | Part.PartId (p) -> sprintf "@%s" p.Id + (expandMods p.Modifiers)
+        | Part.SourceCode (s) -> s.String // Part that was already expanded into a string
+        | Part.GenePart (gp) ->
             let lOut =
-                match gp.linker with
+                match gp.Linker with
                 | None -> ""
                 | Some (l) -> sprintf "%s-%s-%s-" l.Linker1 l.Linker2 l.Orient // Emit linker
 
-            let p = gp.part
+            let p = gp.Part
 
-            let gOut = p.gene
-            let modOut = expandMods p.mods
+            let gOut = p.Gene
+            let modOut = expandMods p.Modifiers
 
             lOut + gOut + modOut // String.Join("",Array.ofSeq modOut)
     // Now add in any inline pragma part with braces, ; separated etc
     let prOut =
-        if ppp.pr.Pragmas.Count = 0 then
+        if ppp.Pragma.Pragmas.Count = 0 then
             ""
         else
-            ppp.pr.Pragmas
+            ppp.Pragma.Pragmas
             |> Seq.map (fun pv -> sprintf "#%s %s" pv.Key (pv.Value.Arguments |> String.concat " "))
             |> fun ss -> String.Join(";", ss)
             |> sprintf "{%s}"
 
-    (if ppp.fwd then "" else "!") + partOut + prOut
+    (if ppp.IsForward then "" else "!") + partOut + prOut
 
 /// Pretty print a built GSL assembly
 let prettyPrintAssembly (assembly: Assembly) =
-    [ for ppp in assembly.parts -> printPPP ppp ]
+    [ for ppp in assembly.Parts -> printPPP ppp ]
     |> String.concat ";"
     |> GslSourceCode
 
@@ -210,15 +212,15 @@ let prettyPrintAssembly (assembly: Assembly) =
 // conversion from AST parts to legacy parts
 // =====================
 
-let private sliceFromAstSlice (s: ParseSlice) =
-    match s.Left, s.Right with
+let private sliceFromAstSlice (parseSlice: ParseSlice) =
+    match parseSlice.Left, parseSlice.Right with
     | RelPos (lw), RelPos (rw) ->
         GslResult.ok
-            (SLICE
-                ({ left = lw.Value
-                   lApprox = s.LeftApprox
-                   right = rw.Value
-                   rApprox = s.RightApprox }))
+            (Modifier.Slice
+                ({ Left = lw.Value
+                   LeftApprox = parseSlice.LeftApprox
+                   Right = rw.Value
+                   RightApprox = parseSlice.RightApprox }))
     | x, y ->
         let contextStr =
             sprintf "legacy slice construction; found [%s:%s]" x.TypeName y.TypeName
@@ -228,8 +230,8 @@ let private sliceFromAstSlice (s: ParseSlice) =
 let private astNodeToLegacyMod node =
     match node with
     | Slice (sw) -> sliceFromAstSlice sw.Value
-    | Mutation (mw) -> GslResult.ok (MUTATION(mw.Value))
-    | DotMod (dm) -> GslResult.ok (DOTMOD(dm.Value))
+    | Mutation (mw) -> GslResult.ok (Modifier.Mutation(mw.Value))
+    | DotMod (dm) -> GslResult.ok (Modifier.Dot(dm.Value))
     | _ -> AstResult.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
 
 let private convertMods mods =
@@ -244,20 +246,20 @@ let private createLegacyPart (part: Node<ParsePart>): AstResult<Part> =
         convertMods part.Value.Modifiers
         |> GslResult.map (fun mods ->
             let genePart =
-                { gene = geneWrapper.Value.Gene
-                  mods = mods
-                  where = geneWrapper.Positions }
+                { Gene = geneWrapper.Value.Gene
+                  Modifiers = mods
+                  Where = geneWrapper.Positions }
 
-            GENEPART
-                { part = genePart
-                  linker = geneWrapper.Value.Linker })
-    | Marker _ -> GslResult.ok MARKERPART
-    | InlineDna dnaSequence -> GslResult.ok (INLINEDNA(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
-    | InlineProtein proteinSequence -> GslResult.ok (INLINEPROT proteinSequence.Value)
-    | HetBlock _ -> GslResult.ok HETBLOCK
+            Part.GenePart
+                { Part = genePart
+                  Linker = geneWrapper.Value.Linker })
+    | Marker _ -> GslResult.ok Part.MarkerPart
+    | InlineDna dnaSequence -> GslResult.ok (Part.InlineDna(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
+    | InlineProtein proteinSequence -> GslResult.ok (Part.InlineProtein proteinSequence.Value)
+    | HetBlock _ -> GslResult.ok Part.HeterologyBlock
     | PartId partId ->
         convertMods part.Value.Modifiers
-        |> GslResult.map (fun mods -> PARTID { id = partId.Value; mods = mods })
+        |> GslResult.map (fun mods -> Part.PartId { Id = partId.Value; Modifiers = mods })
     | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
 let private createPPP part =
@@ -265,32 +267,32 @@ let private createPPP part =
     | Part p ->
         createLegacyPart p
         |> GslResult.map (fun legacyPart ->
-            { part = legacyPart
-              pr = ParsePart.getPragmas p
-              fwd = p.Value.IsForward })
+            { Part = legacyPart
+              Pragma = ParsePart.getPragmas p
+              IsForward = p.Value.IsForward })
     | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "Part" x
 
 /// For assembly conversion, we need to accumulate both a pragma environment and docstrings.
 /// Combine these two accumulation functions and state datastructures.
 type AssemblyConversionContext =
-    { pragmaEnv: PragmaEnvironment
-      docs: DocstringEnvironment }
+    { PragmaEnvironment: PragmaEnvironment
+      Docs: DocstringEnvironment }
 
 let emptyConversionContext =
-    { pragmaEnv = PragmaEnvironment.empty
-      docs = DocstringEnvironment.empty }
+    { PragmaEnvironment = PragmaEnvironment.empty
+      Docs = DocstringEnvironment.empty }
 
 /// Accumulate both pragma and docstring context.
 let updateConversionContext mode s node =
     let newPragmaEnv =
-        AssemblyStuffing.updatePragmaEnvironment mode s.pragmaEnv node
+        AssemblyStuffing.updatePragmaEnvironment mode s.PragmaEnvironment node
 
     let newDocsEnv =
-        Docstrings.updateDocstringEnvironment mode s.docs node
+        Docstrings.updateDocstringEnvironment mode s.Docs node
 
     { s with
-          pragmaEnv = newPragmaEnv
-          docs = newDocsEnv }
+          PragmaEnvironment = newPragmaEnv
+          Docs = newDocsEnv }
 
 /// Convert an AST assembly into a legacy assembly.
 let convertAssembly (context: AssemblyConversionContext)
@@ -325,15 +327,15 @@ let convertAssembly (context: AssemblyConversionContext)
 
     (parts, parameters)
     ||> GslResult.map2 (fun parts designParams ->
-            { Assembly.parts = parts
-              name = name
-              uri = uri
-              linkerHint = linkerHint
-              pragmas = assemblyPragmas
-              designParams = designParams
-              capabilities = context.pragmaEnv.Capabilities
-              docStrings = context.docs.Assigned
-              sourcePosition = partWrapper.Positions })
+            { Assembly.Parts = parts
+              Name = name
+              Uri = uri
+              LinkerHint = linkerHint
+              Pragmas = assemblyPragmas
+              DesignParams = designParams
+              Capabilities = context.PragmaEnvironment.Capabilities
+              DocStrings = context.Docs.Assigned
+              SourcePosition = partWrapper.Positions })
 
 // ======================
 // conversion from L2 AST node to legacy L2 line type
@@ -347,8 +349,8 @@ let private buildL2Element node =
         | L2Id _, L2Id (tw)
         | Part _, L2Id (tw) ->
             GslResult.ok
-                { promoter = nw.Value.Promoter
-                  target = tw.Value }
+                { Promoter = nw.Value.Promoter
+                  Target = tw.Value }
 
         | x, y ->
             let contextStr =
@@ -373,7 +375,7 @@ let private buildL2Expression (ew: Node<L2Expression>): AstResult<BuiltL2Express
     let locus = unpackLocus ew.Value.Locus
 
     (locus, parts)
-    ||> GslResult.map2 (fun locus parts -> { l2Locus = locus; parts = parts })
+    ||> GslResult.map2 (fun locus parts -> { L2Locus = locus; Parts = parts })
 
 /// Build a L2Line from an AST node and pragma environment.
 let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expression>): AstResult<L2Line> =
@@ -391,8 +393,8 @@ let convertL2Line (pragmaEnv: PragmaEnvironment) (l2Expression: Node<L2Expressio
 
     buildL2Expression l2Expression
     |> GslResult.map (fun l2Design ->
-        { L2Line.l2Design = l2Design
-          name = name
-          uri = uri
-          pragmas = pragmas
-          capabilities = pragmaEnv.Capabilities })
+        { L2Line.L2Design = l2Design
+          Name = name
+          Uri = uri
+          Pragmas = pragmas
+          Capabilities = pragmaEnv.Capabilities })

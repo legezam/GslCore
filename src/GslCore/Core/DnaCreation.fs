@@ -20,17 +20,17 @@ open GslCore.Core.PluginTypes
 // ================================================================================================
 // Slice manipulation routines for getting from gene notation down to specific genomics coordinates
 // ================================================================================================
-let validateMods (errorRef: string) (where: SourcePosition list) (modifiers: Mod list): unit =
+let validateMods (errorRef: string) (where: SourcePosition list) (modifiers: Modifier list): unit =
     for modifier in modifiers do
         match modifier with
-        | SLICE slice ->
-            if slice.left.RelativeTo = slice.right.RelativeTo
-               && slice.left.Position > slice.right.Position then
+        | Modifier.Slice slice ->
+            if slice.Left.RelativeTo = slice.Right.RelativeTo
+               && slice.Left.Position > slice.Right.Position then
                 // TODO: better to report coordinates of slice text rather than gene
                 failwithf
                     "slice left %A greater than right %A %O in %s"
-                    slice.left.Position
-                    slice.right.Position
+                    slice.Left.Position
+                    slice.Right.Position
                     (SourcePosition.formatSourcePositionList where)
                     errorRef
         | _ -> () // No checks for now TODO
@@ -79,26 +79,26 @@ let translateGenePrefix (pragmas: PragmaCollection) (genomeDefinition: GenomeDef
             { RelativePosition.Position = -1<OneOffset>
               RelativeTo = FivePrime }
 
-        { Slice.left = leftPosition
-          lApprox = true
-          rApprox = false
-          right = rightPosition }
+        { Slice.Left = leftPosition
+          LeftApprox = true
+          RightApprox = false
+          Right = rightPosition }
     | StandardSlice.Upstream ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = -(genomeDefinition |> GenomeDefinition.getFlank)
                 RelativeTo = FivePrime }
-          lApprox = true
-          rApprox = false
-          right =
+          LeftApprox = true
+          RightApprox = false
+          Right =
               { RelativePosition.Position = -1<OneOffset>
                 RelativeTo = FivePrime } }
     | StandardSlice.Terminator ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = 1<OneOffset>
                 RelativeTo = ThreePrime }
-          lApprox = false
-          rApprox = true
-          right =
+          LeftApprox = false
+          RightApprox = true
+          Right =
               { RelativePosition.Position =
                     match pragmas
                           |> PragmaCollection.tryFind BuiltIn.termLenPragmaDef with
@@ -106,48 +106,48 @@ let translateGenePrefix (pragmas: PragmaCollection) (genomeDefinition: GenomeDef
                     | Some p -> p.Arguments.[0] |> int |> (*) 1<OneOffset>
                 RelativeTo = ThreePrime } }
     | StandardSlice.Downstream ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = 1<OneOffset>
                 RelativeTo = ThreePrime }
-          lApprox = false
-          rApprox = true
-          right =
+          LeftApprox = false
+          RightApprox = true
+          Right =
               { RelativePosition.Position = genomeDefinition |> GenomeDefinition.getFlank
                 RelativeTo = ThreePrime } }
     | StandardSlice.FusableOrf ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = 1<OneOffset>
                 RelativeTo = FivePrime }
-          lApprox = false
-          rApprox = false
-          right =
+          LeftApprox = false
+          RightApprox = false
+          Right =
               { RelativePosition.Position = -4<OneOffset>
                 RelativeTo = ThreePrime } }
     | StandardSlice.Orf ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = 1<OneOffset>
                 RelativeTo = FivePrime }
-          lApprox = false
-          rApprox = false
-          right =
+          LeftApprox = false
+          RightApprox = false
+          Right =
               { RelativePosition.Position = -1<OneOffset>
                 RelativeTo = ThreePrime } }
     | StandardSlice.Gene ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = 1<OneOffset>
                 RelativeTo = FivePrime }
-          lApprox = false
-          rApprox = false
-          right =
+          LeftApprox = false
+          RightApprox = false
+          Right =
               { RelativePosition.Position = -1<OneOffset>
                 RelativeTo = ThreePrime } }
     | StandardSlice.MRNA ->
-        { Slice.left =
+        { Slice.Left =
               { RelativePosition.Position = 1<OneOffset>
                 RelativeTo = FivePrime }
-          lApprox = false
-          rApprox = true
-          right =
+          LeftApprox = false
+          RightApprox = true
+          Right =
               { RelativePosition.Position =
                     match pragmas
                           |> PragmaCollection.tryFind BuiltIn.termLenMrnaPragmaDef with
@@ -159,7 +159,7 @@ let translateGenePrefix (pragmas: PragmaCollection) (genomeDefinition: GenomeDef
 
 
 /// Translate gene part label.  Raises an exception for errors.
-let lookupGenePart (errorDescription: string) (prefix: char) (modifierList: Mod list): StandardSlice =
+let lookupGenePart (errorDescription: string) (prefix: char) (modifierList: Modifier list): StandardSlice =
     let sliceType =
         match StandardSlice.charToSliceType prefix with
         | Some slice -> slice
@@ -173,7 +173,7 @@ let lookupGenePart (errorDescription: string) (prefix: char) (modifierList: Mod 
     let dotModList =
         [ for modifier in modifierList do
             match modifier with
-            | DOTMOD dotMod -> yield dotMod
+            | Modifier.Dot dotMod -> yield dotMod
             | _ -> () ]
 
     match dotModList with
@@ -198,7 +198,7 @@ let getReferenceGenome (assembly: Assembly)
                        (pragmas: PragmaCollection)
                        : GenomeDefinition =
     // Prefer reference genome from passed-in pragmas over assembly.
-    let pragmas = [ pragmas; assembly.pragmas ]
+    let pragmas = [ pragmas; assembly.Pragmas ]
 
     GenomeDefinitions.getReferenceGenome referenceGenomes pragmas
     |> Result.valueOr failwith
@@ -212,30 +212,30 @@ let realizeSequence (verbose: bool)
                     : Dna =
 
     if verbose
-    then printf "realizeSequence:  fetch fwd=%s %s\n" (if isForward then "y" else "n") genePartWithLinker.part.gene
+    then printf "realizeSequence:  fetch fwd=%s %s\n" (if isForward then "y" else "n") genePartWithLinker.Part.Gene
 
     // Inspect prefix of gene e.g g,t,o,p and see what type of gene part we are starting with
     // Description of part to give in case of error
-    let errorDesc = genePartWithLinker.part.gene
+    let errorDesc = genePartWithLinker.Part.Gene
 
     let genePart =
-        lookupGenePart errorDesc (genePartWithLinker.part.gene.[0]) (genePartWithLinker.part.mods)
+        lookupGenePart errorDesc (genePartWithLinker.Part.Gene.[0]) (genePartWithLinker.Part.Modifiers)
 
     // Come up with an initial slice based on the gene prefix type
 
     let finalSlice =
         translateGenePrefix pragmas referenceGenome genePart
-        |> ApplySlices.applySlices verbose genePartWithLinker.part.mods
+        |> ApplySlices.applySlices verbose genePartWithLinker.Part.Modifiers
 
     // Lookup gene location
     let feature =
         referenceGenome
-        |> GenomeDefinition.getFeature genePartWithLinker.part.gene.[1..]
+        |> GenomeDefinition.getFeature genePartWithLinker.Part.Gene.[1..]
 
-    let left = adjustToPhysical feature finalSlice.left
+    let left = adjustToPhysical feature finalSlice.Left
 
     let right =
-        adjustToPhysical feature finalSlice.right
+        adjustToPhysical feature finalSlice.Right
 
     // One final adjustment needed.  We have defined left and right relative to
     // the gene, but if the gene is on the crick strand, we need to both flip
@@ -256,20 +256,20 @@ let realizeSequence (verbose: bool)
 
 
 /// Extract slice name from a PPP, if it has one.
-let getSliceName (ppp: PPP): string =
-    ppp.pr
+let getSliceName (ppp: PartPlusPragma): string =
+    ppp.Pragma
     |> PragmaCollection.tryGetValue BuiltIn.namePragmaDef
     |> Option.defaultValue ""
 
 
 /// Extract URI from a PPP, if it has one.
-let getUri (ppp: PPP): string option =
-    ppp.pr
+let getUri (ppp: PartPlusPragma): string option =
+    ppp.Pragma
     |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
-let expandInlineDna (dnaSource: string) (ppp: PPP) (dnaFwd: Dna): DNASlice =
+let expandInlineDna (dnaSource: string) (ppp: PartPlusPragma) (dnaFwd: Dna): DNASlice =
 
-    let dna = dnaFwd |> DnaOps.revCompIf (not ppp.fwd)
+    let dna = dnaFwd |> DnaOps.revCompIf (not ppp.IsForward)
 
     { DNASlice.Id = None
       ExternalId = None
@@ -288,11 +288,11 @@ let expandInlineDna (dnaSource: string) (ppp: PPP) (dnaFwd: Dna): DNASlice =
       // Don't assign coordinates to pieces until later when we decide how they are getting joined up
       DestinationFrom = 0<ZeroOffset>
       DestinationTo = 0<ZeroOffset>
-      DestinationForward = ppp.fwd
-      Description = (if ppp.fwd then dnaFwd.str else "!" + dnaFwd.str)
+      DestinationForward = ppp.IsForward
+      Description = (if ppp.IsForward then dnaFwd.str else "!" + dnaFwd.str)
       Type = SliceType.Inline
       DnaSource = dnaSource
-      Pragmas = ppp.pr
+      Pragmas = ppp.Pragma
       Breed = Breed.Inline
       MaterializedFrom = Some(ppp)
       Annotations = [] }
@@ -302,11 +302,11 @@ let expandGenePart (verbose: bool)
                    (sequenceLookup: SequenceLibrary)
                    (assembly: Assembly)
                    (specifiedDnaSource: string)
-                   (ppp: PPP)
+                   (ppp: PartPlusPragma)
                    (genePartWithLinker: GenePartWithLinker)
                    : DNASlice =
 
-    match genePartWithLinker.linker with
+    match genePartWithLinker.Linker with
     | None -> () // No linkers were present
     | Some linker -> Ryse.checkLinker linker // Test the linkers
 
@@ -320,10 +320,10 @@ let expandGenePart (verbose: bool)
     // Check the genes are legal
     //let prefix = gp.part.gene.[0]
     let gene =
-        genePartWithLinker.part.gene.[1..].ToUpper()
+        genePartWithLinker.Part.Gene.[1..].ToUpper()
 
     let referenceGenome =
-        getReferenceGenome assembly referenceGenomes ppp.pr
+        getReferenceGenome assembly referenceGenomes ppp.Pragma
 
     if not (referenceGenome |> GenomeDefinition.isValidFeature gene) then
         // Not a genomic reference but might still be in our library
@@ -334,26 +334,26 @@ let expandGenePart (verbose: bool)
             // Need to adjust for any slicing carefully since the DNA island is small
             // Validate mods to gene
             let errorRef =
-                match assembly.name with
+                match assembly.Name with
                 | None -> sprintf "%A" assembly
                 | Some (x) -> x
 
-            validateMods errorRef genePartWithLinker.part.where genePartWithLinker.part.mods
+            validateMods errorRef genePartWithLinker.Part.Where genePartWithLinker.Part.Modifiers
 
             // Come up with an initial slice based on the gene prefix type
 
             // Get standard slice range for a gene
 
             let finalSlice =
-                translateGenePrefix assembly.pragmas referenceGenome StandardSlice.Gene
-                |> ApplySlices.applySlices verbose genePartWithLinker.part.mods
+                translateGenePrefix assembly.Pragmas referenceGenome StandardSlice.Gene
+                |> ApplySlices.applySlices verbose genePartWithLinker.Part.Modifiers
 
             // Ban approx slices to stay sane for now
-            if finalSlice.lApprox || finalSlice.rApprox then
+            if finalSlice.LeftApprox || finalSlice.RightApprox then
                 failwithf "sorry, approximate slices of library genes not supported yet in %A\n"
                     (prettyPrintAssembly assembly)
 
-            let sliceContext = Library(genePartWithLinker.part.gene)
+            let sliceContext = Library(genePartWithLinker.Part.Gene)
 
             let x, y =
                 getBoundsFromSlice finalSlice dna.Length sliceContext
@@ -361,19 +361,19 @@ let expandGenePart (verbose: bool)
 
             let finalDNA =
                 dna.[(x / 1<OneOffset>) - 1..(y / 1<OneOffset>) - 1]
-                |> DnaOps.revCompIf (not ppp.fwd)
+                |> DnaOps.revCompIf (not ppp.IsForward)
 
             let orfAnnotation =
-                OrfAnnotation.orfAnnotationFromSlice finalSlice finalDNA.Length ppp.fwd sliceContext
+                OrfAnnotation.orfAnnotationFromSlice finalSlice finalDNA.Length ppp.IsForward sliceContext
 
             let name1 =
-                if genePartWithLinker.part.mods.Length = 0 then
-                    genePartWithLinker.part.gene
+                if genePartWithLinker.Part.Modifiers.Length = 0 then
+                    genePartWithLinker.Part.Gene
                 else
-                    (genePartWithLinker.part.gene
+                    (genePartWithLinker.Part.Gene
                      + (printSlice finalSlice))
 
-            let name2 = if ppp.fwd then name1 else "!" + name1
+            let name2 = if ppp.IsForward then name1 else "!" + name1
 
             { DNASlice.Id = None
               ExternalId = None
@@ -382,10 +382,10 @@ let expandGenePart (verbose: bool)
               Dna = finalDNA
               SourceChromosome = "library"
               SourceFrom =
-                  (finalSlice.left.Position / (1<OneOffset>) - 1)
+                  (finalSlice.Left.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
               SourceTo =
-                  (finalSlice.right.Position / (1<OneOffset>) - 1)
+                  (finalSlice.Right.Position / (1<OneOffset>) - 1)
                   * 1<ZeroOffset>
               SourceForward = true
               SourceFromApprox = false
@@ -396,22 +396,22 @@ let expandGenePart (verbose: bool)
               // Don't assign coordinates to pieces until later when we decide how they are getting joined up
               DestinationFrom = 0<ZeroOffset>
               DestinationTo = 0<ZeroOffset>
-              DestinationForward = ppp.fwd
+              DestinationForward = ppp.IsForward
               Description = name2
               Type = SliceType.Regular
               DnaSource = dnaSource
-              Pragmas = ppp.pr
+              Pragmas = ppp.Pragma
               Breed = Breed.X
               MaterializedFrom = Some(ppp)
               Annotations = [ Orf(orfAnnotation) ] }
         else
-            failwithf "undefined gene '%s' %O\n" gene genePartWithLinker.part.where
+            failwithf "undefined gene '%s' %O\n" gene genePartWithLinker.Part.Where
     else
         // Inspect prefix of gene e.g g,t,o,p and see what type of gene part we are starting with
-        let errorDesc = genePartWithLinker.part.gene
+        let errorDesc = genePartWithLinker.Part.Gene
 
         let genePart =
-            lookupGenePart errorDesc (genePartWithLinker.part.gene.[0]) (genePartWithLinker.part.mods)
+            lookupGenePart errorDesc (genePartWithLinker.Part.Gene.[0]) (genePartWithLinker.Part.Modifiers)
 
 
         let feature = referenceGenome |> GenomeDefinition.getFeature gene
@@ -434,55 +434,55 @@ let expandGenePart (verbose: bool)
 
         // Validate mods to gene
         let errorRef =
-            match assembly.name with
+            match assembly.Name with
             | None -> sprintf "%A" assembly
             | Some (x) -> x
 
-        validateMods errorRef genePartWithLinker.part.where genePartWithLinker.part.mods
+        validateMods errorRef genePartWithLinker.Part.Where genePartWithLinker.Part.Modifiers
         if verbose then printf "log: processing %A\n" assembly
 
         // finalSlice is the consolidated gene relative coordinate of desired piece
         let finalSlice =
-            translateGenePrefix assembly.pragmas referenceGenome genePart
-            |> ApplySlices.applySlices verbose genePartWithLinker.part.mods
+            translateGenePrefix assembly.Pragmas referenceGenome genePart
+            |> ApplySlices.applySlices verbose genePartWithLinker.Part.Modifiers
 
         // Gene relative coordinates for the gene slice we want
         let finalSliceWithApprox =
             // Calculate some adjusted boundaries in case the left/right edges are approximate
             let leftAdj =
-                { finalSlice.left with
+                { finalSlice.Left with
                       Position =
-                          finalSlice.left.Position
+                          finalSlice.Left.Position
                           - (Default.ApproxMargin * 1<OneOffset>) }
 
             let rightAdj =
-                { finalSlice.right with
+                { finalSlice.Right with
                       Position =
-                          finalSlice.right.Position
+                          finalSlice.Right.Position
                           + (Default.ApproxMargin * 1<OneOffset>) }
 
-            { Slice.lApprox = finalSlice.lApprox
-              left = (if finalSlice.lApprox then leftAdj else finalSlice.left)
-              rApprox = finalSlice.rApprox
-              right = if finalSlice.rApprox then rightAdj else finalSlice.right }
+            { Slice.LeftApprox = finalSlice.LeftApprox
+              Left = (if finalSlice.LeftApprox then leftAdj else finalSlice.Left)
+              RightApprox = finalSlice.RightApprox
+              Right = if finalSlice.RightApprox then rightAdj else finalSlice.Right }
 
         if verbose then
-            printf "log: finalSlice: %s%s %s%s\n" (if finalSlice.lApprox then "~" else "") (printRP finalSlice.left)
-                (if finalSlice.rApprox then "~" else "") (printRP finalSlice.right)
+            printf "log: finalSlice: %s%s %s%s\n" (if finalSlice.LeftApprox then "~" else "") (printRP finalSlice.Left)
+                (if finalSlice.RightApprox then "~" else "") (printRP finalSlice.Right)
 
-            printf "log: finalSliceWA: %s%s %s%s\n" (if finalSliceWithApprox.lApprox then "~" else "")
-                (printRP finalSliceWithApprox.left) (if finalSliceWithApprox.rApprox then "~" else "")
-                (printRP finalSliceWithApprox.right)
+            printf "log: finalSliceWA: %s%s %s%s\n" (if finalSliceWithApprox.LeftApprox then "~" else "")
+                (printRP finalSliceWithApprox.Left) (if finalSliceWithApprox.RightApprox then "~" else "")
+                (printRP finalSliceWithApprox.Right)
 
         // FinalSliceWithApprox is a gene relative coordinate system, but we
         // need genomic coordinates for the gene
 
         /// fivePrime is the genomic start of the element (can be > stop)
         let fivePrime =
-            adjustToPhysical feature finalSliceWithApprox.left
+            adjustToPhysical feature finalSliceWithApprox.Left
         /// threePrime is the genomic end of the element
         let threePrime =
-            adjustToPhysical feature finalSliceWithApprox.right
+            adjustToPhysical feature finalSliceWithApprox.Right
 
         assert ((feature.fwd && fivePrime <= threePrime)
                 || (not feature.fwd && fivePrime >= threePrime))
@@ -499,7 +499,7 @@ let expandGenePart (verbose: bool)
         if (fivePrime > threePrime && feature.fwd)
            || (threePrime > fivePrime && (not feature.fwd)) then
             failwithf "slice results in negatively lengthed DNA piece for %s\n"
-                (genePartWithLinker.part.gene
+                (genePartWithLinker.Part.Gene
                  + (printSlice finalSlice))
 
         /// left' is the genomic coordinate of the genomic left
@@ -516,31 +516,31 @@ let expandGenePart (verbose: bool)
         let isMarker = false
 
         if verbose
-        then printf "gettingdna for %s fwd=%s\n" feature.gene (if ppp.fwd then "y" else "n")
+        then printf "gettingdna for %s fwd=%s\n" feature.gene (if ppp.IsForward then "y" else "n")
 
         let dna =
             referenceGenome
             |> GenomeDefinition.getDna (errorDesc, sprintf "%d" feature.chr, left', right')
             |> DnaOps.revCompIf (not feature.fwd)
             // One potential final flip if user wants DNA backwards
-            |> DnaOps.revCompIf (not ppp.fwd)
+            |> DnaOps.revCompIf (not ppp.IsForward)
 
         let description1 =
-            match genePartWithLinker.part.mods with
-            | [] -> genePartWithLinker.part.gene
-            | [ DOTMOD (d) ] ->
+            match genePartWithLinker.Part.Modifiers with
+            | [] -> genePartWithLinker.Part.Gene
+            | [ Modifier.Dot (d) ] ->
                 match d with
-                | "up" -> "u" + genePartWithLinker.part.gene.[1..]
-                | "down" -> "d" + genePartWithLinker.part.gene.[1..]
-                | "mrna" -> "m" + genePartWithLinker.part.gene.[1..]
+                | "up" -> "u" + genePartWithLinker.Part.Gene.[1..]
+                | "down" -> "d" + genePartWithLinker.Part.Gene.[1..]
+                | "mrna" -> "m" + genePartWithLinker.Part.Gene.[1..]
                 | x -> failwithf "unimplemented DOTMOD %s" x
             | _ ->
                 "g"
-                + genePartWithLinker.part.gene.[1..]
+                + genePartWithLinker.Part.Gene.[1..]
                 + (printSlice finalSlice)
 
         let description2 =
-            if ppp.fwd then description1 else "!" + description1
+            if ppp.IsForward then description1 else "!" + description1
 
         let promStart =
             { Position = -300<OneOffset>
@@ -567,22 +567,22 @@ let expandGenePart (verbose: bool)
             | Breed.X ->
                 let z = finalSliceWithApprox
 
-                if near z.left termStart 1
-                   && near z.right termEnd 100 then
+                if near z.Left termStart 1
+                   && near z.Right termEnd 100 then
                     Breed.Terminator
-                elif near z.left promStart 400
-                     && near z.right promEnd 40 then
+                elif near z.Left promStart 400
+                     && near z.Right promEnd 40 then
                     Breed.Promoter
-                elif z.left.Position = 1<OneOffset>
-                     && z.left.RelativeTo = FivePrime
-                     && near z.right termEnd 100 then
+                elif z.Left.Position = 1<OneOffset>
+                     && z.Left.RelativeTo = FivePrime
+                     && near z.Right termEnd 100 then
                     Breed.GST
                 else
                     Breed.X
             | x -> x
 
         let orfAnnotation =
-            OrfAnnotation.orfAnnotationFromSlice finalSlice feature.Length ppp.fwd Genomic
+            OrfAnnotation.orfAnnotationFromSlice finalSlice feature.Length ppp.IsForward Genomic
 
         // Note regarding orientation: We are currently building a single piece
         // of final DNA left to right. There is no consideration for stitch
@@ -612,15 +612,15 @@ let expandGenePart (verbose: bool)
           // occurs before the orientation of the rabit is applied, so
           // !gABC1[100:~200E] has a sourceFrApprox = false initially.  We flipped
           // the actual piece of DNA so the l and r approx need to move with the DNA
-          SourceFromApprox = (if ppp.fwd then finalSlice.lApprox else finalSlice.rApprox)
-          SourceToApprox = (if ppp.fwd then finalSlice.rApprox else finalSlice.lApprox)
+          SourceFromApprox = (if ppp.IsForward then finalSlice.LeftApprox else finalSlice.RightApprox)
+          SourceToApprox = (if ppp.IsForward then finalSlice.RightApprox else finalSlice.LeftApprox)
           DestinationFrom = 0<ZeroOffset>
           DestinationTo = 0<ZeroOffset>
-          DestinationForward = ppp.fwd
+          DestinationForward = ppp.IsForward
           Description = description2
           DnaSource = dnaSource
           Type = (if isMarker then SliceType.Marker else SliceType.Regular)
-          Pragmas = ppp.pr
+          Pragmas = ppp.Pragma
           Breed = breed
           MaterializedFrom = Some(ppp)
           Annotations = [ Orf(orfAnnotation) ] }
@@ -645,33 +645,33 @@ let expandAssembly (verbose: bool)
                    (assembly: Assembly)
                    : DnaAssembly =
 
-    let rec expandPPPList (pppList: PPP seq): DNASlice list =
+    let rec expandPPPList (pppList: PartPlusPragma seq): DNASlice list =
         seq {
             // NOTE: have access to part.pragmas to the extent they influence generation
             for ppp in pppList do
                 let dnaSource =
-                    match ppp.pr
+                    match ppp.Pragma
                           |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                     | Some (d) -> d
                     | None ->
                         // specifying a different reference genome implies a non standard
                         // DNA source, so we can use that too (they can override with dnasrc)
-                        match ppp.pr
+                        match ppp.Pragma
                               |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                         | Some (rg) -> rg
                         | None ->
-                            match assembly.pragmas
+                            match assembly.Pragmas
                                   |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                             | Some (rg) -> rg
                             | None -> "" // Revert to the current default part origin
 
-                match ppp.part with
-                | MARKERPART ->
+                match ppp.Part with
+                | Part.MarkerPart ->
                     // Choose provider
                     let providers =
                         markerProviders
                         |> List.choose (fun provider ->
-                            match provider.ScoreJob assembly.capabilities with
+                            match provider.ScoreJob assembly.Capabilities with
                             | None -> None
                             | Some (score) -> Some(score, provider))
 
@@ -681,7 +681,7 @@ let expandAssembly (verbose: bool)
                     let _, markerProvider = providers |> List.maxBy (fst)
 
                     let markerSet =
-                        match assembly.pragmas
+                        match assembly.Pragmas
                               |> PragmaCollection.tryGetValue BuiltIn.markersetPragmaDef with
                         | Some (x) ->
                             let x' = x.ToLower()
@@ -699,39 +699,39 @@ let expandAssembly (verbose: bool)
                           MarkerSet = markerSet }
 
                     yield markerProvider.CreateDna(task) // expandMarkerPart library dnaSource ppp
-                | PARTID partId -> yield ResolveExtPart.fetchSequence verbose library ppp partId
-                | INLINEDNA dna -> yield expandInlineDna dnaSource ppp dna
-                | INLINEPROT _ -> failwith "unexpanded protein inline encountered during DNA generation"
-                | HETBLOCK -> failwith "unexpanded heterology block encountered during DNA generation"
-                | SOURCE_CODE _ -> ()
-                | GENEPART gp -> yield expandGenePart verbose referenceGenomes library assembly dnaSource ppp gp
+                | Part.PartId partId -> yield ResolveExtPart.fetchSequence verbose library ppp partId
+                | Part.InlineDna dna -> yield expandInlineDna dnaSource ppp dna
+                | Part.InlineProtein _ -> failwith "unexpanded protein inline encountered during DNA generation"
+                | Part.HeterologyBlock -> failwith "unexpanded heterology block encountered during DNA generation"
+                | Part.SourceCode _ -> ()
+                | Part.GenePart gp -> yield expandGenePart verbose referenceGenomes library assembly dnaSource ppp gp
                 //
                 // Might also want to yield a fusion slice
                 //
-                if ppp.pr
+                if ppp.Pragma
                    |> PragmaCollection.contains BuiltIn.fusePragmaDef then
                     yield DnaAssembly.fusionSliceConstant
         }
         |> List.ofSeq
         |> DNASlice.recalculatOffset
 
-    let materializedParts = expandPPPList assembly.parts
+    let materializedParts = expandPPPList assembly.Parts
 
     let assemblyName =
-        match assembly.name with
+        match assembly.Name with
         | None -> sprintf "A%d" index
         | Some (s) -> s
 
-    let topology = assembly.pragmas |> determineTopology
+    let topology = assembly.Pragmas |> determineTopology
 
     { DnaAssembly.Id = Some index
       DnaParts = materializedParts
       Name = assemblyName
-      Uri = assembly.uri
-      LinkerHint = assembly.linkerHint
-      Pragmas = assembly.pragmas
-      DesignParams = assembly.designParams
-      DocStrings = assembly.docStrings
+      Uri = assembly.Uri
+      LinkerHint = assembly.LinkerHint
+      Pragmas = assembly.Pragmas
+      DesignParams = assembly.DesignParams
+      DocStrings = assembly.DocStrings
       MaterializedFrom = assembly
       Tags = Set.empty
       Topology = topology }

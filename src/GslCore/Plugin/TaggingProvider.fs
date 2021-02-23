@@ -21,8 +21,8 @@ let parseTag (single: string): GslResult<AssemblyTag, string> =
     | -1 -> GslResult.err (sprintf "--tag value %s missing expected colon" single)
     | colonPosition ->
         GslResult.ok
-            { AssemblyTag.nameSpace = single.[..colonPosition - 1].Trim()
-              tag = single.[colonPosition + 1..].Trim() }
+            { AssemblyTag.Namespace = single.[..colonPosition - 1].Trim()
+              Tag = single.[colonPosition + 1..].Trim() }
 
 let parseTags (args: string list) =
     args |> List.map parseTag |> GslResult.collectA

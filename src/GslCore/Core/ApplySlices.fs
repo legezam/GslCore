@@ -10,31 +10,31 @@ let addOneOffset (ge: GeneEnd) (a: int<OneOffset>) (b: int<OneOffset>) =
     | ThreePrime -> if b < 0<OneOffset> then a + b + 1<OneOffset> else a + b
 
 /// What does it mean to apply further slice notations to an existing piece?
-let rec applySlices verbose (modifiers: Mod list) (slice: Slice): Slice =
+let rec applySlices verbose (modifiers: Modifier list) (slice: Slice): Slice =
     match modifiers with
     | [] -> slice
-    | SLICE headSlice :: tl ->
+    | Modifier.Slice headSlice :: tl ->
         // Concatenate slices
         let s' =
             { // subsequent slices could be relative to either end of the existing slice
-              Slice.lApprox = (if headSlice.lApprox then true else slice.lApprox)
-              rApprox = (if headSlice.rApprox then true else slice.rApprox)
-              left =
-                  match headSlice.left.RelativeTo with
+              Slice.LeftApprox = (if headSlice.LeftApprox then true else slice.LeftApprox)
+              RightApprox = (if headSlice.RightApprox then true else slice.RightApprox)
+              Left =
+                  match headSlice.Left.RelativeTo with
                   | FivePrime ->
-                      { Position = addOneOffset FivePrime headSlice.left.Position slice.left.Position
-                        RelativeTo = slice.left.RelativeTo }
+                      { Position = addOneOffset FivePrime headSlice.Left.Position slice.Left.Position
+                        RelativeTo = slice.Left.RelativeTo }
                   | ThreePrime ->
-                      { Position = addOneOffset ThreePrime headSlice.left.Position slice.right.Position
-                        RelativeTo = slice.right.RelativeTo }
-              right =
-                  match headSlice.right.RelativeTo with
+                      { Position = addOneOffset ThreePrime headSlice.Left.Position slice.Right.Position
+                        RelativeTo = slice.Right.RelativeTo }
+              Right =
+                  match headSlice.Right.RelativeTo with
                   | FivePrime ->
-                      { Position = addOneOffset FivePrime headSlice.right.Position slice.left.Position
-                        RelativeTo = slice.left.RelativeTo }
+                      { Position = addOneOffset FivePrime headSlice.Right.Position slice.Left.Position
+                        RelativeTo = slice.Left.RelativeTo }
                   | ThreePrime ->
-                      { Position = addOneOffset ThreePrime headSlice.right.Position slice.right.Position
-                        RelativeTo = slice.right.RelativeTo } }
+                      { Position = addOneOffset ThreePrime headSlice.Right.Position slice.Right.Position
+                        RelativeTo = slice.Right.RelativeTo } }
 
         applySlices verbose tl s'
     | x :: tl ->

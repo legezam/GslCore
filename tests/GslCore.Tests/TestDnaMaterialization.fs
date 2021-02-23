@@ -17,7 +17,7 @@ open GslCore.AssemblyTestSupport
 
 /// One part design request and test expectation w.r.t reference
 type private PartTest =
-    { ppp: PPP
+    { ppp: PartPlusPragma
       gp: GenePartWithLinker
       revPart: bool
       revReference: bool }
@@ -43,26 +43,26 @@ type DnaMaterialization() =
 
     /// We don't need much from an assembly so ok to leave it mostly empty
     let emptyAssembly =
-        { parts = []
-          name = None
-          uri = None
-          linkerHint = ""
-          pragmas = pc
-          designParams = DesignParams.identity
-          capabilities = Set.empty
-          docStrings = []
-          sourcePosition = [] }
+        { Parts = []
+          Name = None
+          Uri = None
+          LinkerHint = ""
+          Pragmas = pc
+          DesignParams = DesignParams.identity
+          Capabilities = Set.empty
+          DocStrings = []
+          SourcePosition = [] }
 
     /// this test gene is on the fwd / W strand
     let tADH1 =
-        { gene = "tADH1"
-          mods = []
-          where = [] }
+        { Gene = "tADH1"
+          Modifiers = []
+          Where = [] }
     /// this test gene is on the rev / C strand
     let tABC1 =
-        { gene = "tABC1"
-          mods = []
-          where = [] }
+        { Gene = "tABC1"
+          Modifiers = []
+          Where = [] }
 
     // general retrieval parameters that are gene agnostic
     let gd =
@@ -133,13 +133,13 @@ type DnaMaterialization() =
                  .str)
 
     let makeTest gp revPart revReference =
-        let gpWithLinker = { part = gp; linker = None }
+        let gpWithLinker = { Part = gp; Linker = None }
 
         { gp = gpWithLinker
           ppp =
-              { part = GENEPART gpWithLinker
-                pr = PragmaCollection.empty
-                fwd = not revPart }
+              { Part = Part.GenePart gpWithLinker
+                Pragma = PragmaCollection.empty
+                IsForward = not revPart }
           revPart = revPart
           revReference = revReference }
 

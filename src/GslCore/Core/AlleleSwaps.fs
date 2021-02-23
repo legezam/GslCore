@@ -115,13 +115,13 @@ let selectMutCodonLeft = selectMutCodonBase diffLeft
 let selectMutCodonRight = selectMutCodonBase diffRight
 
 /// expand a simple mutation inline with a part
-let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m: Mutation): GslSourceCode =
+let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: LegacyPartId) (m: Mutation): GslSourceCode =
 
     // Get part sequence
-    if not (g.id.StartsWith("R"))
-    then failwithf "ERROR: part %s should start with 'R'.  Non rabit part mutation not supported." g.id
+    if not (g.Id.StartsWith("R"))
+    then failwithf "ERROR: part %s should start with 'R'.  Non rabit part mutation not supported." g.Id
 
-    let hr = Ryse.getRabit (int (g.id.[1..]))
+    let hr = Ryse.getRabit (int (g.Id.[1..]))
 
     let rabit = hr.RabitSpecs.[0]
 
@@ -131,13 +131,13 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m
     match m.Type with
     | NT ->
         if m.Location <= 0 || m.Location > dna.Length
-        then failwithf "ERROR: mutation position %d is outside range of rabit %s" m.Location g.id
+        then failwithf "ERROR: mutation position %d is outside range of rabit %s" m.Location g.Id
 
         if dna.[m.Location - 1] <> m.From then
             failwithf
                 "ERROR: existing base at position %d in rabit %s is %c not %c"
                 m.Location
-                g.id
+                g.Id
                 (dna.[m.Location - 1])
                 m.From
 
@@ -145,13 +145,13 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m
 
         let lhs = m.Location - 1 // before the mutated base
         let rhs = m.Location + 1 // after the mutated base
-        let id = g.id
+        let id = g.Id
 
         sprintf "@%s[1:%d] {#dnasrc %s}; /%c/ {#inline }; @%s[%d:-1E] {#dnasrc %s} " id lhs id m.To id rhs id
         |> GslSourceCode
     | AA ->
         if m.Location <= 0 || m.Location > dna.Length / 3
-        then failwithf "ERROR: mutation position %d outside range of rabit %s amino acids" m.Location g.id
+        then failwithf "ERROR: mutation position %d outside range of rabit %s amino acids" m.Location g.Id
 
         let currentCodon =
             (dna.[(m.Location - 1) * 3..(m.Location - 1) * 3 + 2])
@@ -164,12 +164,12 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: PartIdLegacy) (m
                 m.From
                 m.Location
                 m.To
-                g.id
+                g.Id
                 (codon2aa currentCodon)
                 (utils.arr2seq currentCodon)
                 m.From
         else
-            let id = g.id
+            let id = g.Id
             let lhs = m.Location - 1
             let rhs = m.Location + 1
 

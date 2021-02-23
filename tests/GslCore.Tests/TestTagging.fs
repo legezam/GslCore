@@ -331,8 +331,8 @@ uADH2; dADH2
     static member FoldTestCases: IEnumerable =
         seq {
             TestCaseData({| CliTags =
-                                [ { AssemblyTag.nameSpace = "bar"
-                                    tag = "foo" } ]
+                                [ { AssemblyTag.Namespace = "bar"
+                                    Tag = "foo" } ]
                             PragmaTags = ([||]: string [])
                             GlobalPragmaTags = ([||]: string [])
                             AssemblyTags = ([]: AssemblyTag list) |})
@@ -342,8 +342,8 @@ uADH2; dADH2
                             PragmaTags = ([||]: string [])
                             GlobalPragmaTags = ([||]: string [])
                             AssemblyTags =
-                                [ { AssemblyTag.nameSpace = "bar"
-                                    tag = "foo" } ] |})
+                                [ { AssemblyTag.Namespace = "bar"
+                                    Tag = "foo" } ] |})
                 .Returns([ "bar:foo" ])
 
             TestCaseData({| CliTags = ([]: AssemblyTag list)
@@ -353,21 +353,21 @@ uADH2; dADH2
                 .Returns([ "bar:foo" ])
 
             TestCaseData({| CliTags =
-                                [ { AssemblyTag.nameSpace = "bar"
-                                    tag = "foo" } ]
+                                [ { AssemblyTag.Namespace = "bar"
+                                    Tag = "foo" } ]
                             PragmaTags = ([||]: string [])
                             GlobalPragmaTags = ([| "bar:foo" |]: string [])
                             AssemblyTags = ([]: AssemblyTag list) |})
                 .Returns([ "bar:foo" ])
 
             TestCaseData({| CliTags =
-                                [ { AssemblyTag.nameSpace = "bar"
-                                    tag = "foo" } ]
+                                [ { AssemblyTag.Namespace = "bar"
+                                    Tag = "foo" } ]
                             PragmaTags = [| "car:foo" |]
                             GlobalPragmaTags = [| "dar:foo" |]
                             AssemblyTags =
-                                [ { AssemblyTag.nameSpace = "ear"
-                                    tag = "foo" } ] |})
+                                [ { AssemblyTag.Namespace = "ear"
+                                    Tag = "foo" } ] |})
                 .Returns([ "bar:foo"
                            "car:foo"
                            "dar:foo"
@@ -404,6 +404,6 @@ uADH2; dADH2
         | Ok { Result = result; Warnings = _ } ->
             result.Tags
             |> Set.toList
-            |> List.map (fun tag -> sprintf "%s:%s" tag.nameSpace tag.tag)
+            |> List.map (fun tag -> sprintf "%s:%s" tag.Namespace tag.Tag)
             |> List.sort
         | Error _err -> failwith "Unexpected error"

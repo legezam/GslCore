@@ -54,7 +54,7 @@ type TestPromTermLen() =
         same
             "terminator length test"
             termLen
-            ((part.right.Position - part.left.Position
+            ((part.Right.Position - part.Left.Position
               + 1<OneOffset>)
              / 1<OneOffset>) // +1 since ends are inclusive
 
@@ -64,7 +64,7 @@ type TestPromTermLen() =
         same
             "promoter length test"
             promLen
-            ((part.right.Position - part.left.Position
+            ((part.Right.Position - part.Left.Position
               + 1<OneOffset>)
              / 1<OneOffset>) // +1 since ends are inclusive
 
@@ -74,7 +74,7 @@ type TestPromTermLen() =
         same
             "termmrna length test"
             termLenMRNA
-            (((mRNA.right.Position - 1<OneOffset>)
+            (((mRNA.Right.Position - 1<OneOffset>)
               + 1<OneOffset>)
              / 1<OneOffset>) // Use 1 (rel to 3' end as the start of the terminator region
 

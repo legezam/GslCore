@@ -17,16 +17,16 @@ open GslCore.Core.PluginTypes
 /// Take inline protein sequences and expand them out to DNA sequences
 let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
 
-    let rewritePPP (codonProvider: ICodonProvider) (refGenome: string) (p: PPP) =
-        match p.part with
-        | INLINEPROT (s) ->
+    let rewritePPP (codonProvider: ICodonProvider) (refGenome: string) (p: PartPlusPragma) =
+        match p.Part with
+        | Part.InlineProtein (s) ->
             // Check amino acid sequence is legal
             for c in s do
                 if not (Default.ValidAminoAcids.Contains(c))
                 then failwithf "Protein sequence contains illegal amino acid '%c'" c
 
             let refGenome' =
-                match p.pr
+                match p.Pragma
                       |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
                 | Some (rg) -> rg
                 | None -> refGenome
@@ -39,7 +39,7 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
                 // Check to see if there is a local #seed parameter and extract it else
                 // fall back on the version in the codon opt parameters globally
                 let seedOverride =
-                    match p.pr
+                    match p.Pragma
                           |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef with
                     | None -> None
                     | Some (seed) ->
@@ -54,20 +54,20 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
                       AminoAcidSequence = s }
 
                 let result = codonProvider.DoCodonOpt codonOptTask
-                { p with part = INLINEDNA(result) }
+                { p with Part = Part.InlineDna(result) }
         | _ -> p
 
     let refGenome =
-        GenomeDefinitions.chooseReferenceGenome assembly.pragmas
+        GenomeDefinitions.chooseReferenceGenome assembly.Pragmas
 
     let configuredCodonProvider =
-        parameters.CodonTableCache.Setup(assembly.pragmas)
+        parameters.CodonTableCache.Setup(assembly.Pragmas)
 
     let expandedParts =
-        assembly.parts
+        assembly.Parts
         |> List.map (rewritePPP configuredCodonProvider refGenome)
 
-    { assembly with parts = expandedParts }
+    { assembly with Parts = expandedParts }
     |> prettyPrintAssembly
 
 /// Expand all inline protein sequences in an AST.

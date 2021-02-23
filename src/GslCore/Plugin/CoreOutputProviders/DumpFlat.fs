@@ -59,7 +59,7 @@ let dumpFlat (outFile: string) (assembliesIn: DnaAssembly list) =
         sprintf "NA %s" a.Name |> w
 
         if not a.Tags.IsEmpty then
-            sprintf "TA %s" (String.Join(" ", [ for tag in a.Tags -> sprintf "%s:%s" tag.nameSpace tag.tag ]))
+            sprintf "TA %s" (String.Join(" ", [ for tag in a.Tags -> sprintf "%s:%s" tag.Namespace tag.Tag ]))
             |> w
 
         match a.Uri with

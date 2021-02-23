@@ -104,7 +104,7 @@ type MarkerProviderJobAccept = Capabilities -> float<PluginScore> option
 type MarkerMaterializationTask =
     { MarkerSet: string
       DnaSource: string
-      PartPlusPragma: PPP }
+      PartPlusPragma: PartPlusPragma }
 
 type IMarkerProvider =
     /// Allow marker providers to add command line args and be configurable.

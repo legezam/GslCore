@@ -234,7 +234,7 @@ type DNASlice =
       DnaSource: string
       Breed: Breed
       /// Keep track of the part this slice was materialized from.
-      MaterializedFrom: PPP option
+      MaterializedFrom: PartPlusPragma option
       Annotations: SliceAnnotation list }
     override this.ToString() =
         sprintf "{ %s - %A - %A }" this.Description this.Type this.Breed
@@ -276,7 +276,7 @@ type DnaAssembly =
         |> DnaOps.concat
 
     interface ISourcePosition with
-        member x.OptionalSourcePosition = x.MaterializedFrom.sourcePosition
+        member x.OptionalSourcePosition = x.MaterializedFrom.SourcePosition
 
 module DnaAssembly =
     /// DNASlice default for a fusion slidetype

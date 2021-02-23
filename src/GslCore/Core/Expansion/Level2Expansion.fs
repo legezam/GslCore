@@ -21,9 +21,9 @@ open GslCore.Core.PluginTypes
 
 /// Core expansion of a single L2 expression line.
 let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefinitions) (construct: L2Line): GslSourceCode =
-    let line = construct.l2Design
-    let pragmas = construct.pragmas
-    let capabilities = construct.capabilities
+    let line = construct.L2Design
+    let pragmas = construct.Pragmas
+    let capabilities = construct.Capabilities
     // TODO TODO:   ensuring key parts must be valid GSL parts e.g. can't titrate a non g part,  can't delete a non genome part
 
     //
@@ -75,7 +75,7 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefiniti
           Pragmas = pragmas }
 
     /// List including lower-level GSL strings
-    match line.l2Locus with
+    match line.L2Locus with
     | Some (locusWithPrefix) ->
         // Explicit locus case.  E.g.  gADH1^::pTDH3>mERG10
         // Choose provider
