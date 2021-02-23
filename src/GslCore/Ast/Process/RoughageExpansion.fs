@@ -33,7 +33,7 @@ let private validateRoughageLine (roughageWrapper: Node<Roughage>) =
 /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
 let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
     let roughage = roughageWrapper.Value
-    // FIXME Hard coded mapping of markers for now
+    // TODO Hard coded mapping of markers for now
     let markerMapping (s: string) =
         match s with
         | "mURA" -> "ura3"

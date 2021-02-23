@@ -750,7 +750,7 @@ module FoldMap =
     /// the block is discarded.
     /// This function was written as a generic solution to the "variable resolution problem".
     ///</summary>
-    // FIXME: this function really needs a drawing to be clear.  Document this using a graph example.
+    // TODO: this function really needs a drawing to be clear.  Document this using a graph example.
     // IMPORTANT: please take great care if editing this algorithmn!
     let foldMap (initialState: 'State)
                 (parameters: FoldMapParameters<'State, 'Msg>)

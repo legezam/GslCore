@@ -91,7 +91,7 @@ let private parseAllCommandLineArgs (argSpecs: CollectedCommandLineArgs) (argLis
     /// and any file names we've accumulated.
     let parseOneItem (h: string) (argList: string list) (accumulatedArgs: ParsedCmdLineArg list) files =
         // Should only be a command or an input file.
-        // FIXME: we should fail here if we find a "file" in between two --args
+        // TODO: we should fail here if we find a "file" in between two --args
         if h.StartsWith("--") then
             let arg = h.[2..]
 

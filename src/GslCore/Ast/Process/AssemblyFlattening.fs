@@ -113,7 +113,7 @@ let private explodeAssembly (pragmaBuilder: PragmaBuilder)
             |> GslResult.map (List.map Part)
 
 /// Collapse a part whose base part is another part.
-// FIXME: we should probably be more careful with mods here
+// TODO: we should probably be more careful with mods here
 let private collapseRecursivePart (outerPart: Node<ParsePart>) (innerPart: Node<ParsePart>): AstResult<AstNode> =
     let outerPragmas = ParsePart.getPragmas outerPart
 

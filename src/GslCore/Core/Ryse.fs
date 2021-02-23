@@ -92,7 +92,7 @@ module Ryse =
 
     let thumper = "http://thumper.amyris.local"
 
-    // FIXME: this cache is global and mutable and can become stale when GSLC is embedded in a long-
+    // TODO: this cache is global and mutable and can become stale when GSLC is embedded in a long-
     // running application.
     let private fetchCache =
         ConcurrentDictionary<string, ThumperRycod.RyseComponentRequest>()
@@ -195,7 +195,7 @@ module Ryse =
                     if invalidLinkerWarn a b
                     then printf "linker sets must start with linker 0 and end with linker 9.  %s fails\n"
                              assembly.LinkerHint
-                    // FIXME: this error condition just prints a message, should it blow up?
+                    // TODO: this error condition just prints a message, should it blow up?
                     a, b
                 | _ -> failwithf "bad #linkers structure, should be one part with | sep, not %s" (assembly.LinkerHint)
 

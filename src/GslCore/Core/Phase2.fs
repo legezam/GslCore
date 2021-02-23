@@ -4,10 +4,7 @@ namespace GslCore.Core
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Core.Expansion
-open GslCore.Core.PluginTypes
 open GslCore.GslResult
-open GslCore.Pragma
-open GslCore.Reference
 
 // ===========================
 // putting it all together: recursively expanding a post-phase-1 tree until we're done
@@ -20,7 +17,6 @@ open GslCore.Reference
 /// Well-behaved expansion should never create an expansion phase higher than itself,
 /// so we should probably have a hard limit at N^2, where N is the number of nontrivial expansion
 /// passes.
-// FIXME: way too many arguments
 module Phase2 =
     let phase2 (parameters: Phase2Parameters) (treeIn: AstTreeHead): AstResult<AstTreeHead> =
 

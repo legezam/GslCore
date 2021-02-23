@@ -46,7 +46,7 @@ module GenomeDefinitions =
 
     /// If a ref genome is specified in pragmas, return it.
     /// Otherwise return the default ref genome.
-    // FIXME: warning should be swallowed up by ROP rather than printed.
+    // TODO: warning should be swallowed up by ROP rather than printed.
     let chooseReferenceGenome (pragmaCollection: PragmaCollection): string =
         match pragmaCollection
               |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with

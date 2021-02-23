@@ -25,7 +25,7 @@ let rec processGSL (s: ConfigurationState) gslText =
     let verbose = options.Verbose
     let pragmaBuilder = globalAssets.PragmaBuilder
     /// Build up all legal capabilities by going through plugins
-    // FIXME: need to inject this and validate legal capabilities
+    // TODO: need to inject this and validate legal capabilities
     // Should also eliminate global pragma state while we're at it, if possible.
     let legalCapas =
         plugins

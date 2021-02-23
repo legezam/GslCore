@@ -18,19 +18,19 @@ type BootstrapExpansionMode =
     | ExpandHetBlock
 
 module BootstrapExpansionMode =
-    let internal expansionPriority mode =
+    let internal getExpansionPriority mode =
         match mode with
         | ExpandHetBlock -> 5
         | ExpandProtein -> 10
         | ExpandMutation -> 20
 
     let internal prioritize mode1 mode2 =
-        if expansionPriority mode1 > expansionPriority mode2
+        if getExpansionPriority mode1 > getExpansionPriority mode2
         then mode1
         else mode2
 
     /// Given a node, determine what expansion step it requires to continue.
-    let internal expansionMode node =
+    let internal tryGetRequiredExpansionMode node =
         match node with
         | Mutation _ -> Some(ExpandMutation)
         | InlineProtein _ -> Some(ExpandProtein)
@@ -43,7 +43,7 @@ module BoostrapSelection =
         let expansionsNeeded =
             tree
             |> AstNode.traverse
-            |> Seq.map BootstrapExpansionMode.expansionMode
+            |> Seq.map BootstrapExpansionMode.tryGetRequiredExpansionMode
             |> Seq.choose id
             |> Set.ofSeq
 
@@ -60,7 +60,7 @@ module BoostrapSelection =
         let modesRequiredByThisNode =
             AstTreeHead(node)
             |> AstNode.traverse
-            |> Seq.choose BootstrapExpansionMode.expansionMode
+            |> Seq.choose BootstrapExpansionMode.tryGetRequiredExpansionMode
             |> Set.ofSeq
 
         if modesRequiredByThisNode.Contains(mode) then

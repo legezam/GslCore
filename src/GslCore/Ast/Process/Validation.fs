@@ -30,7 +30,7 @@ let validatePart op node =
     | Part ({ Value = pp; Positions = _ }) -> op pp
     | _ -> Validation.good
 
-// FIXME: this may be either a step too far, or just on example of something we need a lot more of
+// TODO: this may be either a step too far, or just on example of something we need a lot more of
 // Ideally the parser structure should make this kind of check unnecessary.
 let private validBasePartPP (pp: ParsePart): ValidationResult =
     match pp.BasePart with

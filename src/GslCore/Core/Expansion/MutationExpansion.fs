@@ -31,7 +31,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
             match a.Name with
             | Some (n) -> n
             | None -> a.Parts.Head.Part.ToString()
-        // FIXME: we should have already expanded names, so this shouldn't be necessary
+        // TODO: we should have already expanded names, so this shouldn't be necessary
         // Refactor Assembly to have an unconditional name.
         match p.Part with
         | Part.HeterologyBlock  // don't expect this but just in case
@@ -74,7 +74,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
 
                 let rg' = getReferenceGenome a parameters.References p.Pragma
 
-                // FIXME: unclear if this was the right behavior, as the rg is selected from both
+                // TODO: unclear if this was the right behavior, as the rg is selected from both
                 // assembly and part pragmas yet the actual ref genome selected here was only using
                 // the assembly pragmas.  Uggh.
                 //// Need to select a codon usage table

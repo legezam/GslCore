@@ -436,7 +436,7 @@ let expandGenePart (verbose: bool)
 
         // WARNING - very similar logic in realizeSequence and both versions
         // should be considered when changing logic.
-        // FIXME: this common logic should be refactored into a generic function
+        // TODO: this common logic should be refactored into a generic function
         // and called in both places.
 
         // Validate mods to gene

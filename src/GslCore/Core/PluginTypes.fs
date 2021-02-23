@@ -47,7 +47,7 @@ type ICodonProvider =
     /// codon-optimized version.  Optionally override the RNG seed for this particular run, as well
     /// as set verbosity.
     ///</summary>
-    // FIXME: this should both accept and return a domain type from Amyris.Bio.  May need to
+    // TODO: this should both accept and return a domain type from Amyris.Bio.  May need to
     // define a domain type for AA sequences to match Amyris.Dna
     abstract DoCodonOpt: CodonOptTask -> Dna
 
