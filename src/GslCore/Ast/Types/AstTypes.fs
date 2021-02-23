@@ -195,8 +195,8 @@ and ParseFunction =
 
 /// In-block declaration of the local variables passed in as function arguments.
 /// This is used as a placeholder inside the block to allow for easy block-scoped fold operations.
-// This is a record type to allow for easy later extension, to add support for advanced features
-// like functions with default arguments.
+/// This is a record type to allow for easy later extension, to add support for advanced features
+/// like functions with default arguments.
 and FunctionLocals = { Names: string list }
 
 /// A function invocation.

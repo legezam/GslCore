@@ -49,7 +49,7 @@ module Inlining =
         let sWithNewDefs = collectFunctionDef mode state node
 
         let updatedVars =
-            VariableResolution.updateVariableResolution mode state.Variables node
+            VariableCapturing.captureVariableBindings mode state.Variables node
 
         { sWithNewDefs with
               Variables = updatedVars }

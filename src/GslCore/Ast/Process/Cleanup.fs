@@ -36,7 +36,7 @@ let private cleanBlock cleaner node =
                    Value = newBlockContents })
     | _ -> node
 
-/// Strip function defintions from tree.
+/// Strip function definitions from tree.
 let stripFunctions: AstTreeHead -> TreeTransformResult<AstMessage> =
     FoldMap.map Serial TopDown (GslResult.promote (cleanBlock cleanFunction))
 

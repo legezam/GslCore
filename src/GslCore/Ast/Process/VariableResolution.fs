@@ -28,7 +28,7 @@ type VariableResolutionWrapper =
 /// Shadowing is allowed, and the latest declared name takes precedence.
 type CapturedVariableBindings = Map<string, VariableResolutionWrapper>
 
-module VariableResolution =
+module VariableCapturing =
     let private captureVariableBinding (capturedBindings: CapturedVariableBindings)
                                        (variableBinding: Node<VariableBinding>)
                                        : CapturedVariableBindings =
@@ -44,7 +44,7 @@ module VariableResolution =
     /// Namely, we need to ensure that the construction let bar = &bar
     /// doesn't wipe out the upstream binding to bar, lest we end up
     /// in an infinite recursive loop trying to resolve a self-reference.
-    let private updateVariableResolutionInner (capturedBindings: CapturedVariableBindings)
+    let private captureVariableBindingsInner (capturedBindings: CapturedVariableBindings)
                                               : AstNode -> CapturedVariableBindings =
         function
         | SelfReferentialVariable _ ->
@@ -56,8 +56,10 @@ module VariableResolution =
             |> List.fold captureFunctionLocalBinding capturedBindings
         | _ -> capturedBindings
 
-    let internal updateVariableResolution =
-        StateUpdateMode.pretransformOnly updateVariableResolutionInner
+    let internal captureVariableBindings =
+        StateUpdateMode.pretransformOnly captureVariableBindingsInner    
+
+module VariableResolution =
 
     /// Elide a type for a value node, if it corresponds to a valid GslVarType.
     let private elideType (node: AstNode): GslVariableType option =
@@ -146,7 +148,7 @@ module VariableResolution =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = updateVariableResolution
+              StateUpdate = VariableCapturing.captureVariableBindings
               Map = resolveVariable AllowUnresolvedFunctionLocals }
 
         FoldMap.foldMap Map.empty foldMapParameters
@@ -157,7 +159,7 @@ module VariableResolution =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = updateVariableResolution
+              StateUpdate = VariableCapturing.captureVariableBindings
               Map = resolveVariable Strict }
 
         FoldMap.foldMap Map.empty foldMapParameters
