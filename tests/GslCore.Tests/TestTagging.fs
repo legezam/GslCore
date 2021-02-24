@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open System.Collections
+open GslCore.Ast.MessageTranslation
 open GslCore.GslResult
 
 open GslCore
@@ -46,7 +47,9 @@ type TestTagging() =
 
         source
         |> GslSourceCode
-        |> compile (Phase1.phase1 parameters)
+        |> compile
+            (Phase1.phase1 parameters
+             >> GslResult.mapError Phase1Message.toAstMessage)
         |> GslResult.valueOr (failwithf "%A")
         |> fun x -> extractParts x.wrappedNode
 

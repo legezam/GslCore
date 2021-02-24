@@ -2,6 +2,7 @@
 
 open System
 open GslCore
+open GslCore.Ast.MessageTranslation
 open GslCore.GslResult
 open GslCore.Ast
 open NUnit.Framework
@@ -15,7 +16,9 @@ type TestLineNumbers() =
     let rec extractAssemblies (n: AstNode): AstNode list =
         [ match n with
           | Block b ->
-              let result = b.Value |> List.collect extractAssemblies
+              let result =
+                  b.Value |> List.collect extractAssemblies
+
               yield! result
           | Splice s ->
               let result =
@@ -48,7 +51,9 @@ type TestLineNumbers() =
     let compileOne source =
         source
         |> GslSourceCode
-        |> compile (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters)
+        |> compile
+            (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
+             >> GslResult.mapError Phase1Message.toAstMessage)
         |> GslResult.valueOr (failwithf "%A")
         |> fun x -> extractAssemblies x.wrappedNode
 
@@ -147,7 +152,8 @@ knockout()"
                  [ for a in assemblies ->
                      String.Join
                          (";",
-                          [ for p in a.positions -> sprintf "%d,%d->%d,%d" p.Start.Line p.Start.Column p.End.Line p.End.Column ]) ])
+                          [ for p in a.positions ->
+                              sprintf "%d,%d->%d,%d" p.Start.Line p.Start.Column p.End.Line p.End.Column ]) ])
 
         let assembly3 = List.item 2 assemblies
         printfn "coordinates for triple nested example:%A" coordsFormatted

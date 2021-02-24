@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open GslCore
+open GslCore.Ast
 open GslCore.Ast.Linting
 open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
@@ -15,7 +16,6 @@ open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.ErrorHandling
-open GslCore.Ast
 open GslCore.AstFixtures
 open GslCore.AstAssertions
 open GslCore.Ast.Algorithms
@@ -29,8 +29,8 @@ type TestLinting() =
         "@foo"
         |> GslSourceCode
         |> compile
-            ((Linter.linters
-              >> GslResult.mapError LinterHintMessage.toAstMessage))
+            (Phase1.linting
+             >> GslResult.mapError Phase1Message.toAstMessage)
         |> assertWarn Warning (Some("The syntax for using a variable has changed"))
         |> ignore
 
@@ -39,8 +39,8 @@ type TestLinting() =
         "#push\n#pop"
         |> GslSourceCode
         |> compile
-            (Linter.linters
-             >> GslResult.mapError LinterHintMessage.toAstMessage)
+            (Phase1.linting
+             >> GslResult.mapError Phase1Message.toAstMessage)
         |> assertFailMany [ PragmaError; PragmaError ] [
             Some("#push and #pop have been removed")
             Some("#push and #pop have been removed")
@@ -67,8 +67,8 @@ type TestValidation() =
             assertValidationFail
                 ParserError
                 (Some errorText)
-                (ParseErrorValidation.checkParseError
-                 >> GslResult.mapError ParseErrorMessage.toAstMessage)
+                (Phase1.checkParseError
+                 >> GslResult.mapError Phase1Message.toAstMessage)
                 tree
 
         Assert.AreEqual(err, failure.Node)
@@ -85,7 +85,9 @@ type TestValidation() =
             PartError
             (Some "Can only apply part mods to Gene or PartId, not Marker")
             (PartValidation.validateModifiers
-             >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
+             >> GslResult.mapError
+                 (PartModifierValidationError
+                  >> Phase1Message.toAstMessage))
             tree
         |> ignore
 
@@ -101,7 +103,9 @@ type TestValidation() =
             PartError
             (Some "Can only apply part mods to Gene or PartId, not Assembly")
             (PartValidation.validateModifiers
-             >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
+             >> GslResult.mapError
+                 (PartModifierValidationError
+                  >> Phase1Message.toAstMessage))
             tree
         |> ignore
 
@@ -111,50 +115,41 @@ type TestTransformation() =
 
     let variableTest =
         sourceCompareTest
-            (VariableResolution.resolveVariables
-             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
+            (Phase1.variableResolution
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     let mathReductionTest =
         sourceCompareTest
-            ((VariableResolution.resolveVariables
-              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-             >=> (ExpressionReduction.reduceMathExpressions
-                  >> GslResult.mapError ExpressionReductionMessage.toAstMessage))
+            (Phase1.variableResolution
+             >=> Phase1.expressionReduction
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     let functionInliningTest =
         sourceCompareTest
-            ((VariableResolution.resolveVariables
-              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-             >=> (Inlining.inlineFunctionCalls
-                  >> GslResult.mapError FunctionInliningMessage.toAstMessage)
-             >=> (Cleanup.stripFunctions
-                  >> GslResult.mapError NoMessage.toAstMessage))
+            (Phase1.variableResolution
+             >=> Phase1.functionInlining
+             >=> Phase1.stripFunctions
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     let flattenAssemblyTest =
         sourceCompareTest
-            ((PragmaBuilding.buildPragmas AssemblyTestSupport.defaultPhase1Parameters
-              >> GslResult.mapError PragmaBuildingMessage.toAstMessage)
-             >=> (AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters
-                  >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage))
+            (Phase1.pragmaBuilding AssemblyTestSupport.defaultPhase1Parameters
+             >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     let flattenPartTest =
         sourceCompareTest
-            ((VariableResolution.resolveVariables
-              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-             >=> (AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters
-                  >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage))
+            (Phase1.variableResolution
+             >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     let variableResolutionPipeline =
-        (RecursiveCalls.check
-         >> GslResult.mapError RecursiveCallCheckMessage.toAstMessage)
-        >=> (VariableResolution.resolveVariables
-             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-        >=> (Inlining.inlineFunctionCalls
-             >> GslResult.mapError FunctionInliningMessage.toAstMessage)
-        >=> (Cleanup.stripFunctions
-             >> GslResult.mapError NoMessage.toAstMessage)
-        >=> (VariableResolution.resolveVariablesStrict
-             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
+        Phase1.recursiveCallCheck
+        >=> Phase1.variableResolution
+        >=> Phase1.functionInlining
+        >=> Phase1.stripFunctions
+        >=> Phase1.variableResolutionStrict
+        >> GslResult.mapError Phase1Message.toAstMessage
 
     let fullVariableResolutionTest =
         sourceCompareTest variableResolutionPipeline
@@ -193,8 +188,8 @@ end
 
         GslSourceCode(source)
         |> compile
-            (VariableResolution.resolveVariables
-             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
+            (Phase1.variableResolution
+             >> GslResult.mapError Phase1Message.toAstMessage)
         |> assertFailMany [ UnresolvedVariable
                             UnresolvedVariable ] [
             Some("bar")

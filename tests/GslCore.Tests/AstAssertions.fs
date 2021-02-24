@@ -70,13 +70,17 @@ let assertDecompilesTo (source: string) (tree: AstTreeHead) =
 /// Also assert that the tree decompiles correctly to the same literal source which was passed in.
 let assertRoundtrip source astItems =
     let tree =
-        lexparse (GslSourceCode(source)) |> GslResult.valueOr (failwithf "%A")
+        lexparse (GslSourceCode(source))
+        |> GslResult.valueOr (failwithf "%A")
 
     assertTreesEqual (treeify astItems) tree
     assertDecompilesTo source tree
 
 /// Parse and run op on parsed tree.
-let compile op source = lexparse source >>= op
+let compile (op: AstTreeHead -> AstResult<'a>) (source: GslSourceCode): AstResult<'a> =
+    (lexparse source
+     |> GslResult.mapError LexParseError.toAstMessage)
+    >>= op
 
 /// Fail if the incoming result is Bad.
 /// Optionally pass in source code for message printing.
@@ -161,7 +165,7 @@ let assertWarn failType textSnippet (r: AstResult<_>) =
 
 /// Assert that a result is a failure with many messages, with matching types and message texts.
 /// Returns the failure messages for further processing. Otherwise, fail.
-let assertFailMany failTypes textSnippets (r: GslResult<_,_>) =
+let assertFailMany failTypes textSnippets (r: GslResult<_, _>) =
     match r.Value with
     | Error msgs -> checkMessages failTypes textSnippets msgs
     | x ->

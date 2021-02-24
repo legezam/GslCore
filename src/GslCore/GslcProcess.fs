@@ -2,6 +2,7 @@
 module GslCore.GslcProcess
 
 open Amyris.Bio
+open GslCore.Ast.MessageTranslation
 open GslCore.Constants
 open GslCore.Core
 open GslCore.Ast.Legacy.Types
@@ -56,8 +57,10 @@ let rec processGSL (s: ConfigurationState) gslText =
         phase2Params |> Phase1Parameters.fromPhase2
     /// Main compiler pipeline.
     let phase1Result =
-        LexAndParse.lexAndParse verbose gslText
-        >>= Phase1.phase1 phase1Params
+        (LexAndParse.lexAndParse verbose gslText
+         |> GslResult.mapError LexParseError.toAstMessage)
+        >>= (Phase1.phase1 phase1Params
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     if options.OnlyPhase1 then
         phase1Result

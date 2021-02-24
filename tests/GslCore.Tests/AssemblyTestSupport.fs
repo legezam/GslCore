@@ -2,6 +2,7 @@
 module GslCore.AssemblyTestSupport
 
 open GslCore.Ast
+open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.Constants
@@ -13,12 +14,14 @@ open Amyris.Dna
 
 let defaultPhase1Parameters =
     { Phase1Parameters.PragmaBuilder = PragmaBuilder.builtin
-      LegalCapabilities = Set.empty  }
+      LegalCapabilities = Set.empty }
 
 let rec extractAssemblies (n: AstNode): AstNode list =
     [ match n with
       | Block b ->
-          let result = b.Value |> List.collect extractAssemblies
+          let result =
+              b.Value |> List.collect extractAssemblies
+
           yield! result
       | Splice s ->
           let result =
@@ -39,7 +42,9 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 let compileOne source =
     source
     |> GslSourceCode
-    |> compile (Phase1.phase1 defaultPhase1Parameters)
+    |> compile
+        (Phase1.phase1 defaultPhase1Parameters
+         >> GslResult.mapError Phase1Message.toAstMessage)
     |> GslResult.valueOr (failwithf "%A")
     |> fun x -> extractAssemblies x.wrappedNode
 
@@ -231,16 +236,12 @@ let smallInline =
 
 let uFooFuse =
     { uFoo with
-          Pragmas =
-              uFoo.Pragmas
-              |> PragmaCollection.add fusePragma
+          Pragmas = uFoo.Pragmas |> PragmaCollection.add fusePragma
           SliceName = uFoo.SliceName + "#fuse" }
 
 let smallInlineAmp =
     { smallInline with
-          Pragmas =
-              smallInline.Pragmas
-              |> PragmaCollection.add amp
+          Pragmas = smallInline.Pragmas |> PragmaCollection.add amp
           SliceName = smallInline.SliceName + "#amp" }
 
 let smallInlineFuse =
@@ -252,9 +253,7 @@ let smallInlineFuse =
 
 let mediumInlineAmp =
     { mediumInline with
-          Pragmas =
-              mediumInline.Pragmas
-              |> PragmaCollection.add amp
+          Pragmas = mediumInline.Pragmas |> PragmaCollection.add amp
           SliceName = mediumInline.SliceName + "#amp" }
 
 let mediumInlineFuse =
@@ -266,9 +265,7 @@ let mediumInlineFuse =
 
 let longInlineAmp =
     { longInline with
-          Pragmas =
-              longInline.Pragmas
-              |> PragmaCollection.add amp
+          Pragmas = longInline.Pragmas |> PragmaCollection.add amp
           SliceName = longInline.SliceName + "#amp" }
 
 let longInlineAmpFuse =

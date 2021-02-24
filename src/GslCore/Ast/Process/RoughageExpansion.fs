@@ -1,7 +1,6 @@
 namespace GslCore.Ast.Process.RoughageExpansion
 
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
 open GslCore.Pragma

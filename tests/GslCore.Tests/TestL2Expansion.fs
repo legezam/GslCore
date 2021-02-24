@@ -2,9 +2,9 @@
 
 
 open GslCore
+open GslCore.Ast.MessageTranslation
 open GslCore.GslResult
 open GslCore.Ast
-open GslCore.Ast.Types
 open GslCore.Core.Expansion
 open GslCore.Pragma
 open NUnit.Framework
@@ -16,9 +16,10 @@ open GslCore.Constants
 [<TestFixture>]
 type TestL2Expansion() =
 
-        
+
     let phase1WithL2Validation =
-        Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
+        (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
+         >> GslResult.mapError Phase1Message.toAstMessage)
         >=> (Validation.validate Level2Expansion.validateNoAssemblyInL2Promoter)
 
     [<Test>]

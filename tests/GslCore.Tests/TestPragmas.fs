@@ -1,13 +1,8 @@
 ﻿namespace GslCore
 
-open GslCore.Ast.MessageTranslation
+
+open GslCore.Ast
 open GslCore.Ast.Process
-open GslCore.Ast.Process.VariableResolution
-open GslCore.Ast.Process.Inlining
-open GslCore.Ast.Process.ExpressionReduction
-open GslCore.Ast.Process.PragmaBuilding
-open GslCore.Ast.Process.AssemblyFlattening
-open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.Pragma
@@ -19,6 +14,7 @@ open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
 open GslCore.Ast.ErrorHandling
 open GslCore.Constants
+open GslCore.Ast.MessageTranslation
 
 [<TestFixture>]
 type TestPragmas() =
@@ -73,23 +69,21 @@ type TestPragmasAST() =
         { Phase1Parameters.PragmaBuilder = pragmaBuilder
           LegalCapabilities = [ "capa1"; "capa2" ] |> Set.ofList }
 
-    let pragmaBuildPipeline =
-        (VariableResolution.resolveVariables
-         >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-        >=> (Inlining.inlineFunctionCalls
-             >> GslResult.mapError FunctionInliningMessage.toAstMessage)
-        >=> (Cleanup.stripFunctions
-             >> GslResult.mapError NoMessage.toAstMessage)
-        >=> (VariableResolution.resolveVariablesStrict
-             >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-        >=> (Cleanup.stripVariables
-             >> GslResult.mapError NoMessage.toAstMessage)
-        >=> (ExpressionReduction.reduceMathExpressions
-             >> GslResult.mapError ExpressionReductionMessage.toAstMessage)
-        >=> (PragmaBuilding.buildPragmas phase1Params
-             >> GslResult.mapError PragmaBuildingMessage.toAstMessage)
 
-    let compilePragmas = compile pragmaBuildPipeline
+
+    let pragmaBuildPipeline =
+        Phase1.variableResolution
+        >=> Phase1.functionInlining
+        >=> Phase1.stripFunctions
+        >=> Phase1.variableResolutionStrict
+        >=> Phase1.stripVariables
+        >=> Phase1.expressionReduction
+        >=> Phase1.pragmaBuilding phase1Params
+
+    let compilePragmas =
+        compile
+            (pragmaBuildPipeline
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     let checkPragmaIsBuilt node =
         match node with
@@ -108,10 +102,13 @@ type TestPragmasAST() =
 
     let stuffPragmasPipeline =
         pragmaBuildPipeline
-        >=> (AssemblyFlattening.flattenAssemblies phase1Params
-             >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage)
-        >=> (AssemblyStuffing.stuffPragmasIntoAssemblies
-             >> GslResult.mapError AssemblyStuffingMessage.toAstMessage)
+        >=> Phase1.assemblyFlattening phase1Params
+        >=> Phase1.assemblyStuffing
+
+    let compilePragmasAndStuffAssemblies =
+        compile
+            (pragmaBuildPipeline >=> stuffPragmasPipeline
+             >> GslResult.mapError Phase1Message.toAstMessage)
 
     [<Test>]
     member x.TestBasicPragmaBuild() =
@@ -145,7 +142,7 @@ bar("qux")
 
         source
         |> GslSourceCode
-        |> compile pragmaBuildPipeline
+        |> compilePragmas
         |> assertFail PragmaError (Some("Unknown or invalid pragma: '#verybadpragma'"))
         |> ignore
 
@@ -155,7 +152,7 @@ bar("qux")
 
         source
         |> GslSourceCode
-        |> compile pragmaBuildPipeline
+        |> compilePragmas
         |> assertFailMany [ PragmaError; PragmaError ] [
             Some("#fuse is used at block-level")
             Some("#capa is used at part-level")
@@ -169,7 +166,7 @@ bar("qux")
 
         source
         |> GslSourceCode
-        |> compile pragmaBuildPipeline
+        |> compilePragmas
         |> assertWarnMany [ DeprecationWarning
                             DeprecationWarning ] [
             Some("#stitch is deprecated")
@@ -198,10 +195,14 @@ end
 gBAZ"""
 
         // outer assemblies shouldn't reprint their pragma context as that isn't idiomatic GSL
-        sourceCompareTest stuffPragmasPipeline source source
+        sourceCompareTest
+            (stuffPragmasPipeline
+             >> GslResult.mapError Phase1Message.toAstMessage)
+            source
+            source
 
         let reducedAst =
-            (compile stuffPragmasPipeline (source |> GslSourceCode))
+            (compilePragmasAndStuffAssemblies (source |> GslSourceCode))
             |> GslResult.valueOr (failwithf "%A")
 
         // we need to dive into the AST to check this
@@ -273,7 +274,7 @@ gBAZ"""
         let source = "#name foobar\ngFOO; gBAR"
 
         let tree =
-            compile stuffPragmasPipeline (GslSourceCode(source))
+            compilePragmasAndStuffAssemblies (GslSourceCode(source))
             |> GslResult.valueOr (failwithf "%A")
         // now replace the outer name pragma and make sure the second pass triggers the collision error
         match tree.wrappedNode with
@@ -291,7 +292,8 @@ gBAZ"""
                    Positions = p })
         | _ -> failwith "Didn't unwrap correctly."
         |> AstTreeHead
-        |> stuffPragmasPipeline
+        |> (stuffPragmasPipeline
+            >> GslResult.mapError Phase1Message.toAstMessage)
         |> assertFail
             PragmaError
                (Some

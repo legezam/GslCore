@@ -1,6 +1,6 @@
 module GslCore.Core.Expansion.Level2Expansion
 
-open System
+
 open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Constants

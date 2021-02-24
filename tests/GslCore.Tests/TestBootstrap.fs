@@ -2,6 +2,7 @@
 
 open GslCore
 open GslCore.Ast
+open GslCore.Ast.MessageTranslation
 open GslCore.Core.Expansion
 open GslCore.GslResult
 open GslCore.Pragma
@@ -31,10 +32,14 @@ type TestBootstrapping() =
         | Splice (nodes) -> AstTreeHead(Block(Node.wrapNode (List.ofArray nodes)))
         | x -> failwithf "Illegal: %A" x
 
-    let bootstrapPhase1NoCapas = Bootstrapping.bootstrapPhase1 AssemblyTestSupport.defaultPhase1Parameters
+    let bootstrapPhase1NoCapas =
+        Bootstrapping.bootstrapPhase1 AssemblyTestSupport.defaultPhase1Parameters
 
     let compilePhase1NoCapas =
-        GslSourceCode >> (compile (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters))
+        GslSourceCode
+        >> (compile
+                (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
+                 >> GslResult.mapError Phase1Message.toAstMessage))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =

@@ -6,8 +6,6 @@ open GslCore.Ast.Process.Validation
 open GslCore.GslResult
 open GslCore.Ast.Process
 open GslCore.Ast.Types
-open GslCore.Ast
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Pragma
 open GslCore.Ast.Process.RelativePositionTranslation
@@ -28,76 +26,76 @@ open GslCore.Ast.MessageTranslation
 
 let checkParseError =
     ParseErrorValidation.checkParseError
-    >> GslResult.mapError ParseErrorMessage.toAstMessage
+    >> GslResult.mapError ParseErrorType
 
 let basePartValidation =
     PartValidation.validBasePart
-    >> GslResult.mapError PartBaseValidationMessage.toAstMessage
+    >> GslResult.mapError PartBaseValidationError
 
 let linting =
-    Linter.linters
-    >> GslResult.mapError LinterHintMessage.toAstMessage
+    Linter.linters >> GslResult.mapError LinterHint
 
 let immediateValidations =
     Validation.validate (checkParseError &&& basePartValidation)
 
 let recursiveCallCheck =
     RecursiveCalls.check
-    >> GslResult.mapError RecursiveCallCheckMessage.toAstMessage
+    >> GslResult.mapError RecursiveCallCheckError
 
 let variableResolution =
     VariableResolution.resolveVariables
-    >> GslResult.mapError VariableResolutionMessage.toAstMessage
+    >> GslResult.mapError VariableResolutionError
 
 let functionInlining =
     Inlining.inlineFunctionCalls
-    >> GslResult.mapError FunctionInliningMessage.toAstMessage
+    >> GslResult.mapError FunctionInliningError
 
 let stripFunctions =
     Cleanup.stripFunctions
-    >> GslResult.mapError NoMessage.toAstMessage
+    >> GslResult.mapError NoError
 
 let variableResolutionStrict =
     VariableResolution.resolveVariablesStrict
-    >> GslResult.mapError VariableResolutionMessage.toAstMessage
+    >> GslResult.mapError VariableResolutionError
 
 let stripVariables =
     Cleanup.stripVariables
-    >> GslResult.mapError NoMessage.toAstMessage
+    >> GslResult.mapError NoError
 
 let expressionReduction =
     ExpressionReduction.reduceMathExpressions
-    >> GslResult.mapError ExpressionReductionMessage.toAstMessage
+    >> GslResult.mapError ExpressionReductionError
 
 let pragmaBuilding parameters =
     PragmaBuilding.buildPragmas parameters
-    >> GslResult.mapError PragmaBuildingMessage.toAstMessage
+    >> GslResult.mapError PragmaBuildingError
 
 let pragmaWarningCollection =
     PragmaWarning.collect
-    >> GslResult.mapError PragmaWarningMessage.toAstMessage
+    >> GslResult.mapError PragmaWarningError
 
 let relativePositionTranslation =
     RelativePositionTranslation.compute
-    >> GslResult.mapError RelativePositionTranslationMessage.toAstMessage
+    >> GslResult.mapError RelativePositionTranslationMessage
 
 let roughageExpansion =
     RoughageExpansion.expandRoughageLines
-    >> GslResult.mapError RoughageExpansionMessage.toAstMessage
+    >> GslResult.mapError RoughageExpansionError
 
 let assemblyFlattening parameters =
     AssemblyFlattening.flattenAssemblies parameters
-    >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage
+    >> GslResult.mapError AssemblyFlatteningError
 
 let partModifierValidation =
     Validation.validate PartValidation.validateModifiers
-    >> GslResult.mapError PartModifierValidationMessage.toAstMessage
+    >> GslResult.mapError PartModifierValidationError
 
 let assemblyStuffing =
     AssemblyStuffing.stuffPragmasIntoAssemblies
-    >> GslResult.mapError AssemblyStuffingMessage.toAstMessage
+    >> GslResult.mapError AssemblyStuffingError
+
 /// Phase 1 is everything before bioinformatics really gets involved.
-let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead> =
+let phase1 (parameters: Phase1Parameters): AstTreeHead -> GslResult<AstTreeHead, Phase1Message> =
     linting
     >=> immediateValidations
     >=> recursiveCallCheck

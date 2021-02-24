@@ -94,6 +94,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult<AstMessag
         sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
 
     LexAndParse.lexAndParse false source
+    |> GslResult.mapError (LexParseError.toAstMessage)
     |> GslResult.addMessageToError
         (AstMessage.createErrorWithStackTrace
             (InternalError(ParserError))
@@ -108,7 +109,10 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult<AstMessag
 /// Parse string source code, run compiler phase 1, and return the resulting contents of the
 /// top-level block.
 let bootstrapPhase1 (parameters: Phase1Parameters) originalPosition =
-    bootstrap originalPosition (Phase1.phase1 parameters)
+    bootstrap
+        originalPosition
+        (Phase1.phase1 parameters
+         >> GslResult.mapError Phase1Message.toAstMessage)
 
 
 // =================
