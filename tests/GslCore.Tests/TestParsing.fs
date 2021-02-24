@@ -2,7 +2,7 @@
 
 open System
 open GslCore.Ast
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Ast.Process
 open GslCore.GslResult
 open NUnit.Framework

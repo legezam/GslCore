@@ -1,7 +1,7 @@
 module GslCore.Core.Expansion.Level2Expansion
 
 
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Ast.Process
 open GslCore.Constants
 open GslCore.Ast.Types

@@ -2,11 +2,10 @@
 
 open System
 open GslCore
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.GslResult
 open GslCore.Ast
 open NUnit.Framework
-open Amyris.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.Constants

@@ -1,6 +1,6 @@
 module GslCore.Core.Expansion.Bootstrapping
 
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast

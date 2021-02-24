@@ -2,10 +2,9 @@
 
 open GslCore
 open GslCore.Ast
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Core.Expansion
 open GslCore.GslResult
-open GslCore.Pragma
 open NUnit.Framework
 open GslCore.Constants
 open GslCore.Ast.Types

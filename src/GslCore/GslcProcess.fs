@@ -2,7 +2,7 @@
 module GslCore.GslcProcess
 
 open Amyris.Bio
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Constants
 open GslCore.Core
 open GslCore.Ast.Legacy.Types

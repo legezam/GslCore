@@ -2,7 +2,7 @@
 module GslCore.AssemblyTestSupport
 
 open GslCore.Ast
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.Constants

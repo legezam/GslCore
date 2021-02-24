@@ -17,7 +17,7 @@ open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.Process.RoughageExpansion
 open GslCore.Ast.Process.PragmaWarning
 open GslCore.Ast.Process.PragmaBuilding
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 
 // ==================
 // phase 1 of AST reduction

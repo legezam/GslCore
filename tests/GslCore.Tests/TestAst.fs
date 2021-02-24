@@ -2,19 +2,13 @@
 
 open GslCore
 open GslCore.Ast
-open GslCore.Ast.Linting
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 open GslCore.Ast.Process
 open GslCore.Ast.Process.Validation
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.GslResult
 open GslCore.Ast.Types
-open GslCore.Ast.Process.VariableResolution
-open GslCore.Ast.Process.ExpressionReduction
-open GslCore.Ast.Process.Inlining
-open GslCore.Ast.Process.PragmaBuilding
-open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.ErrorHandling
 open GslCore.AstFixtures
 open GslCore.AstAssertions

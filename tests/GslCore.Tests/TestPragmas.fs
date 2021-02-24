@@ -14,7 +14,7 @@ open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
 open GslCore.Ast.ErrorHandling
 open GslCore.Constants
-open GslCore.Ast.MessageTranslation
+open GslCore.Ast.Phase1Message
 
 [<TestFixture>]
 type TestPragmas() =

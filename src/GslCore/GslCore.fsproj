@@ -73,7 +73,7 @@
     <Compile Include="Ast\LexAndParse.fs" />
     <Compile Include="Ast\Legacy\Types.fs" />
     <Compile Include="Ast\Legacy\Legacy.fs" />
-    <Compile Include="Ast\MessageTranslation.fs" />
+    <Compile Include="Ast\Phase1Message.fs" />
     <Compile Include="Ast\Phase1.fs" />
     <Compile Include="Core\Types.fs" />
     <Compile Include="Core\ApplySlices.fs" />
