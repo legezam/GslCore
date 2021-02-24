@@ -40,11 +40,11 @@ let (|Leaf|_|) (node: AstNode): AstNode option =
 // TODO: add other part combos as we need them
 let (|AssemblyPart|GenePart|RecursivePart|Other|) (node: AstNode) =
     match node with
-    | AstNode.Part (pw) ->
+    | AstNode.Part pw ->
         match pw.Value.BasePart with
-        | AstNode.Assembly (aw) -> AssemblyPart(pw, aw)
-        | AstNode.Gene (gp) -> GenePart(pw, gp)
-        | AstNode.Part (pwInner) -> RecursivePart(pw, pwInner)
+        | AstNode.Assembly aw -> AssemblyPart(pw, aw)
+        | AstNode.Gene gp -> GenePart(pw, gp)
+        | AstNode.Part pwInner -> RecursivePart(pw, pwInner)
         | _ -> Other
     | _ -> Other
 

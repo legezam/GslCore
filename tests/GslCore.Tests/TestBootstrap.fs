@@ -28,7 +28,7 @@ type TestBootstrapping() =
 
     let bootstrapToTree node =
         match node with
-        | Splice (nodes) -> AstTreeHead(Block(Node.wrapNode (List.ofArray nodes)))
+        | AstNode.Splice (nodes) -> AstTreeHead(AstNode.Block(Node.wrapNode (List.ofArray nodes)))
         | x -> failwithf "Illegal: %A" x
 
     let bootstrapPhase1NoCapas =

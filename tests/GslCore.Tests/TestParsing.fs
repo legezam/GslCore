@@ -121,7 +121,7 @@ end
         let arg = typedValue IntType (wrapInt 1)
 
         let fCall =
-            FunctionCall(Node.wrapNode { Name = "foo"; Arguments = [ arg ] })
+            AstNode.FunctionCall(Node.wrapNode { Name = "foo"; Arguments = [ arg ] })
 
         assertRoundtrip "foo(1)" [ fCall ]
 
@@ -138,7 +138,7 @@ end
               typedValue PartType (assemble [ fooGenePart ]) ]
 
         let fCall =
-            FunctionCall(Node.wrapNode { Name = "foo"; Arguments = args })
+            AstNode.FunctionCall(Node.wrapNode { Name = "foo"; Arguments = args })
 
         assertRoundtrip source [ fCall ]
 
@@ -158,13 +158,13 @@ end
         let text = String.Join(" ; ", partSource)
 
         let parts =
-            [ basePartWrap (PartId(Node.wrapNode "fooPart"))
-              basePartWrap (Marker(Node.wrapNode ()))
-              basePartWrap (InlineDna(Node.wrapNode "GATCGTCGA"))
+            [ basePartWrap (AstNode.PartId(Node.wrapNode "fooPart"))
+              basePartWrap (AstNode.Marker(Node.wrapNode ()))
+              basePartWrap (AstNode.InlineDna(Node.wrapNode "GATCGTCGA"))
               partVariable "fooVar"
-              basePartWrap (InlineProtein(Node.wrapNode "UUU"))
-              basePartWrap (InlineProtein(Node.wrapNode "*"))
-              basePartWrap (HetBlock(Node.wrapNode ()))
+              basePartWrap (AstNode.InlineProtein(Node.wrapNode "UUU"))
+              basePartWrap (AstNode.InlineProtein(Node.wrapNode "*"))
+              basePartWrap (AstNode.HetBlock(Node.wrapNode ()))
               fooGenePart
               partVariable "fooVar" ]
 
@@ -175,7 +175,7 @@ end
         let source = "(@fooPart ; gFOO) ; &fooVar"
 
         let subAssem =
-            assemble [ basePartWrap (PartId(Node.wrapNode "fooPart"))
+            assemble [ basePartWrap (AstNode.PartId(Node.wrapNode "fooPart"))
                        fooGenePart ]
 
         assertRoundtrip

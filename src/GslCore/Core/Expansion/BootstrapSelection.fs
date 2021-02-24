@@ -4,9 +4,6 @@ open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
 
-
-
-
 // ==================================
 // determining which bootstrapped expansion to run
 // ==================================

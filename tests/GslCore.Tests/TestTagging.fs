@@ -28,11 +28,11 @@ type TestTagging() =
     /// Grab high level part wrappers around assemblies so we can see pragmas
     let rec extractParts (n: AstNode): ParsePart list =
         [ match n with
-          | Block b ->
+          | AstNode.Block b ->
               let result = b.Value |> List.collect extractParts
               yield! result
-          | Part p -> yield p.Value
-          | Splice s ->
+          | AstNode.Part p -> yield p.Value
+          | AstNode.Splice s ->
               let result =
                   s |> List.ofArray |> List.collect extractParts
 
@@ -145,8 +145,8 @@ uADH2; dADH2
                 p.Pragmas
                 |> List.choose (fun n ->
                     match n with
-                    | Pragma (p) when p.Value.Name = TaggingPlugin.tagPragmaDef.Name -> Some p.Value
-                    | Pragma (p) when p.Value.Name = TaggingPlugin.gTagPragmaDef.Name -> Some p.Value
+                    | AstNode.Pragma (p) when p.Value.Name = TaggingPlugin.tagPragmaDef.Name -> Some p.Value
+                    | AstNode.Pragma (p) when p.Value.Name = TaggingPlugin.gTagPragmaDef.Name -> Some p.Value
                     | _ -> None)
 
             p, tagPragmas)

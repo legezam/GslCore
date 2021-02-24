@@ -10,27 +10,27 @@ open GslCore.Ast.Process.VariableResolution
 type TestCasesForTypeElision() =
     static member TestCasesForTypeElision: IEnumerable =
         seq {
-            TestCaseData(Part
+            TestCaseData(AstNode.Part
                              { Node.Value =
-                                   { ParsePart.BasePart = Int({ Value = 12; Positions = [] })
+                                   { ParsePart.BasePart = AstNode.Int({ Value = 12; Positions = [] })
                                      Modifiers = []
                                      Pragmas = []
                                      IsForward = false }
                                Positions = [] })
                 .Returns(Some PartType)
 
-            TestCaseData(FunctionLocals
+            TestCaseData(AstNode.FunctionLocals
                              { Node.Value = { FunctionLocals.Names = [ "bar"; "baz" ] }
                                Positions = [] })
                 .Returns(None)
 
-            TestCaseData(Int({ Value = 12; Positions = [] }))
+            TestCaseData(AstNode.Int({ Value = 12; Positions = [] }))
                 .Returns(Some IntType)
 
-            TestCaseData(Float({ Value = 12.0; Positions = [] }))
+            TestCaseData(AstNode.Float({ Value = 12.0; Positions = [] }))
                 .Returns(Some FloatType)
 
-            TestCaseData(String({ Value = "foo"; Positions = [] }))
+            TestCaseData(AstNode.String({ Value = "foo"; Positions = [] }))
                 .Returns(Some StringType)
         } :> IEnumerable
 
@@ -40,26 +40,26 @@ let testTypeElision (node: AstNode): GslVariableType option = VariableResolution
 
 type TestCasesForTypeCheck() =
     static member TestCasesForTypeCheck: IEnumerable =
-        let testBoundValue = Int({ Value = 888; Positions = [] })
+        let testBoundValue = AstNode.Int({ Value = 888; Positions = [] })
 
         let nonElidableValue =
-            FunctionLocals
+            AstNode.FunctionLocals
                 { Node.Value = { FunctionLocals.Names = [ "bar"; "baz" ] }
                   Positions = [] }
 
         let elisionTypeLookup =
             [ PartType,
-              Part
+              AstNode.Part
                   { Node.Value =
-                        { ParsePart.BasePart = Int({ Value = 12; Positions = [] })
+                        { ParsePart.BasePart = AstNode.Int({ Value = 12; Positions = [] })
                           Modifiers = []
                           Pragmas = []
                           IsForward = false }
                     Positions = [] }
 
-              IntType, Int({ Value = 12; Positions = [] })
-              FloatType, Float({ Value = 12.0; Positions = [] })
-              StringType, String({ Value = "foo"; Positions = [] }) ]
+              IntType, AstNode.Int({ Value = 12; Positions = [] })
+              FloatType, AstNode.Float({ Value = 12.0; Positions = [] })
+              StringType, AstNode.String({ Value = "foo"; Positions = [] }) ]
             |> Map.ofList
 
         let allPossibleTypes =

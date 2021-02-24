@@ -82,6 +82,10 @@ let compile (op: AstTreeHead -> AstResult<'a>) (source: GslSourceCode): AstResul
      |> GslResult.mapError LexParseError.toAstMessage)
     >>= op
 
+let compile2 (op: AstTreeHead -> GslResult<'a, 'b>) (source: GslSourceCode): GslResult<'a, Choice<LexParseError, 'b>> =
+    (lexparse source |> GslResult.mapError Choice1Of2)
+    >>= (op >> GslResult.mapError Choice2Of2)
+
 /// Fail if the incoming result is Bad.
 /// Optionally pass in source code for message printing.
 let failIfBad (sourceCode: GslSourceCode option) (r: GslResult<_, _>) =
@@ -118,19 +122,22 @@ let sourceCompareTest op sourceIn expectedSource =
 ///Given GSL source code, parse it, reprint the AST, and compare
 ///to the expectation.
 ///</summary>
-let testExpectedReprinting sourceIn expectedOut =
+let testExpectedReprinting (sourceIn: string) (expectedOut: string) =
     sourceCompareTest (GslResult.promote id) sourceIn expectedOut
 
 
-let checkMessages (expectedTypes: AstMessageType list) (textSnippets: string option list) (msgs: AstMessage list) =
+let checkMessages (expectedTypes: AstMessageType list)
+                  (textSnippets: string option list)
+                  (msgs: AstMessage list)
+                  : AstMessage list =
 
     Assert.AreEqual
         (expectedTypes.Length,
          textSnippets.Length,
          "Please provide the same number of expected types and text snippets.")
 
-    if expectedTypes.Length <> msgs.Length
-    then Assert.Fail(sprintf "Wrong number of errors.  Expected %d, got %d: %+A" expectedTypes.Length msgs.Length msgs)
+    if expectedTypes.Length <> msgs.Length then
+        Assert.Fail(sprintf "Wrong number of errors.  Expected %d, got %d: %+A" expectedTypes.Length msgs.Length msgs)
 
     // optionally check text snippet inclusion
     let textSnips =
@@ -146,7 +153,10 @@ let checkMessages (expectedTypes: AstMessageType list) (textSnippets: string opt
 
 /// Assert that a result is a success with many warnings, with matching types and message texts.
 /// Returns the value and messages for further processing. Otherwise, fail.
-let assertWarnMany failTypes textSnippets (r: AstResult<_>) =
+let assertWarnMany (failTypes: AstMessageType list)
+                   (textSnippets: string option list)
+                   (r: AstResult<'a>)
+                   : Success<'a, AstMessage> =
     match r.Value with
     | Ok success ->
         checkMessages failTypes textSnippets success.Warnings
@@ -157,7 +167,7 @@ let assertWarnMany failTypes textSnippets (r: AstResult<_>) =
         Assert.Fail(sprintf "Validation test didn't succeed.  Result was %A" x)
         failwith "" // need this line to allow compiler to return msg value above
 
-let assertWarn failType textSnippet (r: AstResult<_>) =
+let assertWarn (failType: AstMessageType) (textSnippet: string option) (r: AstResult<'a>): 'a * AstMessage =
     let success =
         assertWarnMany [ failType ] [ textSnippet ] r
 
@@ -165,7 +175,7 @@ let assertWarn failType textSnippet (r: AstResult<_>) =
 
 /// Assert that a result is a failure with many messages, with matching types and message texts.
 /// Returns the failure messages for further processing. Otherwise, fail.
-let assertFailMany failTypes textSnippets (r: GslResult<_, _>) =
+let assertFailMany (failTypes: AstMessageType list) (textSnippets: string option list) (r: AstResult<'a>): AstMessage list =
     match r.Value with
     | Error msgs -> checkMessages failTypes textSnippets msgs
     | x ->
@@ -174,8 +184,7 @@ let assertFailMany failTypes textSnippets (r: GslResult<_, _>) =
 
 /// Assert that a result is a failure with a single message, with matching type and message text.
 /// Return the failure message for further processing. Otherwise, fail.
-let assertFail failType textSnippet r =
+let assertFail (failType: AstMessageType) (textSnippet: string option) (r: AstResult<'a>): AstMessage =
     let msgs =
         assertFailMany [ failType ] [ textSnippet ] r
-
     msgs.[0]

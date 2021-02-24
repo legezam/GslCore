@@ -123,31 +123,31 @@ let ``Test if calculatePosition returns expected results`` (position: int<OneOff
 type TestCasesForGetProvidedPosition() =
     static member TestCasesForGetProvidedPosition: IEnumerable =
         seq {
-            TestCaseData({ ParseRelativePosition.Item = Int({ Node.Value = 12; Positions = [] })
+            TestCaseData({ ParseRelativePosition.Item = AstNode.Int({ Node.Value = 12; Positions = [] })
                            Qualifier = None
                            Position = Left })
                 .Returns(GslResult.ok 12: GslResult<_, RelativePositionTranslationMessage>)
 
-            TestCaseData({ ParseRelativePosition.Item = Int({ Node.Value = 12; Positions = [] })
+            TestCaseData({ ParseRelativePosition.Item = AstNode.Int({ Node.Value = 12; Positions = [] })
                            Qualifier = None
                            Position = Right })
                 .Returns(GslResult.ok 12: GslResult<_, RelativePositionTranslationMessage>)
 
             for qualifier in [ S; E; AS; AE; EA; SA; A ] do
-                TestCaseData({ ParseRelativePosition.Item = Int({ Node.Value = 12; Positions = [] })
+                TestCaseData({ ParseRelativePosition.Item = AstNode.Int({ Node.Value = 12; Positions = [] })
                                Qualifier = Some qualifier
                                Position = Left })
                     .Returns(GslResult.ok 12: GslResult<_, RelativePositionTranslationMessage>)
 
-                TestCaseData({ ParseRelativePosition.Item = Int({ Node.Value = 12; Positions = [] })
+                TestCaseData({ ParseRelativePosition.Item = AstNode.Int({ Node.Value = 12; Positions = [] })
                                Qualifier = Some qualifier
                                Position = Right })
                     .Returns(GslResult.ok 12: GslResult<_, RelativePositionTranslationMessage>)
 
-            TestCaseData({ ParseRelativePosition.Item = Float({ Node.Value = 12.0; Positions = [] })
+            TestCaseData({ ParseRelativePosition.Item = AstNode.Float({ Node.Value = 12.0; Positions = [] })
                            Qualifier = None
                            Position = Right })
-                .Returns(GslResult.err (PositionIsNotInteger(Float({ Node.Value = 12.0; Positions = [] }))): GslResult<int, _>)
+                .Returns(GslResult.err (PositionIsNotInteger(AstNode.Float({ Node.Value = 12.0; Positions = [] }))): GslResult<int, _>)
 
         } :> IEnumerable
 

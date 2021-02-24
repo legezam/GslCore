@@ -87,8 +87,8 @@ type TestPragmasAST() =
 
     let checkPragmaIsBuilt node =
         match node with
-        | Pragma _ -> Validation.good
-        | ParsePragma (p) -> AstResult.errStringF GeneralError "Pragma '%s' was not built." p.Value.Name node
+        | AstNode.Pragma _ -> Validation.good
+        | AstNode.ParsePragma (p) -> AstResult.errStringF GeneralError "Pragma '%s' was not built." p.Value.Name node
         | _ -> Validation.good
 
     let pragmaBuildTest source =
@@ -207,19 +207,19 @@ gBAZ"""
 
         // we need to dive into the AST to check this
         let namePrag =
-            Pragma
+            AstNode.Pragma
                 (Node.wrapNode
                     { Definition = BuiltIn.namePragmaDef
                       Arguments = [ "foobar" ] })
 
         let namePrag2 =
-            Pragma
+            AstNode.Pragma
                 (Node.wrapNode
                     { Definition = BuiltIn.namePragmaDef
                       Arguments = [ "shouldOnlyBeOnInner" ] })
 
         let seedPrag =
-            Pragma
+            AstNode.Pragma
                 (Node.wrapNode
                     { Definition =
                           PragmaBuilder
@@ -230,7 +230,7 @@ gBAZ"""
                       Arguments = [ "123" ] })
 
         let seedPrag2 =
-            Pragma
+            AstNode.Pragma
                 (Node.wrapNode
                     { Definition =
                           PragmaBuilder
@@ -278,16 +278,16 @@ gBAZ"""
             |> GslResult.valueOr (failwithf "%A")
         // now replace the outer name pragma and make sure the second pass triggers the collision error
         match tree.wrappedNode with
-        | Block ({ Value = [ Pragma (npw); assem ]
-                   Positions = p }) ->
+        | AstNode.Block ({ Value = [ AstNode.Pragma (npw); assem ]
+                           Positions = p }) ->
             let newNamePrag =
-                Pragma
+                AstNode.Pragma
                     ({ npw with
                            Value =
                                { npw.Value with
                                      Arguments = [ "differentName" ] } })
 
-            Block
+            AstNode.Block
                 ({ Value = [ newNamePrag; assem ]
                    Positions = p })
         | _ -> failwith "Didn't unwrap correctly."

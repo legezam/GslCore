@@ -10,14 +10,14 @@ let testVariableBindingNode =
     { Node.Value =
           { VariableBinding.Name = "foo"
             Type = GslVariableType.StringType
-            Value = Int({ Node.Value = 10; Positions = [] }) }
+            Value = AstNode.Int({ Node.Value = 10; Positions = [] }) }
       Positions = [] }
 
 [<Test>]
 let ``captureVariableBindings captures VariableBinding in PreTransform mode`` () =
     let binding = testVariableBindingNode
 
-    let inputWrapper = VariableBinding binding
+    let inputWrapper = AstNode.VariableBinding binding
     let bindings = Map.empty
     let mode = PreTransform
 
@@ -34,7 +34,7 @@ let ``captureVariableBindings captures VariableBinding in PreTransform mode`` ()
 let ``captureVariableBindings does not capture VariableBinding in PostTransform mode`` () =
     let binding = testVariableBindingNode
 
-    let inputWrapper = VariableBinding binding
+    let inputWrapper = AstNode.VariableBinding binding
     let bindings = Map.empty
     let mode = PostTransform
 
@@ -46,7 +46,7 @@ let ``captureVariableBindings does not capture VariableBinding in PostTransform 
     Assert.AreEqual(expectedResult, result)
 
 
-let testIrrelevantNode = Int({ Node.Value = 10; Positions = [] })
+let testIrrelevantNode = AstNode.Int({ Node.Value = 10; Positions = [] })
 
 [<Test>]
 let ``captureVariableBindings does not capture irrelevant node in PostTransform mode`` () =
@@ -67,7 +67,7 @@ let testSelfReferencingVariableBindingNode =
           { VariableBinding.Name = "foo"
             Type = GslVariableType.StringType
             Value =
-                TypedVariable
+                AstNode.TypedVariable
                     { Value = "foo", GslVariableType.IntType
                       Positions = [] } }
       Positions = [] }
@@ -76,7 +76,7 @@ let testSelfReferencingVariableBindingNode =
 let ``captureVariableBindings does not capture self-referencing VariableBinding in PreTransform mode`` () =
     let binding = testSelfReferencingVariableBindingNode
 
-    let inputWrapper = VariableBinding binding
+    let inputWrapper = AstNode.VariableBinding binding
     let bindings = Map.empty
     let mode = PreTransform
 
@@ -95,7 +95,7 @@ let testFunctionLocals =
 let ``captureVariableBindings captures FunctionLocals in PreTransform mode`` () =
     let binding = testFunctionLocals
 
-    let inputWrapper = FunctionLocals binding
+    let inputWrapper = AstNode.FunctionLocals binding
     let bindings = Map.empty
     let mode = PreTransform
 
@@ -113,7 +113,7 @@ let ``captureVariableBindings captures FunctionLocals in PreTransform mode`` () 
 let ``captureVariableBindings does not capture FunctionLocals in PostTransform mode`` () =
     let binding = testFunctionLocals
 
-    let inputWrapper = FunctionLocals binding
+    let inputWrapper = AstNode.FunctionLocals binding
     let bindings = Map.empty
     let mode = PostTransform
 

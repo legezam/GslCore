@@ -14,23 +14,23 @@ open GslCore.Constants
 type TestLineNumbers() =
     let rec extractAssemblies (n: AstNode): AstNode list =
         [ match n with
-          | Block b ->
+          | AstNode.Block b ->
               let result =
                   b.Value |> List.collect extractAssemblies
 
               yield! result
-          | Splice s ->
+          | AstNode.Splice s ->
               let result =
                   s
                   |> List.ofArray
                   |> List.collect extractAssemblies
 
               yield! result
-          | Part p ->
+          | AstNode.Part p ->
               match p.Value.BasePart with
-              | Assembly _ as x -> yield x
+              | AstNode.Assembly _ as x -> yield x
               | _ -> ()
-          | Assembly _ as x -> yield x
+          | AstNode.Assembly _ as x -> yield x
           | _ -> () ]
 
     /// NB: note lines are numbered from zero internally, and columns.

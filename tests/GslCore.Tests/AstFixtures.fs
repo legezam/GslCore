@@ -13,17 +13,17 @@ open GslCore.GslResult
 let bootstrapParseOnly source =
     match LexAndParse.lexAndParse true (GslSourceCode(source))
           |> GslResult.GetValue with
-    | Ok { Result = AstTreeHead (Block (b))
+    | Ok { Result = AstTreeHead (AstNode.Block (b))
            Warnings = _ } -> b.Value
     | x -> failwithf "Illegal: %A" x
 
 
-let wrapInt v = Int(Node.wrapNode v)
-let wrapFloat v = Float(Node.wrapNode v)
-let wrapString v = String(Node.wrapNode v)
+let wrapInt v = AstNode.Int(Node.wrapNode v)
+let wrapFloat v = AstNode.Float(Node.wrapNode v)
+let wrapString v = AstNode.String(Node.wrapNode v)
 
 /// Wrap AST items as a block.
-let blockify items = Block(Node.wrapNode items)
+let blockify items = AstNode.Block(Node.wrapNode items)
 
 /// Group AST items as a block, wrapped as a whole tree.
 let treeify items = AstTreeHead(blockify items)
@@ -33,8 +33,8 @@ let assemble = Parts.createAssemblyPart
 
 let addPragsToPart prags a =
     match a with
-    | Part (pw) ->
-        Part
+    | AstNode.Part (pw) ->
+        AstNode.Part
             ({ pw with
                    Value = { pw.Value with Pragmas = prags } })
     | x -> failwithf "Illegal: %A" x
@@ -42,42 +42,42 @@ let addPragsToPart prags a =
 let variableize name v =
     let t =
         match v with
-        | BinaryOperation _ -> IntType // right now we only support integer math so this is OK
-        | Int _ -> IntType
-        | Float _ -> FloatType
-        | String _ -> StringType
-        | Part _ -> PartType
+        | AstNode.BinaryOperation _ -> IntType // right now we only support integer math so this is OK
+        | AstNode.Int _ -> IntType
+        | AstNode.Float _ -> FloatType
+        | AstNode.String _ -> StringType
+        | AstNode.Part _ -> PartType
         | x -> failwithf "Illegal: %A" x
 
-    VariableBinding(Node.wrapNode { Name = name; Type = t; Value = v })
+    AstNode.VariableBinding(Node.wrapNode { Name = name; Type = t; Value = v })
 
 let functionalize name args bodyLines =
     let locals =
-        FunctionLocals(Node.wrapNode { Names = args })
+        AstNode.FunctionLocals(Node.wrapNode { Names = args })
 
-    FunctionDef
+    AstNode.FunctionDef
         (Node.wrapNode
             { Name = name
               ArgumentNames = args
               Body = blockify (locals :: bodyLines) })
 
-let emptyBlock = Block(Node.wrapNode [])
+let emptyBlock = AstNode.Block(Node.wrapNode [])
 let fooEqual1 = variableize "foo" (wrapInt 1)
 
 let namePragmaFoo =
-    ParsePragma
+    AstNode.ParsePragma
         (Node.wrapNode
             { Name = "name"
-              Values = [ String(Node.wrapNode "foo") ] })
+              Values = [ AstNode.String(Node.wrapNode "foo") ] })
 
 
 let createGenePart name =
-    Gene(Node.wrapNode { Gene = name; Linker = None })
+    AstNode.Gene(Node.wrapNode { Gene = name; Linker = None })
 // fixtures and helper functions for parts
 let fooGene = createGenePart "gFOO"
 
 let createPart mods prags basePart =
-    Part
+    AstNode.Part
         (Node.wrapNode
             { BasePart = basePart
               Modifiers = mods
@@ -89,21 +89,21 @@ let basePartWrap = createPart [] []
 let fooGenePart = basePartWrap fooGene
 
 let relPosLeft =
-    ParseRelPos
+    AstNode.ParseRelPos
         (Node.wrapNode
-            { Item = Int(Node.wrapNode 20)
+            { Item = AstNode.Int(Node.wrapNode 20)
               Qualifier = None
               Position = Left })
 
 let relPosRight =
-    ParseRelPos
+    AstNode.ParseRelPos
         (Node.wrapNode
-            { Item = Int(Node.wrapNode 200)
+            { Item = AstNode.Int(Node.wrapNode 200)
               Qualifier = None
               Position = Right })
 
 let testSlice =
-    Slice
+    AstNode.Slice
         (Node.wrapNode
             { Left = relPosLeft
               Right = relPosRight
@@ -115,6 +115,6 @@ let fooGeneWithSlice = createPart [ testSlice ] [] fooGene
 let fooGeneWithPragma = createPart [] [ namePragmaFoo ] fooGene
 
 let partVariable name =
-    basePartWrap (TypedVariable(Node.wrapNode (name, PartType)))
+    basePartWrap (AstNode.TypedVariable(Node.wrapNode (name, PartType)))
 
-let typedValue t v = TypedValue(Node.wrapNode (t, v))
+let typedValue t v = AstNode.TypedValue(Node.wrapNode (t, v))

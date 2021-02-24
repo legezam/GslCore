@@ -41,6 +41,16 @@ type TestLinting() =
            ]
         |> ignore
 
+    [<Test>]
+    member x.TestDetectPushPop2() =
+        let result =
+            "#push\n#pop"
+            |> GslSourceCode
+            |> compile2 Phase1.linting
+
+        printfn "%A" result
+
+
 
 
 [<TestFixture>]
