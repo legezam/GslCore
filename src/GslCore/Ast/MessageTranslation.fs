@@ -2,6 +2,9 @@ namespace GslCore.Ast.MessageTranslation
 
 open GslCore.Ast.ErrorHandling
 
+module NoMessage =
+    let toAstMessage (_input: 'a): AstMessage = failwith "Impossible"
+
 module RelativePositionTranslationMessage =
     open GslCore.Ast.Process.RelativePositionTranslation
 
@@ -169,3 +172,4 @@ module RoughageExpansionMessage =
                 "Roughage construct has indeterminate locus: %s"
                 (AstNode.decompile node)
                 node
+

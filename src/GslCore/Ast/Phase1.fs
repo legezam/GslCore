@@ -38,10 +38,12 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)
     >=> (Inlining.inlineFunctionCalls
          >> GslResult.mapError FunctionInliningMessage.toAstMessage)
-    >=> Cleanup.stripFunctions
+    >=> (Cleanup.stripFunctions
+         >> GslResult.mapError NoMessage.toAstMessage)
     >=> (VariableResolution.resolveVariablesStrict
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-    >=> Cleanup.stripVariables
+    >=> (Cleanup.stripVariables
+         >> GslResult.mapError NoMessage.toAstMessage)
     >=> (ExpressionReduction.reduceMathExpressions
          >> GslResult.mapError ExpressionReductionMessage.toAstMessage)
     >=> (PragmaBuilding.buildPragmas parameters

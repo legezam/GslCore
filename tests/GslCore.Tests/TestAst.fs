@@ -114,7 +114,8 @@ type TestTransformation() =
               >> GslResult.mapError VariableResolutionMessage.toAstMessage)
              >=> (Inlining.inlineFunctionCalls
                   >> GslResult.mapError FunctionInliningMessage.toAstMessage)
-             >=> Cleanup.stripFunctions)
+             >=> (Cleanup.stripFunctions
+                  >> GslResult.mapError NoMessage.toAstMessage))
 
     let flattenAssemblyTest =
         sourceCompareTest
@@ -136,7 +137,8 @@ type TestTransformation() =
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         >=> (Inlining.inlineFunctionCalls
              >> GslResult.mapError FunctionInliningMessage.toAstMessage)
-        >=> Cleanup.stripFunctions
+        >=> (Cleanup.stripFunctions
+             >> GslResult.mapError NoMessage.toAstMessage)
         >=> (VariableResolution.resolveVariablesStrict
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
 

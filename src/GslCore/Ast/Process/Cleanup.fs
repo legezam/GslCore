@@ -13,19 +13,19 @@ open GslCore.GslResult
 // these functions are defined here
 
 /// Match only function declarations.
-let private cleanFunction node =
+let private cleanFunction (node: AstNode): AstNode option =
     match node with
     | FunctionDef _ -> None
     | _ -> Some node
 
 /// Match only variable declarations
-let private cleanVariable node =
+let private cleanVariable (node: AstNode): AstNode option =
     match node with
     | VariableBinding _ -> None
     | _ -> Some node
 
-/// Clean function defintions and variable bindings from blocks.
-let private cleanBlock cleaner node =
+/// Clean function definitions and variable bindings from blocks.
+let private cleanBlock (cleaner: AstNode -> AstNode option) (node: AstNode): AstNode =
     match node with
     | Block blockWrapper ->
         let newBlockContents =
@@ -37,9 +37,9 @@ let private cleanBlock cleaner node =
     | _ -> node
 
 /// Strip function definitions from tree.
-let stripFunctions: AstTreeHead -> TreeTransformResult<AstMessage> =
+let stripFunctions: AstTreeHead -> TreeTransformResult<unit> =
     FoldMap.map Serial TopDown (GslResult.promote (cleanBlock cleanFunction))
 
 /// Strip variable bindings from tree.
-let stripVariables: AstTreeHead -> TreeTransformResult<AstMessage> =
+let stripVariables: AstTreeHead -> TreeTransformResult<unit> =
     FoldMap.map Serial TopDown (GslResult.promote (cleanBlock cleanVariable))
