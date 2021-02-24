@@ -8,6 +8,7 @@ open NUnit.Framework
 open GslCore.GslResult
 open GslCore.Ast.Types
 open GslCore.Ast.Process.VariableResolution
+open GslCore.Ast.Process.Inlining
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast
 open GslCore.AstFixtures
@@ -107,7 +108,8 @@ type TestTransformation() =
         sourceCompareTest
             ((VariableResolution.resolveVariables
               >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-             >=> Inlining.inlineFunctionCalls
+             >=> (Inlining.inlineFunctionCalls
+                  >> GslResult.mapError FunctionInliningMessage.toAstMessage)
              >=> Cleanup.stripFunctions)
 
     let flattenAssemblyTest =
@@ -125,7 +127,8 @@ type TestTransformation() =
         Validation.checkRecursiveCalls
         >=> (VariableResolution.resolveVariables
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-        >=> Inlining.inlineFunctionCalls
+        >=> (Inlining.inlineFunctionCalls
+             >> GslResult.mapError FunctionInliningMessage.toAstMessage)
         >=> Cleanup.stripFunctions
         >=> (VariableResolution.resolveVariablesStrict
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)

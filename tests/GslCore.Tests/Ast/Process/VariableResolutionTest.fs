@@ -109,13 +109,13 @@ type TestCasesForTypeCheck() =
                 TestCaseData({| TargetType = notNotYetTypedType
                                 BoundValueType = NotYetTyped
                                 BoundValue = boundValue |})
-                    .Returns(GslResult.err (VariableTypeMismatch(elidedType, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
+                    .Returns(GslResult.err (ElisionResolvesToDifferentTypeError(elidedType, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
 
                 // if elision fails then it's a fail
                 TestCaseData({| TargetType = notNotYetTypedType
                                 BoundValueType = NotYetTyped
                                 BoundValue = nonElidableValue |})
-                    .Returns(GslResult.err (InternalTypeMismatch(nonElidableValue, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
+                    .Returns(GslResult.err (ElisionFailure(nonElidableValue, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
 
                 for notNotYetTypedType2 in ``All types except NotYetTyped`` do
                     if notNotYetTypedType <> notNotYetTypedType2 then
@@ -123,7 +123,7 @@ type TestCasesForTypeCheck() =
                                         BoundValueType = notNotYetTypedType2
                                         BoundValue = testBoundValue |})
                             .Returns(GslResult.err
-                                         (VariableTypeMismatch(notNotYetTypedType2, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
+                                         (ElisionResolvesToDifferentTypeError(notNotYetTypedType2, notNotYetTypedType)): GslResult<AstNode, TypeCheckResult>)
 
         } :> IEnumerable
 

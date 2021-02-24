@@ -1,11 +1,9 @@
-namespace GslCore.Ast.Process
+namespace GslCore.Ast.Process.Inlining
 
 
-open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
 
@@ -25,6 +23,18 @@ module FunctionInliningState =
         { Definitions = Map.empty
           Variables = Map.empty
           Depth = 0 }
+
+type FunctionInliningError =
+    | VariableResolution of VariableResolutionError
+    | ParameterNumberMismatchError of
+        functionCallNode: AstNode *
+        functionCall: FunctionCall *
+        neededArgs: int *
+        passedArgs: int
+    | MissingFunctionLocalsError of parseFunction: ParseFunction
+    | InternalFunctionCallTypeMismatch of node: AstNode
+    | InternalFunctionBodyTypeMismatch of node: AstNode
+    | UnresolvedFunction of functionCall: FunctionCall * node: AstNode
 
 module Inlining =
     /// Capture a function definition.
@@ -60,22 +70,18 @@ module Inlining =
     let private checkArgs (parseFunction: ParseFunction)
                           (functionCall: FunctionCall)
                           (functionCallNode: AstNode)
-                          : AstResult<ParseFunction * FunctionCall> =
+                          : GslResult<ParseFunction * FunctionCall, FunctionInliningError> =
         let neededArgs, passedArgs =
             parseFunction.ArgumentNames.Length, functionCall.Arguments.Length
         // make sure we have the right number of arguments
-        if passedArgs <> neededArgs then
-            AstResult.errString
-                TypeError
-                (sprintf "Function '%s' expects %d arguments but received %d." functionCall.Name neededArgs passedArgs)
-                functionCallNode
-        else
-            GslResult.ok (parseFunction, functionCall)
+        if passedArgs <> neededArgs
+        then GslResult.err (ParameterNumberMismatchError(functionCallNode, functionCall, neededArgs, passedArgs))
+        else GslResult.ok (parseFunction, functionCall)
 
     /// Create a local variable from a typed value.
     let private localVarFromTypedValueAndName (variableBindings: CapturedVariableBindings)
                                               (name: string, node: AstNode)
-                                              : AstResult<AstNode> =
+                                              : GslResult<AstNode, FunctionInliningError> =
         match node with
         | TypedValue typedValueWrapper ->
             let (varType, typedValue) = typedValueWrapper.Value
@@ -83,7 +89,7 @@ module Inlining =
             // this ensures that function locals never resolve to each other.
             AstTreeHead(typedValue)
             |> FoldMap.map Serial TopDown (VariableResolution.resolveVariable Strict variableBindings)
-            |> GslResult.mapError VariableResolutionMessage.toAstMessage
+            |> GslResult.mapError VariableResolution
             |> GslResult.map (fun (AstTreeHead newVal) ->
                 VariableBinding
                     { Value =
@@ -91,14 +97,15 @@ module Inlining =
                             Type = varType
                             Value = newVal }
                       Positions = typedValueWrapper.Positions })
-        | x -> AstResult.internalTypeMismatch (Some "function call") "typed value" x
+        | x -> GslResult.err (InternalFunctionCallTypeMismatch x)
+
 
 
     /// Inline the passed function args in place of the FunctionLocals placeholder.
     /// Return a revised block.
     let private inlinePassedArgs (variableBindings: CapturedVariableBindings)
                                  (parseFunction: ParseFunction, functionCall: FunctionCall)
-                                 : AstResult<AstNode> =
+                                 : GslResult<AstNode, FunctionInliningError> =
         match parseFunction.Body with
         | Block blockWrapper ->
             match blockWrapper.Value with
@@ -118,15 +125,13 @@ module Inlining =
                     Block
                         { blockWrapper with
                               Value = variableBindings @ tail })
-            | _ ->
-                AstResult.errString
-                    (InternalError(TypeError))
-                    "No function locals node found in function defintion block."
-                    parseFunction.Body
-        | x -> AstResult.internalTypeMismatch (Some "function body") "Block" x
+            | _ -> GslResult.err (MissingFunctionLocalsError parseFunction)
+        | x -> GslResult.err (InternalFunctionBodyTypeMismatch x)
 
     /// Replace a function call with the contents of a function definition.
-    let private inlineFunctionCall (state: FunctionInliningState) (node: AstNode): AstResult<AstNode> =
+    let private inlineFunctionCall (state: FunctionInliningState)
+                                   (node: AstNode)
+                                   : GslResult<AstNode, FunctionInliningError> =
         match node with
         | FunctionCall functionCallWrapper when state.Depth = 0 -> // only do inlining if we're not inside a def
             let functionCall = functionCallWrapper.Value
@@ -145,7 +150,7 @@ module Inlining =
                 >>= FoldMap.map Serial TopDown addPositions
                 |> GslResult.map (fun treeHead -> treeHead.wrappedNode)
 
-            | None -> AstResult.errString UnresolvedFunction functionCall.Name node
+            | None -> GslResult.err (FunctionInliningError.UnresolvedFunction(functionCall, node))
         | _ -> GslResult.ok node
 
     let inlineFunctionCalls =

@@ -751,7 +751,7 @@ module FoldMap =
     /// This function was written as a generic solution to the "variable resolution problem".
     ///</summary>
     // TODO: this function really needs a drawing to be clear.  Document this using a graph example.
-    // IMPORTANT: please take great care if editing this algorithmn!
+    // IMPORTANT: please take great care if editing this algorithm!
     let foldMap (initialState: 'State)
                 (parameters: FoldMapParameters<'State, 'Msg>)
                 (tree: AstTreeHead)

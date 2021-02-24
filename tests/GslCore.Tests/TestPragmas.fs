@@ -3,6 +3,7 @@
 open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Ast.Process.VariableResolution
+open GslCore.Ast.Process.Inlining
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.Pragma
@@ -71,7 +72,8 @@ type TestPragmasAST() =
     let pragmaBuildPipeline =
         (VariableResolution.resolveVariables
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-        >=> Inlining.inlineFunctionCalls
+        >=> (Inlining.inlineFunctionCalls
+             >> GslResult.mapError FunctionInliningMessage.toAstMessage)
         >=> Cleanup.stripFunctions
         >=> (VariableResolution.resolveVariablesStrict
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)

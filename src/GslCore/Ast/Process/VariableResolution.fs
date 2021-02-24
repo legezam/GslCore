@@ -60,12 +60,17 @@ module VariableCapturing =
         StateUpdateMode.pretransformOnly captureVariableBindingsInner
 
 type TypeCheckResult =
-    | InternalTypeMismatch of boundValue: AstNode * targetType: GslVariableType
-    | VariableTypeMismatch of elidedType: GslVariableType * targetType: GslVariableType
+    /// Value that is passed is not possible to elide
+    | ElisionFailure of boundValue: AstNode * targetType: GslVariableType
+    /// Elision resolves to a different type than the target type
+    | ElisionResolvesToDifferentTypeError of elidedType: GslVariableType * targetType: GslVariableType
 
 type VariableResolutionError =
+    /// Variable resolution failed during type check
     | TypeCheckError of result: TypeCheckResult * node: AstNode * variableName: string
+    /// Found a FunctionLocal while it is disallowed
     | IllegalFunctionLocal of variableName: string * node: AstNode
+    /// Couldn't resolve the variable after all attempts
     | UnresolvedVariable of variableName: string * node: AstNode
 
 module VariableResolution =
@@ -96,12 +101,12 @@ module VariableResolution =
             | Some elidedType when elidedType = targetType -> // elides to correct type
                 GslResult.ok boundValue
             | Some elidedType -> // elides to incorrect type
-                GslResult.err (VariableTypeMismatch(elidedType, targetType))
+                GslResult.err (ElisionResolvesToDifferentTypeError(elidedType, targetType))
             | None -> // whatever this thing is, it shouldn't be inside a variable
-                GslResult.err (InternalTypeMismatch(boundValue, targetType))
+                GslResult.err (ElisionFailure(boundValue, targetType))
         else
             // type mismatch
-            GslResult.err (VariableTypeMismatch(boundValueType, targetType))
+            GslResult.err (ElisionResolvesToDifferentTypeError(boundValueType, targetType))
 
 
     module VariableResolutionError =

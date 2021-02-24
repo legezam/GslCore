@@ -10,6 +10,7 @@ open GslCore.Ast.Algorithms
 open GslCore.Pragma
 open GslCore.Ast.Process.RelativePositionTranslation
 open GslCore.Ast.Process.VariableResolution
+open GslCore.Ast.Process.Inlining
 open GslCore.Ast.MessageTranslation
 
 // ==================
@@ -29,7 +30,8 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
     >=> Validation.checkRecursiveCalls
     >=> (VariableResolution.resolveVariables
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-    >=> Inlining.inlineFunctionCalls
+    >=> (Inlining.inlineFunctionCalls
+         >> GslResult.mapError FunctionInliningMessage.toAstMessage)
     >=> Cleanup.stripFunctions
     >=> (VariableResolution.resolveVariablesStrict
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)

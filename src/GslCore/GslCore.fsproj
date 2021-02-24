@@ -59,7 +59,6 @@
     <Compile Include="Ast\Process\ParsePart.fs" />
     <Compile Include="Ast\Process\Validation.fs" />
     <Compile Include="Ast\Process\VariableResolution.fs" />
-    <Compile Include="Ast\Process\VariableResolutionMessageTranslation.fs" />
     <Compile Include="Ast\Process\Inlining.fs" />
     <Compile Include="Ast\Process\ExpressionReduction.fs" />
     <Compile Include="Ast\Process\RelativePositionTranslation.fs" />

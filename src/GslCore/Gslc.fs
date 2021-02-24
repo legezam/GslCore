@@ -286,7 +286,6 @@ let gslc unconfiguredPlugins argv: FlowControl<_> =
     >?> maybeDumpLoci
     >?> checkInputFileList
     >?> maybeJustDoLexing
-
     >?> runCompiler
     >?> handleCompileResult
     >?> doDnaMaterialization
