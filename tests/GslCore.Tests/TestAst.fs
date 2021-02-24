@@ -8,7 +8,9 @@ open NUnit.Framework
 open GslCore.GslResult
 open GslCore.Ast.Types
 open GslCore.Ast.Process.VariableResolution
+open GslCore.Ast.Process.ExpressionReduction
 open GslCore.Ast.Process.Inlining
+open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast
 open GslCore.AstFixtures
@@ -102,7 +104,8 @@ type TestTransformation() =
         sourceCompareTest
             ((VariableResolution.resolveVariables
               >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-             >=> ExpressionReduction.reduceMathExpressions)
+             >=> (ExpressionReduction.reduceMathExpressions
+                  >> GslResult.mapError ExpressionReductionMessage.toAstMessage))
 
     let functionInliningTest =
         sourceCompareTest
@@ -114,7 +117,8 @@ type TestTransformation() =
 
     let flattenAssemblyTest =
         sourceCompareTest
-            (PragmaBuilding.buildPragmas AssemblyTestSupport.defaultPhase1Parameters
+            ((PragmaBuilding.buildPragmas AssemblyTestSupport.defaultPhase1Parameters
+              >> GslResult.mapError PragmaBuildingMessage.toAstMessage)
              >=> AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters)
 
     let flattenPartTest =

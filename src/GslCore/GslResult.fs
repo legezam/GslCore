@@ -161,16 +161,16 @@ module GslResult =
             Result.Error [ (errorMapper err) ]
             |> GslResult.Create
 
-    let inline mapError (errorMapper: 'b -> 'c) (input: GslResult<'a, 'b>): GslResult<'a, 'c> =
+    let inline mapError (messageMapper: 'b -> 'c) (input: GslResult<'a, 'b>): GslResult<'a, 'c> =
         match input.Value with
         | Ok success ->
             { Success.Result = success.Result
-              Warnings = success.Warnings |> List.map errorMapper }
+              Warnings = success.Warnings |> List.map messageMapper }
             |> Ok
             |> GslResult.Create
         | Error messages ->
             messages
-            |> List.map errorMapper
+            |> List.map messageMapper
             |> Error
             |> GslResult.Create
 

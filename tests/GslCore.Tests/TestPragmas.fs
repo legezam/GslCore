@@ -4,6 +4,8 @@ open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Process.Inlining
+open GslCore.Ast.Process.ExpressionReduction
+open GslCore.Ast.Process.PragmaBuilding
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.Pragma
@@ -78,8 +80,10 @@ type TestPragmasAST() =
         >=> (VariableResolution.resolveVariablesStrict
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         >=> Cleanup.stripVariables
-        >=> ExpressionReduction.reduceMathExpressions
-        >=> (PragmaBuilding.buildPragmas phase1Params)
+        >=> (ExpressionReduction.reduceMathExpressions
+             >> GslResult.mapError ExpressionReductionMessage.toAstMessage)
+        >=> (PragmaBuilding.buildPragmas phase1Params
+             >> GslResult.mapError PragmaBuildingMessage.toAstMessage)
 
     let compilePragmas = compile pragmaBuildPipeline
 

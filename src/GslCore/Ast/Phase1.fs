@@ -11,6 +11,8 @@ open GslCore.Pragma
 open GslCore.Ast.Process.RelativePositionTranslation
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Process.Inlining
+open GslCore.Ast.Process.ExpressionReduction
+open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.MessageTranslation
 
 // ==================
@@ -36,8 +38,10 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
     >=> (VariableResolution.resolveVariablesStrict
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)
     >=> Cleanup.stripVariables
-    >=> ExpressionReduction.reduceMathExpressions
-    >=> PragmaBuilding.buildPragmas parameters
+    >=> (ExpressionReduction.reduceMathExpressions
+         >> GslResult.mapError ExpressionReductionMessage.toAstMessage)
+    >=> (PragmaBuilding.buildPragmas parameters
+         >> GslResult.mapError PragmaBuildingMessage.toAstMessage)
     >=> PragmaWarning.collect
     >=> (RelativePositionTranslation.compute
          >> GslResult.mapError RelativePositionTranslationMessage.toAstMessage)
