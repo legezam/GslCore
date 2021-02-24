@@ -20,10 +20,10 @@ module ExpressionReduction =
     /// Also collapse negations while we're at it.  If we find something we can't negate, return an error.
     let private reduceMathExpression (node: AstNode): GslResult<AstNode, ExpressionReductionError> =
         match node with
-        | BinaryOperation ({ Node.Value = binaryOperation
-                             Positions = positions }) ->
+        | AstNode.BinaryOperation ({ Node.Value = binaryOperation
+                                     Positions = positions }) ->
             match binaryOperation.Left, binaryOperation.Right with
-            | Int left, Int right ->
+            | AstNode.Int left, AstNode.Int right ->
                 // two concrete integers, we can operate on them
                 let result =
                     match binaryOperation.Operator with
@@ -33,7 +33,7 @@ module ExpressionReduction =
                     | Divide -> left.Value / right.Value
 
                 GslResult.ok
-                    (Int
+                    (AstNode.Int
                         ({ Value = result
                            Positions = positions }))
             // If we don't have two ints (because one or both are still variables), we can't reduce but
@@ -46,14 +46,14 @@ module ExpressionReduction =
             | illegalLeft, illegalRight ->
                 GslResult.err (TypeIsNotAllowedInBinaryExpression illegalLeft)
                 |> GslResult.addMessages [ TypeIsNotAllowedInBinaryExpression illegalRight ]
-        | Negation ({ Value = inner; Positions = pos }) ->
+        | AstNode.Negation ({ Value = inner; Positions = pos }) ->
             match inner with
-            | Int ({ Value = i; Positions = _ }) ->
+            | AstNode.Int ({ Value = i; Positions = _ }) ->
                 let v = -1 * i
-                GslResult.ok (Int({ Value = v; Positions = pos }))
-            | Float ({ Value = i; Positions = _ }) ->
+                GslResult.ok (AstNode.Int({ Value = v; Positions = pos }))
+            | AstNode.Float ({ Value = i; Positions = _ }) ->
                 let v = -1.0 * i
-                GslResult.ok (Float({ Value = v; Positions = pos }))
+                GslResult.ok (AstNode.Float({ Value = v; Positions = pos }))
             // If we have a variable, it should be numeric.  If so, we're ok
             | IntVariable _
             | FloatVariable _ -> GslResult.ok node

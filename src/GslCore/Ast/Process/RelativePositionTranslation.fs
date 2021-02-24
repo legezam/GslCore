@@ -31,7 +31,7 @@ module RelativePositionTranslationMessage =
 
 module RelativePositionTranslation =
     let private buildNode (positions: SourcePosition list) (position: int<OneOffset>) (relativeTo: GeneEnd): AstNode =
-        RelPos
+        AstNode.RelPos
             { Node.Value =
                   { RelativePosition.Position = position
                     RelativeTo = relativeTo }
@@ -70,9 +70,10 @@ module RelativePositionTranslation =
             | A, Right
             | AS, Right
             | SA, Right ->
-                if position > 0<OneOffset>
-                then ((position * 3), FivePrime) |> GslResult.ok
-                else GslResult.err (NegativeRightAminoAcidStartPosition position)
+                if position > 0<OneOffset> then
+                    ((position * 3), FivePrime) |> GslResult.ok
+                else
+                    GslResult.err (NegativeRightAminoAcidStartPosition position)
             | AE, Right
             | EA, Right ->
                 let aminoAcidIndex =
@@ -81,17 +82,17 @@ module RelativePositionTranslation =
                 (aminoAcidIndex, ThreePrime) |> GslResult.ok
 
     let internal getProvidedPosition (relativePosition: ParseRelativePosition)
-                                    : GslResult<int, RelativePositionTranslationMessage> =
+                                     : GslResult<int, RelativePositionTranslationMessage> =
         match relativePosition.Item with
-        | Int ({ Node.Value = providedPosition
-                 Positions = _ }) -> GslResult.ok providedPosition
+        | AstNode.Int ({ Node.Value = providedPosition
+                         Positions = _ }) -> GslResult.ok providedPosition
         | otherNode -> PositionIsNotInteger otherNode |> GslResult.err
 
     /// Compute relative positions for slices.
     /// Replaces `ParseRelativePosition` items with `RelativePosition` items
     let private buildRelativePosition (node: AstNode): GslResult<AstNode, RelativePositionTranslationMessage> =
         match node with
-        | ParseRelPos relativePositionWrapper ->
+        | AstNode.ParseRelPos relativePositionWrapper ->
             let parseRelativePosition = relativePositionWrapper.Value
 
             let buildNode =

@@ -45,7 +45,7 @@ module Inlining =
                                    (node: AstNode)
                                    : FunctionInliningState =
         match node with
-        | FunctionDef functionWrapper ->
+        | AstNode.FunctionDef functionWrapper ->
             match mode with
             | PreTransform ->
                 { state with
@@ -83,7 +83,7 @@ module Inlining =
                                               (name: string, node: AstNode)
                                               : GslResult<AstNode, FunctionInliningError> =
         match node with
-        | TypedValue typedValueWrapper ->
+        | AstNode.TypedValue typedValueWrapper ->
             let (varType, typedValue) = typedValueWrapper.Value
             // using the existing variable bindings, resolve any variables contained in this value
             // this ensures that function locals never resolve to each other.
@@ -91,7 +91,7 @@ module Inlining =
             |> FoldMap.map Serial TopDown (VariableResolution.resolveVariable Strict variableBindings)
             |> GslResult.mapError VariableResolution
             |> GslResult.map (fun (AstTreeHead newVal) ->
-                VariableBinding
+                AstNode.VariableBinding
                     { Value =
                           { Name = name
                             Type = varType
@@ -107,12 +107,12 @@ module Inlining =
                                  (parseFunction: ParseFunction, functionCall: FunctionCall)
                                  : GslResult<AstNode, FunctionInliningError> =
         match parseFunction.Body with
-        | Block blockWrapper ->
+        | AstNode.Block blockWrapper ->
             match blockWrapper.Value with
             // We require a block whose head is a FunctionLocal or something is fishy.
             | head :: tail when (match head with
                                  // We require a block whose head is a FunctionLocal or something is fishy.
-                                 | FunctionLocals _ -> true
+                                 | AstNode.FunctionLocals _ -> true
                                  // We require a block whose head is a FunctionLocal or something is fishy.
                                  | _ -> false) ->
                 Seq.zip parseFunction.ArgumentNames functionCall.Arguments // zip up the args with the arg names
@@ -122,7 +122,7 @@ module Inlining =
                 // if unpacking and conversion succeeded, make a new block with the
                 // variable declarations followed by the rest of the block
                 |> GslResult.map (fun variableBindings ->
-                    Block
+                    AstNode.Block
                         { blockWrapper with
                               Value = variableBindings @ tail })
             | _ -> GslResult.err (MissingFunctionLocalsError parseFunction)
@@ -133,7 +133,7 @@ module Inlining =
                                    (node: AstNode)
                                    : GslResult<AstNode, FunctionInliningError> =
         match node with
-        | FunctionCall functionCallWrapper when state.Depth = 0 -> // only do inlining if we're not inside a def
+        | AstNode.FunctionCall functionCallWrapper when state.Depth = 0 -> // only do inlining if we're not inside a def
             let functionCall = functionCallWrapper.Value
 
             match state.Definitions.TryFind(functionCall.Name) with

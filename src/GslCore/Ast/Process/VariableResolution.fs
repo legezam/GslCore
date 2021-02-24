@@ -50,8 +50,8 @@ module VariableCapturing =
         | SelfReferentialVariable _ ->
             // variable that aliases itself from an outer scope.  Ignore this.
             capturedBindings
-        | VariableBinding variableBinding -> captureVariableBinding capturedBindings variableBinding
-        | FunctionLocals functionLocals ->
+        | AstNode.VariableBinding variableBinding -> captureVariableBinding capturedBindings variableBinding
+        | AstNode.FunctionLocals functionLocals ->
             functionLocals.Value.Names
             |> List.fold captureFunctionLocalBinding capturedBindings
         | _ -> capturedBindings
@@ -78,10 +78,10 @@ module VariableResolution =
     /// Elide a type for a value node, if it corresponds to a valid GslVarType.
     let internal elideType: AstNode -> GslVariableType option =
         function
-        | Part _ -> Some(PartType)
-        | Int _ -> Some(IntType)
-        | Float _ -> Some(FloatType)
-        | String _ -> Some(StringType)
+        | AstNode.Part _ -> Some(PartType)
+        | AstNode.Int _ -> Some(IntType)
+        | AstNode.Float _ -> Some(FloatType)
+        | AstNode.String _ -> Some(StringType)
         | _ -> None
 
 
@@ -131,7 +131,7 @@ module VariableResolution =
             let declaredValue = capturedBinding.Value.Value
 
             match declaredType, declaredValue with
-            | NotYetTyped, TypedVariable declaredValueInner ->
+            | NotYetTyped, AstNode.TypedVariable declaredValueInner ->
                 // if this variable is just a reference to another variable, we need to recurse on it.
                 resolveVariableRecursive mode capturedBindings targetType declaredValueInner topNode
             | _, boundValue ->
@@ -150,7 +150,7 @@ module VariableResolution =
                                  (node: AstNode)
                                  : GslResult<AstNode, VariableResolutionError> =
         match node with
-        | TypedVariable typedVariable ->
+        | AstNode.TypedVariable typedVariable ->
             let targetType = snd typedVariable.Value
             // might resolve to another variable, so we need to do this recursively
             resolveVariableRecursive mode capturedBindings targetType typedVariable node

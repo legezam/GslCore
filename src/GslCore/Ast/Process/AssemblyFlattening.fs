@@ -24,7 +24,7 @@ module AssemblyFlattening =
         nodes
         |> List.choose (fun node ->
             match node with
-            | Part partWrapper -> Some partWrapper
+            | AstNode.Part partWrapper -> Some partWrapper
             | _ -> None)
 
     let private shiftOne (shiftedParts: Node<ParsePart> list, addFuse: bool)
@@ -114,7 +114,7 @@ module AssemblyFlattening =
                 |> List.map (fun parsePart -> ParsePart.mergePragmas parsePart (ParsePart.getPragmas assemblyPart))
                 |> GslResult.collectA
                 |> GslResult.mapError PragmaMergeError
-                |> GslResult.map (List.map Part)
+                |> GslResult.map (List.map AstNode.Part)
 
     /// Collapse a part whose base part is another part.
     // TODO: we should probably be more careful with mods here
@@ -141,7 +141,7 @@ module AssemblyFlattening =
                                 Modifiers = joinedMods
                                 IsForward = newDir } }
 
-            Part newInnerWithOuterMods)
+            AstNode.Part newInnerWithOuterMods)
         |> GslResult.mapError PragmaMergeError
 
     /// Explode any nested assemblies up into the list of parts in the parent assembly.
@@ -163,11 +163,11 @@ module AssemblyFlattening =
             |> GslResult.collectA
             |> GslResult.map (fun partLists ->
                 let newBasePart =
-                    Assembly
+                    AstNode.Assembly
                         ({ assemblyBasePart with
                                Value = List.concat partLists })
 
-                Part
+                AstNode.Part
                     ({ assemblyPart with
                            Value =
                                { assemblyPart.Value with

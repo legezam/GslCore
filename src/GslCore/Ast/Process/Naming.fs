@@ -55,7 +55,9 @@ let private checkGeneNamesInAssembly (reference: GenomeDefinitions)
     | _ -> Validation.good
 
 /// Validate all gene names.
-let checkGeneNames (reference: GenomeDefinitions) (library: Map<string, Dna>): AstTreeHead -> TreeTransformResult<AstMessage> =
+let checkGeneNames (reference: GenomeDefinitions)
+                   (library: Map<string, Dna>)
+                   : AstTreeHead -> TreeTransformResult<AstMessage> =
     Validation.validate (checkGeneNamesInAssembly reference library)
 
 
@@ -107,10 +109,10 @@ let private nameAssembly (node: AstNode): AstNode =
                  pragmas |> PragmaCollection.add namePragma
 
              let namedAssembly =
-                 Part(ParsePart.replacePragmas assemblyWrapper mergedPragmas)
+                 AstNode.Part(ParsePart.replacePragmas assemblyWrapper mergedPragmas)
 
-             let pragmaNode = Pragma(Node.wrapNode namePragma)
-             Block(Utils.nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ])
+             let pragmaNode = AstNode.Pragma(Node.wrapNode namePragma)
+             AstNode.Block(Utils.nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ])
     | _ -> node
 
 

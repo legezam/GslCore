@@ -111,7 +111,7 @@ let private expandL2Expression (providers: L2Provider list) (rgs: GenomeDefiniti
 
 let validateNoAssemblyInL2Promoter (node: AstNode) =
     match node with
-    | L2Element e ->
+    | AstNode.L2Element e ->
         // if you see an L2 element, check if the promoter looks like an Assembly
         match e.Value.Promoter with
         | AssemblyPart _ -> AstResult.errString L2ExpansionError "Unsupported use of an Assembly." node
@@ -137,7 +137,7 @@ let expandLevel2 (parameters: Phase1Parameters) (providers: L2Provider list) (rg
                 |> GslResult.err
 
         match node with
-        | L2Expression (l2e) ->
+        | AstNode.L2Expression (l2e) ->
             LegacyL2Conversion.convertL2Line pragmaContext l2e
             >>= expandCaptureException
             >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions)

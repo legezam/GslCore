@@ -32,40 +32,40 @@ let bootstrapError expectedType note tree =
 /// locate the source of the error to the line in the original input source.
 let private replaceSourcePosition pos node =
     match node with
-    | Int (nw) -> Int({ nw with Positions = pos })
-    | Float (nw) -> Float({ nw with Positions = pos })
-    | String (nw) -> String({ nw with Positions = pos })
-    | Docstring (nw) -> Docstring({ nw with Positions = pos })
-    | TypedVariable (nw) -> TypedVariable({ nw with Positions = pos })
-    | TypedValue (nw) -> TypedValue({ nw with Positions = pos })
-    | VariableBinding (nw) -> VariableBinding({ nw with Positions = pos })
-    | BinaryOperation (nw) -> BinaryOperation({ nw with Positions = pos })
-    | Negation (nw) -> Negation({ nw with Positions = pos })
-    | ParseRelPos (nw) -> ParseRelPos({ nw with Positions = pos })
-    | RelPos (nw) -> RelPos({ nw with Positions = pos })
-    | Slice (nw) -> Slice({ nw with Positions = pos })
-    | Mutation (nw) -> Mutation({ nw with Positions = pos })
-    | DotMod (nw) -> DotMod({ nw with Positions = pos })
-    | Part (nw) -> Part({ nw with Positions = pos })
-    | Marker (nw) -> Marker({ nw with Positions = pos })
-    | PartId (nw) -> PartId({ nw with Positions = pos })
-    | InlineDna (nw) -> InlineDna({ nw with Positions = pos })
-    | InlineProtein (nw) -> InlineProtein({ nw with Positions = pos })
-    | HetBlock (nw) -> HetBlock({ nw with Positions = pos })
-    | Gene (nw) -> Gene({ nw with Positions = pos })
-    | L2Id (nw) -> L2Id({ nw with Positions = pos })
-    | L2Element (nw) -> L2Element({ nw with Positions = pos })
-    | L2Expression (nw) -> L2Expression({ nw with Positions = pos })
-    | Roughage (nw) -> Roughage({ nw with Positions = pos })
-    | ParsePragma (nw) -> ParsePragma({ nw with Positions = pos })
-    | Pragma (nw) -> Pragma({ nw with Positions = pos })
-    | Block (nw) -> Block({ nw with Positions = pos })
-    | FunctionDef (nw) -> FunctionDef({ nw with Positions = pos })
-    | FunctionLocals (nw) -> FunctionLocals({ nw with Positions = pos })
-    | FunctionCall (nw) -> FunctionCall({ nw with Positions = pos })
-    | Assembly (nw) -> Assembly({ nw with Positions = pos })
-    | ParseError (nw) -> ParseError({ nw with Positions = pos })
-    | Splice (x) -> Splice(x)
+    | AstNode.Int (nw) -> AstNode.Int({ nw with Positions = pos })
+    | AstNode.Float (nw) -> AstNode.Float({ nw with Positions = pos })
+    | AstNode.String (nw) -> AstNode.String({ nw with Positions = pos })
+    | AstNode.Docstring (nw) -> AstNode.Docstring({ nw with Positions = pos })
+    | AstNode.TypedVariable (nw) -> AstNode.TypedVariable({ nw with Positions = pos })
+    | AstNode.TypedValue (nw) -> AstNode.TypedValue({ nw with Positions = pos })
+    | AstNode.VariableBinding (nw) -> AstNode.VariableBinding({ nw with Positions = pos })
+    | AstNode.BinaryOperation (nw) -> AstNode.BinaryOperation({ nw with Positions = pos })
+    | AstNode.Negation (nw) -> AstNode.Negation({ nw with Positions = pos })
+    | AstNode.ParseRelPos (nw) -> AstNode.ParseRelPos({ nw with Positions = pos })
+    | AstNode.RelPos (nw) -> AstNode.RelPos({ nw with Positions = pos })
+    | AstNode.Slice (nw) -> AstNode.Slice({ nw with Positions = pos })
+    | AstNode.Mutation (nw) -> AstNode.Mutation({ nw with Positions = pos })
+    | AstNode.DotMod (nw) -> AstNode.DotMod({ nw with Positions = pos })
+    | AstNode.Part (nw) -> AstNode.Part({ nw with Positions = pos })
+    | AstNode.Marker (nw) -> AstNode.Marker({ nw with Positions = pos })
+    | AstNode.PartId (nw) -> AstNode.PartId({ nw with Positions = pos })
+    | AstNode.InlineDna (nw) -> AstNode.InlineDna({ nw with Positions = pos })
+    | AstNode.InlineProtein (nw) -> AstNode.InlineProtein({ nw with Positions = pos })
+    | AstNode.HetBlock (nw) -> AstNode.HetBlock({ nw with Positions = pos })
+    | AstNode.Gene (nw) -> AstNode.Gene({ nw with Positions = pos })
+    | AstNode.L2Id (nw) -> AstNode.L2Id({ nw with Positions = pos })
+    | AstNode.L2Element (nw) -> AstNode.L2Element({ nw with Positions = pos })
+    | AstNode.L2Expression (nw) -> AstNode.L2Expression({ nw with Positions = pos })
+    | AstNode.Roughage (nw) -> AstNode.Roughage({ nw with Positions = pos })
+    | AstNode.ParsePragma (nw) -> AstNode.ParsePragma({ nw with Positions = pos })
+    | AstNode.Pragma (nw) -> AstNode.Pragma({ nw with Positions = pos })
+    | AstNode.Block (nw) -> AstNode.Block({ nw with Positions = pos })
+    | AstNode.FunctionDef (nw) -> AstNode.FunctionDef({ nw with Positions = pos })
+    | AstNode.FunctionLocals (nw) -> AstNode.FunctionLocals({ nw with Positions = pos })
+    | AstNode.FunctionCall (nw) -> AstNode.FunctionCall({ nw with Positions = pos })
+    | AstNode.Assembly (nw) -> AstNode.Assembly({ nw with Positions = pos })
+    | AstNode.ParseError (nw) -> AstNode.ParseError({ nw with Positions = pos })
+    | AstNode.Splice (x) -> AstNode.Splice(x)
 
 /// Replace all source positions in a bootstrapped expanded tree with the position of the node
 /// that was expanded into source.
@@ -87,7 +87,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult<AstMessag
     /// Unpack a bootstrapped AST to a block or fail.
     let asBlock tree =
         match tree with
-        | AstTreeHead (Block (nw)) -> GslResult.ok (Splice(Array.ofList nw.Value))
+        | AstTreeHead (AstNode.Block (nw)) -> GslResult.ok (AstNode.Splice(Array.ofList nw.Value))
         | AstTreeHead (node) -> bootstrapError "Block" None node
 
     let contextMsg =
@@ -99,7 +99,7 @@ let bootstrap originalPosition (op: AstTreeHead -> TreeTransformResult<AstMessag
         (AstMessage.createErrorWithStackTrace
             (InternalError(ParserError))
              contextMsg
-             (String
+             (AstNode.String
                  ({ Value = source.String
                     Positions = originalPosition })))
     >>= (replaceSourcePositions originalPosition)
@@ -124,7 +124,7 @@ let private containsSplice nodes =
     nodes
     |> List.tryPick (fun node ->
         match node with
-        | Splice _ -> Some(node)
+        | AstNode.Splice _ -> Some(node)
         | _ -> None)
     |> Option.isSome
 
@@ -132,22 +132,22 @@ let private containsSplice nodes =
 /// They can appear in Blocks or Assemblies.
 let private healSplice node =
     match node with
-    | Block (bw) ->
+    | AstNode.Block (bw) ->
         let nodeList = bw.Value
         // if no splices, do nothing
         if not (containsSplice nodeList) then
-            Block(bw)
+            AstNode.Block(bw)
         else
             let newNodeList =
                 nodeList // make an array out of each node
                 |> List.map (fun node ->
                     match node with
-                    | Splice (newNodes) -> newNodes
+                    | AstNode.Splice (newNodes) -> newNodes
                     | x -> [| x |])
                 |> Array.concat // concat the arrays
                 |> List.ofArray
 
-            Block({ bw with Value = newNodeList })
+            AstNode.Block({ bw with Value = newNodeList })
     | _ -> node
 
 /// Explode all Splices into their enclosing context.

@@ -130,7 +130,10 @@ module private AssemblyFlatteningMessage =
     let toAstMessage: AssemblyFlatteningError -> AstMessage =
         function
         | FlippingTrailingFuse part ->
-            AstResult.errStringMsg PragmaError "Found a trailing #fuse in an assembly that needs to flip." (Part part)
+            AstResult.errStringMsg
+                PragmaError
+                "Found a trailing #fuse in an assembly that needs to flip."
+                (AstNode.Part part)
         | PragmaMergeError msg -> msg
 
 module internal AssemblyStuffingMessage =

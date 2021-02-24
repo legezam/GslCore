@@ -15,23 +15,23 @@ open GslCore.GslResult
 /// Match only function declarations.
 let private cleanFunction (node: AstNode): AstNode option =
     match node with
-    | FunctionDef _ -> None
+    | AstNode.FunctionDef _ -> None
     | _ -> Some node
 
 /// Match only variable declarations
 let private cleanVariable (node: AstNode): AstNode option =
     match node with
-    | VariableBinding _ -> None
+    | AstNode.VariableBinding _ -> None
     | _ -> Some node
 
 /// Clean function definitions and variable bindings from blocks.
 let private cleanBlock (cleaner: AstNode -> AstNode option) (node: AstNode): AstNode =
     match node with
-    | Block blockWrapper ->
+    | AstNode.Block blockWrapper ->
         let newBlockContents =
             blockWrapper.Value |> List.choose cleaner
 
-        Block
+        AstNode.Block
             ({ blockWrapper with
                    Value = newBlockContents })
     | _ -> node

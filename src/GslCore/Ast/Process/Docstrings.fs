@@ -22,10 +22,10 @@ module Docstrings =
     /// are just kind of floating in the document that should be ignored.
     let updateDocstringEnvironmentInner (state: DocstringEnvironment) (node: AstNode): DocstringEnvironment =
         match node with
-        | Docstring docStringWrapper ->
+        | AstNode.Docstring docStringWrapper ->
             { state with
                   Unassigned = docStringWrapper.Value :: state.Unassigned }
-        | Part _ -> // assign these docs to this node, need to reverse the list
+        | AstNode.Part _ -> // assign these docs to this node, need to reverse the list
             { state with
                   Assigned = List.rev state.Unassigned
                   Unassigned = [] }

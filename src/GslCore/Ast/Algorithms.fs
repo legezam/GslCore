@@ -64,18 +64,20 @@ module AstNode =
             match node with
             // print nothing for internal-only nodes
             | BookkeepingNode _ -> ()
-            | Splice _ -> failwithf "Cannot decompile a bootstrap splice marker.  The tree must be spliced first."
+            | AstNode.Splice _ ->
+                failwithf "Cannot decompile a bootstrap splice marker.  The tree must be spliced first."
             // leaf nodes are easy
-            | Int ({ Value = i; Positions = _ }) -> appendf "%d" i
-            | Float ({ Value = i; Positions = _ }) -> appendf "%f" i
-            | String ({ Value = i; Positions = _ }) -> if state.QuoteStrings then appendf "\"%s\"" i else append i
-            | Docstring (dw) -> appendf "///%s" dw.Value
-            | TypedVariable ({ Value = (name, _); Positions = _ }) -> appendf "&%s" name
-            | TypedValue ({ Value = (_, inner); Positions = _ }) -> _print inner state
-            | VariableBinding ({ Value = vb; Positions = _ }) ->
+            | AstNode.Int ({ Value = i; Positions = _ }) -> appendf "%d" i
+            | AstNode.Float ({ Value = i; Positions = _ }) -> appendf "%f" i
+            | AstNode.String ({ Value = i; Positions = _ }) ->
+                if state.QuoteStrings then appendf "\"%s\"" i else append i
+            | AstNode.Docstring (dw) -> appendf "///%s" dw.Value
+            | AstNode.TypedVariable ({ Value = (name, _); Positions = _ }) -> appendf "&%s" name
+            | AstNode.TypedValue ({ Value = (_, inner); Positions = _ }) -> _print inner state
+            | AstNode.VariableBinding ({ Value = vb; Positions = _ }) ->
                 appendf "let %s = " vb.Name
                 _print vb.Value state
-            | BinaryOperation ({ Value = binop; Positions = _ }) ->
+            | AstNode.BinaryOperation ({ Value = binop; Positions = _ }) ->
                 // Explicitly group every binary in parens to keep things unambiguous.
                 append "("
                 _print binop.Left state
@@ -89,36 +91,36 @@ module AstNode =
 
                 _print binop.Right state
                 append ")"
-            | Negation ({ Value = inner; Positions = _ }) ->
+            | AstNode.Negation ({ Value = inner; Positions = _ }) ->
                 append "-"
                 _print inner state
             // basic parts
-            | Marker _ -> append "###"
-            | PartId ({ Value = name; Positions = _ }) -> appendf "@%s" name
-            | InlineDna ({ Value = dna; Positions = _ }) -> appendf "/%s/" dna
-            | InlineProtein ({ Value = pseq; Positions = _ }) -> appendf "/$%s/" pseq
-            | HetBlock _ -> append "~"
-            | Gene ({ Value = pg; Positions = _ }) ->
+            | AstNode.Marker _ -> append "###"
+            | AstNode.PartId ({ Value = name; Positions = _ }) -> appendf "@%s" name
+            | AstNode.InlineDna ({ Value = dna; Positions = _ }) -> appendf "/%s/" dna
+            | AstNode.InlineProtein ({ Value = pseq; Positions = _ }) -> appendf "/$%s/" pseq
+            | AstNode.HetBlock _ -> append "~"
+            | AstNode.Gene ({ Value = pg; Positions = _ }) ->
                 match pg.Linker with
                 | Some ({ Linker1 = l1
                           Linker2 = l2
                           Orient = o }) -> append (sprintf "%s-%s-%s-%s" l1 l2 o pg.Gene)
                 | None -> append pg.Gene
             // part mods
-            | ParseRelPos ({ Value = rp; Positions = _ }) ->
+            | AstNode.ParseRelPos ({ Value = rp; Positions = _ }) ->
                 _print rp.Item state
 
                 match rp.Qualifier with
                 | Some (rpq) -> append (Parts.relPosQualifierToString rpq)
                 | None -> ()
-            | RelPos ({ Value = rp; Positions = _ }) ->
+            | AstNode.RelPos ({ Value = rp; Positions = _ }) ->
                 appendff
                     "%d%s"
                     rp.Position
                     (match rp.RelativeTo with
                      | FivePrime -> "S"
                      | ThreePrime -> "E")
-            | Slice ({ Value = s; Positions = _ }) ->
+            | AstNode.Slice ({ Value = s; Positions = _ }) ->
                 append "["
                 if s.LeftApprox then append "~"
                 _print s.Left state
@@ -126,25 +128,25 @@ module AstNode =
                 if s.RightApprox then append "~"
                 _print s.Right state
                 append "]"
-            | Mutation ({ Value = mut; Positions = _ }) ->
+            | AstNode.Mutation ({ Value = mut; Positions = _ }) ->
                 match mut.Type with
                 | AA -> append "$"
                 | NT -> append "*"
 
                 append (sprintf "%c%d%c" mut.From mut.Location mut.To)
-            | DotMod ({ Value = s; Positions = _ }) -> appendf ".%s" s
-            | ParsePragma ({ Value = pp; Positions = _ }) ->
+            | AstNode.DotMod ({ Value = s; Positions = _ }) -> appendf ".%s" s
+            | AstNode.ParsePragma ({ Value = pp; Positions = _ }) ->
                 appendf "#%s" pp.Name
 
                 for v in pp.Values do
                     append " "
                     _print v { state with QuoteStrings = false } // don't quote string pragma values
-            | Pragma ({ Value = p; Positions = _ }) ->
+            | AstNode.Pragma ({ Value = p; Positions = _ }) ->
                 appendf "#%s" p.Definition.Name
 
                 for arg in p.Arguments do
                     appendf " %s" arg
-            | FunctionDef ({ Value = fd; Positions = _ }) ->
+            | AstNode.FunctionDef ({ Value = fd; Positions = _ }) ->
                 // declaration line
                 appendff "let %s(%s) =" fd.Name (String.concat ", " fd.ArgumentNames)
                 newline ()
@@ -152,7 +154,7 @@ module AstNode =
                 _print fd.Body state
                 minorIndent ()
                 append "end"
-            | FunctionCall ({ Value = fc; Positions = _ }) ->
+            | AstNode.FunctionCall ({ Value = fc; Positions = _ }) ->
                 appendf "%s(" fc.Name
                 // the args are nodes, so recurse and add separators
                 let rec printArgs args =
@@ -168,14 +170,14 @@ module AstNode =
 
                 printArgs fc.Arguments
                 append ")"
-            | Part ({ Value = p; Positions = _ }) ->
+            | AstNode.Part ({ Value = p; Positions = _ }) ->
                 // Print the base part.
                 // Need to make sure subassemblies are grouped in parens.
                 // TODO: decide what we want to do about assemblies with only one part.
                 let enclose =
                     state.IsInsideAssembly
                     && match p.BasePart with
-                       | Assembly _ -> true
+                       | AstNode.Assembly _ -> true
                        | _ -> false
 
                 // Any deeper recursion is inside a part and ought to enclose its assemblies in parens.
@@ -202,15 +204,15 @@ module AstNode =
                         if i < nPragmas - 1 then append " ")
 
                     append "}"
-            | Assembly ({ Value = parts; Positions = _ }) ->
+            | AstNode.Assembly ({ Value = parts; Positions = _ }) ->
                 // print all the parts in the assembly separated by semicolons
                 printSemicolonSeparatedList parts
-            | L2Id (lw) -> append lw.Value.String
-            | L2Element (lw) ->
+            | AstNode.L2Id (lw) -> append lw.Value.String
+            | AstNode.L2Element (lw) ->
                 _print lw.Value.Promoter state
                 append ">"
                 _print lw.Value.Target state
-            | L2Expression (lw) ->
+            | AstNode.L2Expression (lw) ->
                 let nParts = lw.Value.Parts.Length
 
                 match lw.Value.Locus with
@@ -221,7 +223,7 @@ module AstNode =
                 | None -> ()
 
                 printSemicolonSeparatedList lw.Value.Parts
-            | Roughage ({ Value = rLine; Positions = _ }) ->
+            | AstNode.Roughage ({ Value = rLine; Positions = _ }) ->
                 // decompile lines of rougage as individual blocks
                 append "<@ "
 
@@ -254,7 +256,7 @@ module AstNode =
 
                 append (String.concat "::" (header @ tail))
                 append " @>"
-            | Block ({ Value = lines; Positions = _ }) ->
+            | AstNode.Block ({ Value = lines; Positions = _ }) ->
                 for l in lines do
                     let printInnerLine () =
                         _print
@@ -264,7 +266,7 @@ module AstNode =
 
                     match l with
                     | BookkeepingNode _ -> () // ignore bookkeeping nodes in blocks
-                    | Block _ ->
+                    | AstNode.Block _ ->
                         // we need to wrap an inner block in do/end
                         // we also delegate newlines and indentation to the inner block
                         fullIndent ()
@@ -282,7 +284,7 @@ module AstNode =
                         printInnerLine ()
                         newline ()
 
-            | ParseError (x) -> failwithf "Parse error found during AST code generation: %A" x
+            | AstNode.ParseError (x) -> failwithf "Parse error found during AST code generation: %A" x
             | x -> Utils.nonExhaustiveError x
 
         _print tree initialPrintState
@@ -298,38 +300,38 @@ module AstNode =
         match node with
         | Leaf _ -> Seq.empty
         // variable binding
-        | VariableBinding (vb) -> Seq.singleton vb.Value.Value
+        | AstNode.VariableBinding (vb) -> Seq.singleton vb.Value.Value
         // typed value
-        | TypedValue ({ Value = (_, n); Positions = _ }) -> Seq.singleton n
+        | AstNode.TypedValue ({ Value = (_, n); Positions = _ }) -> Seq.singleton n
         // Simple operations on values
-        | BinaryOperation ({ Value = binOp; Positions = _ }) ->
+        | AstNode.BinaryOperation ({ Value = binOp; Positions = _ }) ->
             seq {
                 yield binOp.Left
                 yield binOp.Right
             }
-        | Negation ({ Value = n; Positions = _ }) -> Seq.singleton n
+        | AstNode.Negation ({ Value = n; Positions = _ }) -> Seq.singleton n
         // Slicing
-        | ParseRelPos ({ Value = { Item = n; Qualifier = _ }
-                         Positions = _ }) -> Seq.singleton n
-        | Slice ({ Value = slice; Positions = _ }) ->
+        | AstNode.ParseRelPos ({ Value = { Item = n; Qualifier = _ }
+                                 Positions = _ }) -> Seq.singleton n
+        | AstNode.Slice ({ Value = slice; Positions = _ }) ->
             seq {
                 yield slice.Left
                 yield slice.Right
             }
         // generic part with mods, pragmas, direction
-        | Part ({ Value = part; Positions = _ }) ->
+        | AstNode.Part ({ Value = part; Positions = _ }) ->
             seq {
                 yield part.BasePart
                 yield! Seq.ofList part.Modifiers
                 yield! Seq.ofList part.Pragmas
             }
         // L2 elements
-        | L2Element (lw) ->
+        | AstNode.L2Element (lw) ->
             seq {
                 yield lw.Value.Promoter
                 yield lw.Value.Target
             }
-        | L2Expression (lw) ->
+        | AstNode.L2Expression (lw) ->
             seq {
                 match lw.Value.Locus with
                 | Some (l) -> yield l
@@ -338,13 +340,13 @@ module AstNode =
                 yield! Seq.ofList lw.Value.Parts
             }
         // pragmas
-        | ParsePragma ({ Value = pp; Positions = _ }) -> Seq.ofList pp.Values
+        | AstNode.ParsePragma ({ Value = pp; Positions = _ }) -> Seq.ofList pp.Values
         // Block of code
-        | Block ({ Value = nodes; Positions = _ }) -> Seq.ofList nodes
+        | AstNode.Block ({ Value = nodes; Positions = _ }) -> Seq.ofList nodes
         // Function definition and call
-        | FunctionDef ({ Value = f; Positions = _ }) -> Seq.singleton f.Body
-        | FunctionCall ({ Value = fc; Positions = _ }) -> Seq.ofList fc.Arguments
-        | Assembly ({ Value = parts; Positions = _ }) -> Seq.ofList parts
+        | AstNode.FunctionDef ({ Value = f; Positions = _ }) -> Seq.singleton f.Body
+        | AstNode.FunctionCall ({ Value = fc; Positions = _ }) -> Seq.ofList fc.Arguments
+        | AstNode.Assembly ({ Value = parts; Positions = _ }) -> Seq.ofList parts
         | x -> Utils.nonExhaustiveError x
 
     ///Visit every AST node in the tree starting at the top and returning children in depth-first
@@ -446,24 +448,28 @@ module FoldMap =
         // recurse into children of the revised node
         match node with
         | Leaf leaf -> GslResult.ok leaf // leaf nodes need no recursion
-        | VariableBinding variableBindingWrapper -> processVariableBinding state parameters variableBindingWrapper
-        | TypedValue typedValueWrapper -> processTypedValue state parameters typedValueWrapper
-        | BinaryOperation binaryOperationWrapper -> processBinaryOperation state parameters binaryOperationWrapper
-        | Negation negationWrapper -> processNegation state parameters negationWrapper
-        | ParseRelPos relativePositionWrapper -> processRelativePosition state parameters relativePositionWrapper
-        | Slice sliceWrapper -> processSlice state parameters sliceWrapper
-        | Part partWrapper -> processPart state parameters partWrapper
-        | L2Element level2Wrapper -> processL2Element state parameters level2Wrapper
-        | L2Expression expressionWrapper -> processL2Expression state parameters expressionWrapper
-        | ParsePragma pragmaWrapper -> processPragma state parameters pragmaWrapper
-        | Block blockWrapper ->
+        | AstNode.VariableBinding variableBindingWrapper ->
+            processVariableBinding state parameters variableBindingWrapper
+        | AstNode.TypedValue typedValueWrapper -> processTypedValue state parameters typedValueWrapper
+        | AstNode.BinaryOperation binaryOperationWrapper ->
+            processBinaryOperation state parameters binaryOperationWrapper
+        | AstNode.Negation negationWrapper -> processNegation state parameters negationWrapper
+        | AstNode.ParseRelPos relativePositionWrapper ->
+            processRelativePosition state parameters relativePositionWrapper
+        | AstNode.Slice sliceWrapper -> processSlice state parameters sliceWrapper
+        | AstNode.Part partWrapper -> processPart state parameters partWrapper
+        | AstNode.L2Element level2Wrapper -> processL2Element state parameters level2Wrapper
+        | AstNode.L2Expression expressionWrapper -> processL2Expression state parameters expressionWrapper
+        | AstNode.ParsePragma pragmaWrapper -> processPragma state parameters pragmaWrapper
+        | AstNode.Block blockWrapper ->
             match parameters.Mode with
             | Parallel -> processBlockParallel state parameters blockWrapper
             | Serial -> processBlock state parameters blockWrapper
         // Function definition and call
-        | FunctionDef functionDefinitionWrapper -> processFunctionDefinition state parameters functionDefinitionWrapper
-        | FunctionCall functionCallWrapper -> processFunctionCall state parameters functionCallWrapper
-        | Assembly assemblyWrapper -> processAssembly state parameters assemblyWrapper
+        | AstNode.FunctionDef functionDefinitionWrapper ->
+            processFunctionDefinition state parameters functionDefinitionWrapper
+        | AstNode.FunctionCall functionCallWrapper -> processFunctionCall state parameters functionCallWrapper
+        | AstNode.Assembly assemblyWrapper -> processAssembly state parameters assemblyWrapper
         | x -> Utils.nonExhaustiveError x
 
     /// Make the recursive call to fold, with updated state from this node.
@@ -485,7 +491,7 @@ module FoldMap =
         |> GslResult.map (fun updatedValue ->
             let updatedWrapper = { node.Value with Item = updatedValue }
 
-            ParseRelPos { node with Value = updatedWrapper })
+            AstNode.ParseRelPos { node with Value = updatedWrapper })
 
     and internal processSlice (state: 'State)
                               (parameters: FoldMapParameters<'State, 'Msg>)
@@ -504,7 +510,7 @@ module FoldMap =
                           Left = newLeft
                           Right = newRight }
 
-                Slice { node with Value = updatedWrapper })
+                AstNode.Slice { node with Value = updatedWrapper })
 
     and internal processL2Element (state: 'State)
                                   (parameters: FoldMapParameters<'State, 'Msg>)
@@ -523,7 +529,7 @@ module FoldMap =
                           Promoter = newPromoter
                           Target = newTarget }
 
-                L2Element
+                AstNode.L2Element
                     ({ node with
                            Value = updatedWrapperValue }))
 
@@ -537,7 +543,7 @@ module FoldMap =
         |> GslResult.map (fun newVals ->
             let updatedValue = { node.Value with Values = newVals }
 
-            ParsePragma { node with Value = updatedValue })
+            AstNode.ParsePragma { node with Value = updatedValue })
 
     and internal processFunctionDefinition (state: 'State)
                                            (parameters: FoldMapParameters<'State, 'Msg>)
@@ -547,7 +553,7 @@ module FoldMap =
         |> GslResult.map (fun newBody ->
             let updatedValue = { node.Value with Body = newBody }
 
-            FunctionDef { node with Value = updatedValue })
+            AstNode.FunctionDef { node with Value = updatedValue })
 
     and internal processFunctionCall (state: 'State)
                                      (parameters: FoldMapParameters<'State, 'Msg>)
@@ -557,14 +563,14 @@ module FoldMap =
         |> GslResult.map (fun newArgs ->
             let updatedValue = { node.Value with Arguments = newArgs }
 
-            FunctionCall { node with Value = updatedValue })
+            AstNode.FunctionCall { node with Value = updatedValue })
 
     and internal processAssembly (state: 'State)
                                  (parameters: FoldMapParameters<'State, 'Msg>)
                                  (node: Node<AstNode list>)
                                  : GslResult<AstNode, 'Msg> =
         GslResult.collectA (List.map (foldAndDropState state parameters) node.Value)
-        |> GslResult.map (fun newParts -> Assembly { node with Value = newParts })
+        |> GslResult.map (fun newParts -> AstNode.Assembly { node with Value = newParts })
 
     // Parts have quite a few children, so break this out as a function for cleanliness.
     and internal processPart (state: 'State)
@@ -594,7 +600,7 @@ module FoldMap =
                            Modifiers = modifiers
                            Pragmas = pragmas }
 
-                 Part
+                 AstNode.Part
                      { partWrapper with
                            Value = updatedParsePart })
 
@@ -621,7 +627,7 @@ module FoldMap =
                           Locus = locus
                           Parts = parts }
 
-                L2Expression
+                AstNode.L2Expression
                     { level2Wrapper with
                           Value = updatedExpression })
     ///<summary>
@@ -647,7 +653,7 @@ module FoldMap =
         newLineResults
         |> List.rev
         |> GslResult.collectA
-        |> GslResult.map (fun newLines -> Block({ blockWrapper with Value = newLines }))
+        |> GslResult.map (fun newLines -> AstNode.Block({ blockWrapper with Value = newLines }))
 
 
     /// Performs processing of each node in a block in parallel, with the same semantics as serial.
@@ -686,7 +692,7 @@ module FoldMap =
         |> PSeq.withDegreeOfParallelism useNCores
         |> PSeq.toList
         |> GslResult.collectA
-        |> GslResult.map (fun newLines -> Block({ blockWrapper with Value = newLines }))
+        |> GslResult.map (fun newLines -> AstNode.Block({ blockWrapper with Value = newLines }))
 
     and internal processVariableBinding (state: 'State)
                                         (parameters: FoldMapParameters<'State, 'Msg>)
@@ -696,7 +702,7 @@ module FoldMap =
         |> GslResult.map (fun newInner ->
             let updatedNodeValue = { node.Value with Value = newInner }
 
-            VariableBinding { node with Value = updatedNodeValue })
+            AstNode.VariableBinding { node with Value = updatedNodeValue })
 
     and internal processTypedValue (state: 'State)
                                    (parameters: FoldMapParameters<'State, 'Msg>)
@@ -705,7 +711,7 @@ module FoldMap =
         let gslType, typedValue = node.Value
 
         (foldAndDropState state parameters typedValue)
-        |> GslResult.map (fun newInner -> TypedValue { node with Value = gslType, newInner })
+        |> GslResult.map (fun newInner -> AstNode.TypedValue { node with Value = gslType, newInner })
 
     and internal processBinaryOperation (state: 'State)
                                         (parameters: FoldMapParameters<'State, 'Msg>)
@@ -724,14 +730,14 @@ module FoldMap =
                           Left = newLeft
                           Right = newRight }
 
-                BinaryOperation { node with Value = updatedWrapper })
+                AstNode.BinaryOperation { node with Value = updatedWrapper })
 
     and internal processNegation (state: 'State)
                                  (parameters: FoldMapParameters<'State, 'Msg>)
                                  (node: Node<AstNode>)
                                  : GslResult<AstNode, 'Msg> =
         foldAndDropState state parameters node.Value
-        |> GslResult.map (fun updatedValue -> Negation({ node with Value = updatedValue }))
+        |> GslResult.map (fun updatedValue -> AstNode.Negation({ node with Value = updatedValue }))
 
     ///<summary>
     /// Produce a new AST by recursively transforming nodes, keeping track of block-accumulated state.

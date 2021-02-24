@@ -78,8 +78,9 @@ type AstTreeHead =
         match this with
         | AstTreeHead node -> node
 
+
 /// AST for GSL.
-and AstNode =
+and [<RequireQualifiedAccess>] AstNode =
     // leaf nodes that hold values
     | Int of Node<int>
     | Float of Node<float>

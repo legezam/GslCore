@@ -143,7 +143,7 @@ module LegacyPrettyPrint =
 module LegacyConversion =
     let private sliceFromAstSlice (parseSlice: ParseSlice): AstResult<Modifier> =
         match parseSlice.Left, parseSlice.Right with
-        | RelPos (lw), RelPos (rw) ->
+        | AstNode.RelPos (lw), AstNode.RelPos (rw) ->
             GslResult.ok
                 (Modifier.Slice
                     ({ Left = lw.Value
@@ -158,9 +158,9 @@ module LegacyConversion =
 
     let private astNodeToLegacyMod (node: AstNode): AstResult<Modifier> =
         match node with
-        | Slice sw -> sliceFromAstSlice sw.Value
-        | Mutation mw -> GslResult.ok (Modifier.Mutation(mw.Value))
-        | DotMod dm -> GslResult.ok (Modifier.Dot(dm.Value))
+        | AstNode.Slice sw -> sliceFromAstSlice sw.Value
+        | AstNode.Mutation mw -> GslResult.ok (Modifier.Mutation(mw.Value))
+        | AstNode.DotMod dm -> GslResult.ok (Modifier.Dot(dm.Value))
         | _ -> AstResult.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
 
     let private convertModifiers (mods: AstNode list): AstResult<Modifier list> =
@@ -171,7 +171,7 @@ module LegacyConversion =
     /// Convert an AST base part into a legacy Part.
     let private createLegacyPart (part: Node<ParsePart>): AstResult<Part> =
         match part.Value.BasePart with
-        | Gene geneWrapper ->
+        | AstNode.Gene geneWrapper ->
             convertModifiers part.Value.Modifiers
             |> GslResult.map (fun mods ->
                 let genePart =
@@ -182,18 +182,18 @@ module LegacyConversion =
                 Part.GenePart
                     { Part = genePart
                       Linker = geneWrapper.Value.Linker })
-        | Marker _ -> GslResult.ok Part.MarkerPart
-        | InlineDna dnaSequence -> GslResult.ok (Part.InlineDna(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
-        | InlineProtein proteinSequence -> GslResult.ok (Part.InlineProtein proteinSequence.Value)
-        | HetBlock _ -> GslResult.ok Part.HeterologyBlock
-        | PartId partId ->
+        | AstNode.Marker _ -> GslResult.ok Part.MarkerPart
+        | AstNode.InlineDna dnaSequence -> GslResult.ok (Part.InlineDna(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
+        | AstNode.InlineProtein proteinSequence -> GslResult.ok (Part.InlineProtein proteinSequence.Value)
+        | AstNode.HetBlock _ -> GslResult.ok Part.HeterologyBlock
+        | AstNode.PartId partId ->
             convertModifiers part.Value.Modifiers
             |> GslResult.map (fun mods -> Part.PartId { Id = partId.Value; Modifiers = mods })
         | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
 
     let private createPartPlusPragma (node: AstNode): AstResult<PartPlusPragma> =
         match node with
-        | Part part ->
+        | AstNode.Part part ->
             createLegacyPart part
             |> GslResult.map (fun legacyPart ->
                 { PartPlusPragma.Part = legacyPart
@@ -241,7 +241,7 @@ module LegacyConversion =
         let parameters =
             DesignParams.fromPragmas DesignParams.identity assemblyPragmas
             |> GslResult.mapError (fun message ->
-                AstMessage.createErrorWithStackTrace PragmaError message (Part(partWrapper)))
+                AstMessage.createErrorWithStackTrace PragmaError message (AstNode.Part(partWrapper)))
 
         let parts =
             assemblyPartsWrapper.Value
@@ -267,10 +267,10 @@ module LegacyL2Conversion =
     /// Build a concrete L2 element from an AST node.
     let private buildL2Element (node: AstNode): AstResult<BuiltL2Element> =
         match node with
-        | L2Element (nw) ->
+        | AstNode.L2Element (nw) ->
             match nw.Value.Promoter, nw.Value.Target with
-            | L2Id _, L2Id (tw)
-            | Part _, L2Id (tw) ->
+            | AstNode.L2Id _, AstNode.L2Id (tw)
+            | AstNode.Part _, AstNode.L2Id (tw) ->
                 GslResult.ok
                     { Promoter = nw.Value.Promoter
                       Target = tw.Value }
@@ -284,7 +284,7 @@ module LegacyL2Conversion =
 
     let private unpackLocus (maybeNode: AstNode option): AstResult<L2Id option> =
         match maybeNode with
-        | Some (L2Id (lw)) -> GslResult.ok (Some(lw.Value))
+        | Some (AstNode.L2Id (lw)) -> GslResult.ok (Some(lw.Value))
         | Some (x) -> AstResult.internalTypeMismatch (Some("L2 locus unpacking")) "L2Id" x
         | None -> GslResult.ok None
 

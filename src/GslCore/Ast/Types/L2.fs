@@ -4,7 +4,7 @@ let createL2IdNode (maybePrefix: Node<string> option) (id: Node<string>): Node<L
     let pos =
         match maybePrefix with
         | Some prefix ->
-            SourcePositionBuilder.fromBracket (String(prefix)) (String(id))
+            SourcePositionBuilder.fromBracket (AstNode.String(prefix)) (AstNode.String(id))
             |> Option.toList // be lazy and wrap these as nodes to use existing function
         | None -> id.Positions
 
@@ -12,7 +12,7 @@ let createL2IdNode (maybePrefix: Node<string> option) (id: Node<string>): Node<L
       Positions = pos }
 
 /// Create a level 2 id from optional prefix and id
-let createL2Id (prefix: Node<string> option) (id: Node<string>) = L2Id(createL2IdNode prefix id)
+let createL2Id (prefix: Node<string> option) (id: Node<string>) = AstNode.L2Id(createL2IdNode prefix id)
 
 /// Create a level 2 element from a promoter and target.
 /// Promoter and target should be L2 IDs.
@@ -20,7 +20,7 @@ let createL2Element (promoter: AstNode) (target: AstNode): AstNode =
     let pos =
         SourcePositionBuilder.fromBracket promoter target |> Option.toList
 
-    L2Element
+    AstNode.L2Element
         { Node.Value =
                { L2Element.Promoter = promoter
                  Target = target }
@@ -33,7 +33,7 @@ let createL2Expression (maybeLocus: AstNode option) (parts: AstNode list): AstNo
         | Some locus -> SourcePositionBuilder.fromList (locus :: parts)
         | None -> SourcePositionBuilder.fromList parts
 
-    L2Expression
+    AstNode.L2Expression
         ({ Node.Value =
                { L2Expression.Locus = maybeLocus
                  Parts = parts }
@@ -48,8 +48,8 @@ let createRoughagePart (dir: RoughagePartDirection) (promoter: Node<L2Id>) (targ
 
     let pos =
         match dir with
-        | RoughageFwd -> SourcePositionBuilder.fromBracket (L2Id(promoter)) (L2Id(target))
-        | RoughageRev -> SourcePositionBuilder.fromBracket (L2Id(target)) (L2Id(promoter))
+        | RoughageFwd -> SourcePositionBuilder.fromBracket (AstNode.L2Id(promoter)) (AstNode.L2Id(target))
+        | RoughageRev -> SourcePositionBuilder.fromBracket (AstNode.L2Id(target)) (AstNode.L2Id(promoter))
 
     { Node.Value = elem
       Positions = pos |> Option.toList }
@@ -75,7 +75,7 @@ let createRoughageLine (locus: Node<L2Id> option, marker: Node<string> option)
         | [] -> []
         | hd :: _ -> hd.Positions
 
-    Roughage
+    AstNode.Roughage
         ({ Node.Value =
                { Roughage.Locus = locus
                  Marker = marker

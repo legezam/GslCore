@@ -24,7 +24,7 @@ module Linter =
 
     let private warnOnPartThatIsLikelyVariable (node: AstNode): GslResult<unit, LinterHint> =
         match node with
-        | PartId partWrapper ->
+        | AstNode.PartId partWrapper ->
             if rabitPartRegex.IsMatch(partWrapper.Value) then
                 GslResult.ok ()
             else
@@ -36,7 +36,7 @@ module Linter =
 
     let private failOnPushAndPop (node: AstNode): GslResult<unit, LinterHint> =
         match node with
-        | ParsePragma (parsePragmaWrapper) ->
+        | AstNode.ParsePragma (parsePragmaWrapper) ->
             if parsePragmaWrapper.Value.Name = "push"
                || parsePragmaWrapper.Value.Name = "pop" then
                 GslResult.err (PushPopDeprecated node)

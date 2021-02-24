@@ -4,104 +4,143 @@ module GslCore.Ast.Types.Utils
 /// Most recently (first) postition refers to highest level function invocation.
 let prependPositionsAstNode (newPos: SourcePosition list): AstNode -> AstNode =
     function
-    | Int node -> node |> Node.prependPositionsNode newPos |> Int
-    | Float node -> node |> Node.prependPositionsNode newPos |> Float
-    | String node -> node |> Node.prependPositionsNode newPos |> String
-    | Docstring node ->
+    | AstNode.Int node ->
         node
         |> Node.prependPositionsNode newPos
-        |> Docstring
-    | TypedVariable node ->
+        |> AstNode.Int
+    | AstNode.Float node ->
         node
         |> Node.prependPositionsNode newPos
-        |> TypedVariable
-    | TypedValue node ->
+        |> AstNode.Float
+    | AstNode.String node ->
         node
         |> Node.prependPositionsNode newPos
-        |> TypedValue
-    | VariableBinding node ->
+        |> AstNode.String
+    | AstNode.Docstring node ->
         node
         |> Node.prependPositionsNode newPos
-        |> VariableBinding
-    | BinaryOperation node ->
+        |> AstNode.Docstring
+    | AstNode.TypedVariable node ->
         node
         |> Node.prependPositionsNode newPos
-        |> BinaryOperation
-    | Negation node ->
+        |> AstNode.TypedVariable
+    | AstNode.TypedValue node ->
         node
         |> Node.prependPositionsNode newPos
-        |> Negation
-    | ParseRelPos node ->
+        |> AstNode.TypedValue
+    | AstNode.VariableBinding node ->
         node
         |> Node.prependPositionsNode newPos
-        |> ParseRelPos
-    | RelPos node -> node |> Node.prependPositionsNode newPos |> RelPos
-    | Slice node -> node |> Node.prependPositionsNode newPos |> Slice
-    | Mutation node ->
+        |> AstNode.VariableBinding
+    | AstNode.BinaryOperation node ->
         node
         |> Node.prependPositionsNode newPos
-        |> Mutation
-    | DotMod node -> node |> Node.prependPositionsNode newPos |> DotMod
-    | Part node -> node |> Node.prependPositionsNode newPos |> Part
-    | Marker node -> node |> Node.prependPositionsNode newPos |> Marker
-    | PartId node -> node |> Node.prependPositionsNode newPos |> PartId
-    | InlineDna node ->
+        |> AstNode.BinaryOperation
+    | AstNode.Negation node ->
         node
         |> Node.prependPositionsNode newPos
-        |> InlineDna
-    | InlineProtein node ->
+        |> AstNode.Negation
+    | AstNode.ParseRelPos node ->
         node
         |> Node.prependPositionsNode newPos
-        |> InlineProtein
-    | HetBlock node ->
+        |> AstNode.ParseRelPos
+    | AstNode.RelPos node ->
         node
         |> Node.prependPositionsNode newPos
-        |> HetBlock
-    | Gene node -> node |> Node.prependPositionsNode newPos |> Gene
-    | L2Id node -> node |> Node.prependPositionsNode newPos |> L2Id
-    | L2Element node ->
+        |> AstNode.RelPos
+    | AstNode.Slice node ->
         node
         |> Node.prependPositionsNode newPos
-        |> L2Element
-    | L2Expression node ->
+        |> AstNode.Slice
+    | AstNode.Mutation node ->
         node
         |> Node.prependPositionsNode newPos
-        |> L2Expression
-    | Roughage node ->
+        |> AstNode.Mutation
+    | AstNode.DotMod node ->
         node
         |> Node.prependPositionsNode newPos
-        |> Roughage
-    | ParsePragma node ->
+        |> AstNode.DotMod
+    | AstNode.Part node ->
         node
         |> Node.prependPositionsNode newPos
-        |> ParsePragma
-    | Pragma node -> node |> Node.prependPositionsNode newPos |> Pragma
-    | Block node -> node |> Node.prependPositionsNode newPos |> Block
-    | FunctionDef node ->
+        |> AstNode.Part
+    | AstNode.Marker node ->
         node
         |> Node.prependPositionsNode newPos
-        |> FunctionDef
-    | FunctionLocals node ->
+        |> AstNode.Marker
+    | AstNode.PartId node ->
         node
         |> Node.prependPositionsNode newPos
-        |> FunctionLocals
-    | FunctionCall node ->
+        |> AstNode.PartId
+    | AstNode.InlineDna node ->
         node
         |> Node.prependPositionsNode newPos
-        |> FunctionCall
-    | Assembly node ->
+        |> AstNode.InlineDna
+    | AstNode.InlineProtein node ->
         node
         |> Node.prependPositionsNode newPos
-        |> Assembly
-    | ParseError node ->
+        |> AstNode.InlineProtein
+    | AstNode.HetBlock node ->
         node
         |> Node.prependPositionsNode newPos
-        |> ParseError
-    | Splice _ as x -> x // Slices are defined to have no position so don't try to update (see .pos below)    
+        |> AstNode.HetBlock
+    | AstNode.Gene node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.Gene
+    | AstNode.L2Id node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.L2Id
+    | AstNode.L2Element node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.L2Element
+    | AstNode.L2Expression node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.L2Expression
+    | AstNode.Roughage node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.Roughage
+    | AstNode.ParsePragma node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.ParsePragma
+    | AstNode.Pragma node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.Pragma
+    | AstNode.Block node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.Block
+    | AstNode.FunctionDef node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.FunctionDef
+    | AstNode.FunctionLocals node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.FunctionLocals
+    | AstNode.FunctionCall node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.FunctionCall
+    | AstNode.Assembly node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.Assembly
+    | AstNode.ParseError node ->
+        node
+        |> Node.prependPositionsNode newPos
+        |> AstNode.ParseError
+    | AstNode.Splice _ as x -> x // Slices are defined to have no position so don't try to update (see .pos below)
 
 /// Create a parse error with message and position.
 let createParseError (msg: string) (positions: SourcePosition list): AstNode =
-    ParseError
+    AstNode.ParseError
         { Node.Value = msg
           Positions = positions }
 
@@ -113,4 +152,4 @@ let nodeWrapWithNodePosition (node: AstNode) (item: 'a): Node<'a> =
 /// Convert a string token to a TypedVariable
 let tokenToVariable (token: PString) (variableType: GslVariableType): AstNode =
     let name = token.Item
-    TypedVariable(Node.wrapNodeWithTokenPosition token (name, variableType))
+    AstNode.TypedVariable(Node.wrapNodeWithTokenPosition token (name, variableType))

@@ -31,8 +31,8 @@ module PragmaBuilding =
                                                 : PragmaConstructionContext list =
         let maybeContext =
             match node with
-            | Block _ -> Some BlockLevel
-            | Part _ -> Some PartLevel
+            | AstNode.Block _ -> Some BlockLevel
+            | AstNode.Part _ -> Some PartLevel
             | _ -> None
 
         match maybeContext with
@@ -47,10 +47,10 @@ module PragmaBuilding =
 
     let private checkPragmaArg: AstNode -> GslResult<string, PragmaBuildingError> =
         function
-        | String stringWrapper -> GslResult.ok stringWrapper.Value
-        | Int intWrapper -> GslResult.ok (intWrapper.Value.ToString())
-        | Float floatWrapper -> GslResult.ok (floatWrapper.Value.ToString())
-        | TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
+        | AstNode.String stringWrapper -> GslResult.ok stringWrapper.Value
+        | AstNode.Int intWrapper -> GslResult.ok (intWrapper.Value.ToString())
+        | AstNode.Float floatWrapper -> GslResult.ok (floatWrapper.Value.ToString())
+        | AstNode.TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
             GslResult.err (UnresolvedVariableInPragma(astNode, name))
         | x -> GslResult.err (EmptyPragmaScope x)
 
@@ -74,9 +74,10 @@ module PragmaBuilding =
             let isNotLegalCapa =
                 not (legalCapas.Contains(pragma.Arguments.[0]))
 
-            if isNotLegalCapa
-            then GslResult.err (UndeclaredCapability(pragma.Name, legalCapas, node))
-            else GslResult.ok pragma
+            if isNotLegalCapa then
+                GslResult.err (UndeclaredCapability(pragma.Name, legalCapas, node))
+            else
+                GslResult.ok pragma
         else
             GslResult.ok pragma
 
@@ -108,7 +109,7 @@ module PragmaBuilding =
                               : GslResult<AstNode, PragmaBuildingError> =
 
         match node with
-        | ParsePragma pragmaWrapper ->
+        | AstNode.ParsePragma pragmaWrapper ->
             let pragma = pragmaWrapper.Value
             /// Building pragmas returns strings at the moment.
             /// Wrap them in an AST message.
@@ -126,7 +127,7 @@ module PragmaBuilding =
             >>= (checkScope contexts node)
             >>= (checkCapa parameters.LegalCapabilities node)
             |> GslResult.map (fun builtPragma ->
-                Pragma
+                AstNode.Pragma
                     { Value = builtPragma
                       Positions = pragmaWrapper.Positions })
         | _ -> GslResult.ok node

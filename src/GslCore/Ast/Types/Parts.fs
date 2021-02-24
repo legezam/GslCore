@@ -32,7 +32,7 @@ let createParseRelPos (number: AstNode) (maybeQualifier: PString option) (positi
     match maybeQualifier with
     | None ->
         // basic case, just given a number
-        ParseRelPos(Utils.nodeWrapWithNodePosition number parseRelPos)
+        AstNode.ParseRelPos(Utils.nodeWrapWithNodePosition number parseRelPos)
     | Some qualifier ->
         // We've been passed a qualifying string.  Parse it as a valid union case.
         let qualifier = stringToRelPosQualifier qualifier.Item
@@ -41,7 +41,7 @@ let createParseRelPos (number: AstNode) (maybeQualifier: PString option) (positi
             { parseRelPos with
                   Qualifier = Some qualifier }
 
-        ParseRelPos(Utils.nodeWrapWithNodePosition number parseRelPos)
+        AstNode.ParseRelPos(Utils.nodeWrapWithNodePosition number parseRelPos)
 
 /// Create a parse slice AST node.
 let createParseSlice (leftRPInt: AstNode, leftRPQual: PString option)
@@ -63,7 +63,7 @@ let createParseSlice (leftRPInt: AstNode, leftRPQual: PString option)
           LeftApprox = lApprox
           RightApprox = rApprox }
 
-    Slice
+    AstNode.Slice
         ({ Node.Value = parseSlice
            Positions = pos })
 
@@ -83,13 +83,13 @@ let createMutation (value: PString) (mutationType: MutationType): AstNode =
           Location = position
           Type = mutationType }
 
-    Mutation
+    AstNode.Mutation
         ({ Value = mutation
            Positions = [ value.Position ] })
 
 /// Create a top-level part.
 let createPart (modifiers: AstNode list) (pragmas: AstNode list) (basePart: AstNode): AstNode =
-    Part
+    AstNode.Part
         ({ Node.Value =
                { ParsePart.BasePart = basePart
                  Modifiers = modifiers
@@ -104,7 +104,7 @@ let createPartWithBase: AstNode -> AstNode = createPart [] []
 let createGenePart (gene: PString) (linker: Linker option) =
     // The base part for this part will be a Gene AST node.
     createPartWithBase
-        (Gene
+        (AstNode.Gene
             ({ Node.Value =
                    { ParseGene.Gene = gene.Item
                      Linker = linker }
@@ -113,34 +113,34 @@ let createGenePart (gene: PString) (linker: Linker option) =
 /// Capture a list of parsed mods and stuff them into their associated part.
 let stuffModsIntoPart (astPart: AstNode) (modifiers: AstNode list): AstNode =
     match astPart with
-    | Part partWrapper ->
+    | AstNode.Part partWrapper ->
         let part = partWrapper.Value
 
         let stuffedPart =
             { part with
                   Modifiers = part.Modifiers @ modifiers }
 
-        Part(Utils.nodeWrapWithNodePosition astPart stuffedPart)
+        AstNode.Part(Utils.nodeWrapWithNodePosition astPart stuffedPart)
     | x -> failwithf "Mods may only be applied to Parts.  Tried to apply mods to %A." x
 
 /// Capture a list of parsed inline pragmas and stuff them into their associated part.
 let stuffPragmasIntoPart (astPart: AstNode) (prags: AstNode list): AstNode =
     match astPart with
-    | Part partWrapper ->
+    | AstNode.Part partWrapper ->
         let part = partWrapper.Value
 
         let stuffedPart =
             { part with
                   Pragmas = part.Pragmas @ prags }
 
-        Part(Utils.nodeWrapWithNodePosition astPart stuffedPart)
+        AstNode.Part(Utils.nodeWrapWithNodePosition astPart stuffedPart)
     | x -> failwithf "Inline pragmas may only be applied to Parts.  Tried to apply pragmas to %A." x
 
 /// Reverse the direction of a part.
 let revPart (astPart: AstNode): AstNode =
     match astPart with
-    | Part partWrapper ->
-        Part
+    | AstNode.Part partWrapper ->
+        AstNode.Part
             (Utils.nodeWrapWithNodePosition
                 astPart
                  { partWrapper.Value with
@@ -152,7 +152,7 @@ let createAssemblyPart (parts: AstNode list): AstNode =
     let pos = SourcePositionBuilder.fromList parts
 
     let assembly =
-        Assembly
+        AstNode.Assembly
             ({ Node.Value = parts
                Positions = pos |> Option.toList })
 

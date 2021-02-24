@@ -61,11 +61,11 @@ let parse_error_rich = Some(GslParseErrorContext.handleParseError)
 start: Final { AstTreeHead($1) }
 
 Final:
-    | CodeSection EOF   { Block(Node.wrapNode $1) } // Collection of assemblies
-    | EOF               { Block(Node.wrapNode []) } // Empty gsl file
+    | CodeSection EOF   { AstNode.Block(Node.wrapNode $1) } // Collection of assemblies
+    | EOF               { AstNode.Block(Node.wrapNode []) } // Empty gsl file
 
 ScopedBlock:
-    | DO CodeSection END                { Block(Node.wrapNode $2) }
+    | DO CodeSection END                { AstNode.Block(Node.wrapNode $2) }
 
 CodeSection:
     | Line                              { match $1 with | Some(l) -> [l] | None -> [] }
@@ -75,9 +75,9 @@ CodeSection:
 Line:
 	| NEWLINE						 { None }
     | AssemblyPart                   { Some($1) }
-    | DOCSTRING			     	     { Some(Docstring(Node.tokenAsNode $1)) }
+    | DOCSTRING			     	     { Some(AstNode.Docstring(Node.tokenAsNode $1)) }
     | L2ExpLine       				 { Some($1) }
-    | START_ROUGHAGE RoughageLineList END_ROUGHAGE  { Some(Block(Node.wrapNode $2)) } // insert roughage sections as scoped blocks
+    | START_ROUGHAGE RoughageLineList END_ROUGHAGE  { Some(AstNode.Block(Node.wrapNode $2)) } // insert roughage sections as scoped blocks
     | Pragma                         { Some($1) }
     | TypedVariableDeclaration       { Some($1) }
     | FunctionCall                   { Some($1) }
@@ -93,7 +93,7 @@ Line:
 
 PragmaValue:
     | VARIABLE          { (Utils.tokenToVariable $1 NotYetTyped) }
-    | PVALUE            { String(Node.tokenAsNode $1) }
+    | PVALUE            { AstNode.String(Node.tokenAsNode $1) }
 
 PragmaValues:
     | PragmaValue PragmaValues { $1::$2 }
@@ -166,13 +166,13 @@ FunctionCall:
 
 // values written out in source
 IntLiteral:
-    | INT           { Int(Node.tokenAsNode $1) }
+    | INT           { AstNode.Int(Node.tokenAsNode $1) }
 
 FloatLiteral:
     | INT DOT INT   { Create.float $1 $3 } // float literal
 
 StringLiteral:
-    | STRING        { String(Node.tokenAsNode $1) } // string literal
+    | STRING        { AstNode.String(Node.tokenAsNode $1) } // string literal
 
 // ==================
 // integer expressions
@@ -204,20 +204,20 @@ Part:
     | Linker HYPHEN ID              { Parts.createGenePart $3 (Some($1)) }
     // gene part without a linker
     | ID                            { Parts.createGenePart $1 None }
-    | MARKER                        { Parts.createPartWithBase (Marker(Node.tokenAsNode $1)) }
+    | MARKER                        { Parts.createPartWithBase (AstNode.Marker(Node.tokenAsNode $1)) }
     // Inline DNA sequence  / gatca /
-    | SLASH ID SLASH                { Parts.createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase $2)) }
+    | SLASH ID SLASH                { Parts.createPartWithBase (AstNode.InlineDna(Node.tokenAsNodeAfter uppercase $2)) }
     // Inline amino acid sequence  / ACDEFGH etc /
-    | SLASH DOLLAR ID SLASH         { Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase $3))}
+    | SLASH DOLLAR ID SLASH         { Parts.createPartWithBase (AstNode.InlineProtein(Node.tokenAsNodeAfter uppercase $3))}
     // Inline amino acid sequence with stop / ACDEFGH* etc /
-    | SLASH DOLLAR ID STAR SLASH    { Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) $3 )) }
+    | SLASH DOLLAR ID STAR SLASH    { Parts.createPartWithBase (AstNode.InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) $3 )) }
     // Simple inline stop codon
-    | SLASH DOLLAR STAR SLASH       { Parts.createPartWithBase (InlineProtein(Node.wrapNode "*")) }
-    | TILDE                         { Parts.createPartWithBase (HetBlock(Node.tokenAsNode $1)) }
+    | SLASH DOLLAR STAR SLASH       { Parts.createPartWithBase (AstNode.InlineProtein(Node.wrapNode "*")) }
+    | TILDE                         { Parts.createPartWithBase (AstNode.HetBlock(Node.tokenAsNode $1)) }
     // Part variable
     | VARIABLE                      { Parts.createPartWithBase (Utils.tokenToVariable $1 PartType) }
     // External part reference
-    | AT ID                         { Parts.createPartWithBase (PartId(Node.tokenAsNode $2)) }
+    | AT ID                         { Parts.createPartWithBase (AstNode.PartId(Node.tokenAsNode $2)) }
 
 // parts may have a trailing list of modifications
 PartMaybeMods:
@@ -257,7 +257,7 @@ Mod:
     | DNAMUTATION    { Parts.createMutation $1 NT }
     | AAMUTATION     { Parts.createMutation $1 AA }
     | Slice          { $1 }
-	| DOT ID         { DotMod(Node.tokenAsNode $2) }
+	| DOT ID         { AstNode.DotMod(Node.tokenAsNode $2) }
 
 ModList:
     | Mod                           { [ $1 ] }

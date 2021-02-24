@@ -47,7 +47,7 @@ module AssemblyStuffing =
         match mode with
         | PreTransform ->
             match node with
-            | Pragma pragmaWrapper ->
+            | AstNode.Pragma pragmaWrapper ->
                 let pragma = pragmaWrapper.Value
                 // handle some special cases
                 let isWarning = pragma |> Pragma.isWarning
@@ -75,8 +75,8 @@ module AssemblyStuffing =
                               Persistent =
                                   environment.Persistent
                                   |> PragmaCollection.add pragma }
-            | Part _
-            | L2Expression _ ->
+            | AstNode.Part _
+            | AstNode.L2Expression _ ->
                 // replace assignedTransients with unassignedTransients, and empty unassignedTransients
                 { environment with
                       UnassignedTransients = PragmaCollection.empty
@@ -84,7 +84,7 @@ module AssemblyStuffing =
             | _ -> environment
         | PostTransform ->
             match node with
-            | Block _ ->
+            | AstNode.Block _ ->
                 // blocks "capture" transient pragmas, so we blow away the transients collections
                 // after we operate on one.
                 { environment with
@@ -153,7 +153,7 @@ module AssemblyStuffing =
                     else
                         newPragmas
 
-                Part(ParsePart.replacePragmas partWrapper pragmasWithWarnOff))
+                AstNode.Part(ParsePart.replacePragmas partWrapper pragmasWithWarnOff))
         | _ -> GslResult.ok node
 
     ///<summary>

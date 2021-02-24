@@ -14,7 +14,7 @@ type PragmaWarningError = PragmaWarningError of pragma: Pragma * node: AstNode
 module PragmaWarning =
     let private collectWarningPragma (node: AstNode): GslResult<AstNode, PragmaWarningError> =
         match node with
-        | Pragma pragma when pragma.Value |> Pragma.isWarning ->
+        | AstNode.Pragma pragma when pragma.Value |> Pragma.isWarning ->
             GslResult.warn (PragmaWarningError(pragma.Value, node)) node // add a warning into the message stream
         | _ -> GslResult.ok node
 

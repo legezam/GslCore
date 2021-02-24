@@ -552,7 +552,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 64 "./Ast/GslParser.fsy"
-                                               Block(Node.wrapNode _1) 
+                                               AstNode.Block(Node.wrapNode _1) 
                    )
 # 64 "./Ast/GslParser.fsy"
                  : 'gentype_Final));
@@ -562,7 +562,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 65 "./Ast/GslParser.fsy"
-                                               Block(Node.wrapNode []) 
+                                               AstNode.Block(Node.wrapNode []) 
                    )
 # 65 "./Ast/GslParser.fsy"
                  : 'gentype_Final));
@@ -573,7 +573,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 68 "./Ast/GslParser.fsy"
-                                                               Block(Node.wrapNode _2) 
+                                                               AstNode.Block(Node.wrapNode _2) 
                    )
 # 68 "./Ast/GslParser.fsy"
                  : 'gentype_ScopedBlock));
@@ -628,7 +628,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 78 "./Ast/GslParser.fsy"
-                                                    Some(Docstring(Node.tokenAsNode _1)) 
+                                                    Some(AstNode.Docstring(Node.tokenAsNode _1)) 
                    )
 # 78 "./Ast/GslParser.fsy"
                  : 'gentype_Line));
@@ -650,7 +650,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 80 "./Ast/GslParser.fsy"
-                                                                           Some(Block(Node.wrapNode _2)) 
+                                                                           Some(AstNode.Block(Node.wrapNode _2)) 
                    )
 # 80 "./Ast/GslParser.fsy"
                  : 'gentype_Line));
@@ -727,7 +727,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 96 "./Ast/GslParser.fsy"
-                                               String(Node.tokenAsNode _1) 
+                                               AstNode.String(Node.tokenAsNode _1) 
                    )
 # 96 "./Ast/GslParser.fsy"
                  : 'gentype_PragmaValue));
@@ -1062,7 +1062,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 169 "./Ast/GslParser.fsy"
-                                           Int(Node.tokenAsNode _1) 
+                                           AstNode.Int(Node.tokenAsNode _1) 
                    )
 # 169 "./Ast/GslParser.fsy"
                  : 'gentype_IntLiteral));
@@ -1085,7 +1085,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 175 "./Ast/GslParser.fsy"
-                                           String(Node.tokenAsNode _1) 
+                                           AstNode.String(Node.tokenAsNode _1) 
                    )
 # 175 "./Ast/GslParser.fsy"
                  : 'gentype_StringLiteral));
@@ -1236,7 +1236,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 207 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (Marker(Node.tokenAsNode _1)) 
+                                                           Parts.createPartWithBase (AstNode.Marker(Node.tokenAsNode _1)) 
                    )
 # 207 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1247,7 +1247,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 209 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (InlineDna(Node.tokenAsNodeAfter uppercase _2)) 
+                                                           Parts.createPartWithBase (AstNode.InlineDna(Node.tokenAsNodeAfter uppercase _2)) 
                    )
 # 209 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1258,7 +1258,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 211 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter uppercase _3))
+                                                           Parts.createPartWithBase (AstNode.InlineProtein(Node.tokenAsNodeAfter uppercase _3))
                    )
 # 211 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1269,7 +1269,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 213 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) _3 )) 
+                                                           Parts.createPartWithBase (AstNode.InlineProtein(Node.tokenAsNodeAfter (fun s -> (s |> uppercase, "*") ||> (+) ) _3 )) 
                    )
 # 213 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1279,7 +1279,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 215 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (InlineProtein(Node.wrapNode "*")) 
+                                                           Parts.createPartWithBase (AstNode.InlineProtein(Node.wrapNode "*")) 
                    )
 # 215 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1290,7 +1290,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 216 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (HetBlock(Node.tokenAsNode _1)) 
+                                                           Parts.createPartWithBase (AstNode.HetBlock(Node.tokenAsNode _1)) 
                    )
 # 216 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1312,7 +1312,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 220 "./Ast/GslParser.fsy"
-                                                           Parts.createPartWithBase (PartId(Node.tokenAsNode _2)) 
+                                                           Parts.createPartWithBase (AstNode.PartId(Node.tokenAsNode _2)) 
                    )
 # 220 "./Ast/GslParser.fsy"
                  : 'gentype_Part));
@@ -1510,7 +1510,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 260 "./Ast/GslParser.fsy"
-                                         DotMod(Node.tokenAsNode _2) 
+                                         AstNode.DotMod(Node.tokenAsNode _2) 
                    )
 # 260 "./Ast/GslParser.fsy"
                  : 'gentype_Mod));

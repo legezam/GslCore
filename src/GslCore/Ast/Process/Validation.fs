@@ -27,7 +27,7 @@ type PartModifierValidationError = NotAValidModifierTarget of node: AstNode
 module PartValidation =
     let validatePart (op: ParsePart -> GslResult<unit, 'a>) (node: AstNode): GslResult<unit, 'a> =
         match node with
-        | Part ({ Value = pp; Positions = _ }) -> op pp
+        | AstNode.Part ({ Value = pp; Positions = _ }) -> op pp
         | _ -> GslResult.ok ()
 
     // TODO: this may be either a step too far, or just on example of something we need a lot more of
@@ -43,8 +43,8 @@ module PartValidation =
     let private checkModsPP (parsePart: ParsePart): GslResult<unit, PartModifierValidationError> =
         if not parsePart.Modifiers.IsEmpty then
             match parsePart.BasePart with
-            | Gene _ -> GslResult.ok ()
-            | PartId _ -> GslResult.ok ()
+            | AstNode.Gene _ -> GslResult.ok ()
+            | AstNode.PartId _ -> GslResult.ok ()
             | x -> GslResult.err (NotAValidModifierTarget x)
         else
             GslResult.ok ()
@@ -61,7 +61,7 @@ module RecursiveCalls =
     /// Maintain a stack of the function defintion context.
     let private updateRecursiveCheckState mode (s: string list) node =
         match node with
-        | FunctionDef (fd) ->
+        | AstNode.FunctionDef (fd) ->
             match mode with
             | PreTransform -> fd.Value.Name :: s
             | PostTransform ->
@@ -76,7 +76,7 @@ module RecursiveCalls =
                                    (node: AstNode)
                                    : GslResult<AstNode, RecursiveCallCheckError> =
         match node with
-        | FunctionCall functionCall when functionStack
+        | AstNode.FunctionCall functionCall when functionStack
                                          |> List.contains functionCall.Value.Name ->
             GslResult.err (RecursiveCallFoundError(functionCall.Value, node))
         | _ -> GslResult.ok node

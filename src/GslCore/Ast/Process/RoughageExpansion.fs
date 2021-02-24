@@ -25,11 +25,12 @@ module RoughageExpansion =
             || (roughage.Parts.Length > 0
                 && not roughage.Parts.Head.Value.PromoterAndTarget2.IsSome)
 
-        let node = Roughage roughageWrapper
+        let node = AstNode.Roughage roughageWrapper
 
-        if not hasLocus
-        then GslResult.err (ConstructHasIndeterminateLocus node)
-        else GslResult.ok roughageWrapper
+        if not hasLocus then
+            GslResult.err (ConstructHasIndeterminateLocus node)
+        else
+            GslResult.ok roughageWrapper
 
     /// Roughage expands to Level 2 GSL.  We actually do this using the AST rather than bootstrapping.
     let private expandRoughage (roughageWrapper: Node<Roughage>): AstNode =
@@ -47,8 +48,8 @@ module RoughageExpansion =
 
         let l2ElementFromRoughagePair (ptw: Node<RoughagePTPair>) =
             let pt = ptw.Value
-            let promoter = L2Id(pt.Promoter)
-            let target = L2Id(pt.Target)
+            let promoter = AstNode.L2Id(pt.Promoter)
+            let target = AstNode.L2Id(pt.Target)
             L2.createL2Element promoter target
 
         // For roughage, if no marker is specified, it defaults to ura3
@@ -58,7 +59,7 @@ module RoughageExpansion =
             | Some (x) -> markerMapping x
 
         let markerPragma =
-            Pragma
+            AstNode.Pragma
                 ({ Value =
                        { Pragma.Definition = BuiltIn.markersetPragmaDef
                          Arguments = [ marker ] }
@@ -74,19 +75,19 @@ module RoughageExpansion =
 
         let l2Locus =
             match roughage.Locus with
-            | Some (l) -> Some(L2Id(l))
+            | Some (l) -> Some(AstNode.L2Id(l))
             | None -> None
 
         let l2Expression = L2.createL2Expression l2Locus l2Elements
 
         // wrap the marker pragma and the L2 line up in a block
-        Block
+        AstNode.Block
             ({ Value = [ markerPragma; l2Expression ]
                Positions = [] })
 
     let private expandRoughageLine (node: AstNode): GslResult<AstNode, RoughageExpansionError> =
         match node with
-        | Roughage (rw) ->
+        | AstNode.Roughage (rw) ->
             validateRoughageLine rw
             |> GslResult.map expandRoughage
 

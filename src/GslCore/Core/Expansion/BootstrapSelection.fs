@@ -1,6 +1,5 @@
 namespace GslCore.Core.Expansion
 
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
@@ -25,16 +24,17 @@ module BootstrapExpansionMode =
         | ExpandMutation -> 20
 
     let internal prioritize mode1 mode2 =
-        if getExpansionPriority mode1 > getExpansionPriority mode2
-        then mode1
-        else mode2
+        if getExpansionPriority mode1 > getExpansionPriority mode2 then
+            mode1
+        else
+            mode2
 
     /// Given a node, determine what expansion step it requires to continue.
     let internal tryGetRequiredExpansionMode node =
         match node with
-        | Mutation _ -> Some(ExpandMutation)
-        | InlineProtein _ -> Some(ExpandProtein)
-        | HetBlock _ -> Some(ExpandHetBlock)
+        | AstNode.Mutation _ -> Some(ExpandMutation)
+        | AstNode.InlineProtein _ -> Some(ExpandProtein)
+        | AstNode.HetBlock _ -> Some(ExpandHetBlock)
         | _ -> None
 
 module BoostrapSelection =
@@ -47,9 +47,12 @@ module BoostrapSelection =
             |> Seq.choose id
             |> Set.ofSeq
 
-        if expansionsNeeded.IsEmpty
-        then None
-        else Some(expansionsNeeded |> Seq.reduce BootstrapExpansionMode.prioritize)
+        if expansionsNeeded.IsEmpty then
+            None
+        else
+            Some
+                (expansionsNeeded
+                 |> Seq.reduce BootstrapExpansionMode.prioritize)
 
     ///<summary>
     /// We only want to run the assemblies that require expansion through the bootstrapper.

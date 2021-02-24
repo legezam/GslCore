@@ -16,8 +16,8 @@ open GslCore.Pragma
 let getPragmasStrict (part: Node<ParsePart>): AstResult<PragmaCollection> =
     let getBuiltPragma (node: AstNode): AstResult<Pragma> =
         match node with
-        | Pragma pragmaWrapper -> GslResult.ok pragmaWrapper.Value
-        | ParsePragma parsePragmaWrapper -> AstResult.unbuiltPragmaError None parsePragmaWrapper.Value.Name node
+        | AstNode.Pragma pragmaWrapper -> GslResult.ok pragmaWrapper.Value
+        | AstNode.ParsePragma parsePragmaWrapper -> AstResult.unbuiltPragmaError None parsePragmaWrapper.Value.Name node
         | x -> AstResult.internalTypeMismatch None "Pragma" x
 
     part.Value.Pragmas
@@ -49,7 +49,7 @@ let replacePragmas (part: Node<ParsePart>) (pragmaCollection: PragmaCollection):
     let astPragmas =
         pragmaCollection
         |> PragmaCollection.values
-        |> Seq.map (fun pragma -> Pragma(Node.wrapNode pragma))
+        |> Seq.map (fun pragma -> AstNode.Pragma(Node.wrapNode pragma))
         |> List.ofSeq
 
     { part with
@@ -81,6 +81,6 @@ let mergePragmas (parsePart: Node<ParsePart>) (pragmaCollection: PragmaCollectio
             let warning =
                 AstMessage.createWarning
                     (sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", "))
-                    (Part(parsePart))
+                    (AstNode.Part(parsePart))
 
             GslResult.warn warning newPart)
