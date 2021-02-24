@@ -49,7 +49,7 @@ module PartValidation =
         else
             GslResult.ok ()
 
-    let checkMods = validatePart checkModsPP
+    let validateModifiers = validatePart checkModsPP
 
 // ===================
 // refusing to compile recursive function calls

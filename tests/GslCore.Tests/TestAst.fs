@@ -84,7 +84,7 @@ type TestValidation() =
         assertValidationFail
             PartError
             (Some "Can only apply part mods to Gene or PartId, not Marker")
-            (PartValidation.checkMods
+            (PartValidation.validateModifiers
              >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
             tree
         |> ignore
@@ -100,7 +100,7 @@ type TestValidation() =
         assertValidationFail
             PartError
             (Some "Can only apply part mods to Gene or PartId, not Assembly")
-            (PartValidation.checkMods
+            (PartValidation.validateModifiers
              >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
             tree
         |> ignore
