@@ -146,3 +146,13 @@ module AssemblyStuffingMessage =
                     (formatPragma existing)
 
             AstResult.errStringMsg PragmaError msg node
+
+module PragmaWarningMessage =
+    open GslCore.Ast.Process.PragmaWarning
+
+    let toAstMessage: PragmaWarningError -> AstMessage =
+        function
+        | PragmaWarningError (pragma, node) ->
+            let msg = pragma.Arguments |> String.concat " "
+
+            AstMessage.createWarning msg node
