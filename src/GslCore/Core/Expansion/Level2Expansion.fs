@@ -1,6 +1,7 @@
 module GslCore.Core.Expansion.Level2Expansion
 
 open System
+open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Constants
 open GslCore.Ast.Types
@@ -13,7 +14,7 @@ open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference
 open GslCore.Core.PluginTypes
-
+open GslCore.Ast.Process.AssemblyStuffing
 
 
 // ==========================
@@ -129,9 +130,11 @@ let expandLevel2 (parameters: Phase1Parameters) (providers: L2Provider list) (rg
         /// Perform the expansion operation, capturing any exception as an error.
         let expandCaptureException construct =
             try
-                expandL2Expression providers rgs construct |> GslResult.ok
+                expandL2Expression providers rgs construct
+                |> GslResult.ok
             with e ->
-                AstResult.exceptionToError L2ExpansionError node e |> GslResult.err
+                AstResult.exceptionToError L2ExpansionError node e
+                |> GslResult.err
 
         match node with
         | L2Expression (l2e) ->
@@ -151,5 +154,5 @@ let expandLevel2 (parameters: Phase1Parameters) (providers: L2Provider list) (rg
         foldmapParameters
         tree
     >>= Bootstrapping.healSplices // heal the splices
-    >>= AssemblyStuffing.stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
-
+    >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
+         >> GslResult.mapError AssemblyStuffingMessage.toAstMessage) // Bootstrapped assemblies need their pragma environment reinjected

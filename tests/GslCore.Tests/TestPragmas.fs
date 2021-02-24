@@ -7,6 +7,7 @@ open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.ExpressionReduction
 open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.Process.AssemblyFlattening
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.Pragma
@@ -107,7 +108,8 @@ type TestPragmasAST() =
         pragmaBuildPipeline
         >=> (AssemblyFlattening.flattenAssemblies phase1Params
              >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage)
-        >=> AssemblyStuffing.stuffPragmasIntoAssemblies
+        >=> (AssemblyStuffing.stuffPragmasIntoAssemblies
+             >> GslResult.mapError AssemblyStuffingMessage.toAstMessage)
 
     [<Test>]
     member x.TestBasicPragmaBuild() =

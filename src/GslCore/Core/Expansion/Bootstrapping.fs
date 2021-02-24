@@ -1,5 +1,6 @@
 module GslCore.Core.Expansion.Bootstrapping
 
+open GslCore.Ast.MessageTranslation
 open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast
@@ -9,6 +10,7 @@ open GslCore.Ast.Process
 open GslCore.Ast.Legacy.Types
 open GslCore.Ast.Legacy
 open GslCore.GslResult
+open GslCore.Ast.Process.AssemblyStuffing
 
 // ==================
 // bootstrapping literal source into an AST node
@@ -194,4 +196,5 @@ let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
         foldmapParameters
         tree
     >>= healSplices // heal the splices
-    >>= AssemblyStuffing.stuffPragmasIntoAssemblies // Bootstrapped assemblies need their pragma environment reinjected
+    >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
+         >> GslResult.mapError AssemblyStuffingMessage.toAstMessage) // Bootstrapped assemblies need their pragma environment reinjected

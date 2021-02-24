@@ -128,3 +128,21 @@ module AssemblyFlatteningMessage =
         | FlippingTrailingFuse part ->
             AstResult.errStringMsg PragmaError "Found a trailing #fuse in an assembly that needs to flip." (Part part)
         | PragmaMergeError msg -> msg
+
+module AssemblyStuffingMessage =
+    open GslCore.Ast.Process.AssemblyStuffing
+    open GslCore.Pragma
+
+    let toAstMessage: AssemblyStuffingError -> AstMessage =
+        function
+        | CollidingPragmas (incoming, existing, node) ->
+            let formatPragma (pragma: Pragma) = pragma.Arguments |> String.concat " "
+
+            let msg =
+                sprintf
+                    "The pragma #%s is set in this assembly as well as in the enclosing environment with conflicting values.  Incoming: '%s'.  Existing: '%s'."
+                    existing.Name
+                    (formatPragma incoming)
+                    (formatPragma existing)
+
+            AstResult.errStringMsg PragmaError msg node

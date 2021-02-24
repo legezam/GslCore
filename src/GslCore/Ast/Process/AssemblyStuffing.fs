@@ -1,4 +1,4 @@
-namespace GslCore.Ast.Process
+namespace GslCore.Ast.Process.AssemblyStuffing
 
 open GslCore.Ast.Process
 open GslCore.Ast.Types
@@ -33,6 +33,8 @@ module PragmaEnvironment =
           AssignedTransients = PragmaCollection.empty
           Capabilities = Set.empty
           WarnOffs = Set.empty }
+
+type AssemblyStuffingError = CollidingPragmas of incoming: Pragma * existing: Pragma * node: AstNode
 
 module AssemblyStuffing =
     /// Update the pragma environment on both pragmas and part nodes.
@@ -91,23 +93,17 @@ module AssemblyStuffing =
             | _ -> environment
 
     /// Helper error for pragma collision.
-    let private collidingPragmaError (existing: Pragma) (incoming: Pragma) (node: AstNode): AstResult<unit> =
-        let formatPragma pragma = pragma.Arguments |> String.concat " "
-
-        let msg =
-            sprintf
-                "The pragma #%s is set in this assembly as well as in the enclosing environment with conflicting values.  Incoming: '%s'.  Existing: '%s'."
-                existing.Name
-                (formatPragma incoming)
-                (formatPragma existing)
-
-        AstResult.errString PragmaError msg node
+    let private collidingPragmaError (existing: Pragma)
+                                     (incoming: Pragma)
+                                     (node: AstNode)
+                                     : GslResult<unit, AssemblyStuffingError> =
+        GslResult.err (CollidingPragmas(incoming, existing, node))
 
     /// Check incoming pragmas for collisions with another pragma collection.
     let private checkPragmaCollisions (incoming: PragmaCollection)
                                       (existing: PragmaCollection)
                                       (node: AstNode)
-                                      : AstResult<unit> =
+                                      : GslResult<unit, AssemblyStuffingError> =
         if existing |> PragmaCollection.isEmpty |> not then
             existing
             |> PragmaCollection.values
@@ -127,7 +123,9 @@ module AssemblyStuffing =
             GslResult.ok ()
 
     /// Deposit collected pragmas into an assembly.
-    let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment) (node: AstNode): AstResult<AstNode> =
+    let private stuffPragmasIntoAssembly (pragmaEnvironment: PragmaEnvironment)
+                                         (node: AstNode)
+                                         : GslResult<AstNode, AssemblyStuffingError> =
         match node with
         | AssemblyPart (partWrapper, _) ->
             let incoming =

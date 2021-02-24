@@ -2,6 +2,7 @@ namespace GslCore.Ast.Legacy.Types
 
 open Amyris.Dna
 open GslCore.Ast.Process
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Constants
 open GslCore.Uri
 open GslCore.Pragma

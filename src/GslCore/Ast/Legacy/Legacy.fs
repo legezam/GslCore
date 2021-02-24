@@ -9,6 +9,7 @@ open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
 open GslCore.Ast.Legacy.Types
 

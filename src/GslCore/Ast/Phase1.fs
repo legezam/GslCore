@@ -12,6 +12,7 @@ open GslCore.Ast.Process.RelativePositionTranslation
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.ExpressionReduction
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.MessageTranslation
@@ -50,7 +51,8 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
     >=> (AssemblyFlattening.flattenAssemblies parameters
          >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage)
     >=> (Validation.validate Validation.checkMods)
-    >=> AssemblyStuffing.stuffPragmasIntoAssemblies
+    >=> (AssemblyStuffing.stuffPragmasIntoAssemblies
+         >> GslResult.mapError AssemblyStuffingMessage.toAstMessage)
 
 /// Prep a tree for phase 2, after phase 1 compilation is complete.
 let postPhase1 rgs library =
