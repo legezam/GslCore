@@ -792,7 +792,7 @@ module Validation =
     /// Enforces that the tree remains the same by only accepting a function that returns nothing.
     /// Can perform multiple validations in parallel on each node by combining the node validation
     /// functions with the &&& infix operator.
-    let validate (f: AstNode -> ValidationResult) tree =
+    let validate (f: AstNode -> GslResult<unit, 'a>) tree =
         // we can express this operation using map and by doctoring the inputs and outputs.
         // map requires a function that produces a transformation result.
         let fPassThru (node: AstNode) = f node |> GslResult.map (fun _ -> node) // splice the node into successful validation result which is always ()

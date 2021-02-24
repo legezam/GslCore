@@ -3,6 +3,7 @@
 open GslCore
 open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
+open GslCore.Ast.Process.Validation
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.GslResult
@@ -58,7 +59,12 @@ type TestValidation() =
         let tree = treeify [ err ]
 
         let failure =
-            assertValidationFail ParserError (Some errorText) Validation.checkParseError tree
+            assertValidationFail
+                ParserError
+                (Some errorText)
+                (ParseErrorValidation.checkParseError
+                 >> GslResult.mapError ParseErrorMessage.toAstMessage)
+                tree
 
         Assert.AreEqual(err, failure.Node)
 
@@ -73,7 +79,8 @@ type TestValidation() =
         assertValidationFail
             PartError
             (Some "Can only apply part mods to Gene or PartId, not Marker")
-            Validation.checkMods
+            (PartValidation.checkMods
+             >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
             tree
         |> ignore
 
@@ -88,7 +95,8 @@ type TestValidation() =
         assertValidationFail
             PartError
             (Some "Can only apply part mods to Gene or PartId, not Assembly")
-            Validation.checkMods
+            (PartValidation.checkMods
+             >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
             tree
         |> ignore
 
@@ -132,7 +140,8 @@ type TestTransformation() =
                   >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage))
 
     let variableResolutionPipeline =
-        Validation.checkRecursiveCalls
+        (RecursiveCalls.check
+         >> GslResult.mapError RecursiveCallCheckMessage.toAstMessage)
         >=> (VariableResolution.resolveVariables
              >> GslResult.mapError VariableResolutionMessage.toAstMessage)
         >=> (Inlining.inlineFunctionCalls

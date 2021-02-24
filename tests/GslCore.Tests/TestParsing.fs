@@ -1,7 +1,9 @@
 ﻿namespace GslCore.Tests
 
 open System
+open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
+open GslCore.Ast.Process.Validation
 open GslCore.GslResult
 open NUnit.Framework
 open Amyris.ErrorHandling
@@ -67,7 +69,9 @@ type TestParsing() =
 
         source
         |> GslSourceCode
-        |> compile (Validation.validate Validation.checkParseError)
+        |> compile
+            (Validation.validate ParseErrorValidation.checkParseError
+             >> GslResult.mapError ParseErrorMessage.toAstMessage)
         |> assertFail ParserError (Some("syntax error"))
         |> ignore
 

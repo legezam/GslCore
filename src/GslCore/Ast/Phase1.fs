@@ -1,6 +1,7 @@
 module GslCore.Ast.Phase1
 
 
+open GslCore.Ast.Process.Validation
 open GslCore.GslResult
 open GslCore.Ast.Process
 open GslCore.Ast.Types
@@ -26,14 +27,17 @@ open GslCore.Ast.MessageTranslation
 
 let immediateValidations =
     Validation.validate
-        (Validation.checkParseError
-         &&& Validation.validBasePart)
+        ((ParseErrorValidation.checkParseError
+          >> GslResult.mapError ParseErrorMessage.toAstMessage)
+         &&& (PartValidation.validBasePart
+              >> GslResult.mapError PartBaseValidationMessage.toAstMessage))
 
 /// Phase 1 is everything before bioinformatics really gets involved.
 let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead> =
     Linting.linters
     >=> immediateValidations
-    >=> Validation.checkRecursiveCalls
+    >=> (RecursiveCalls.check
+         >> GslResult.mapError RecursiveCallCheckMessage.toAstMessage)
     >=> (VariableResolution.resolveVariables
          >> GslResult.mapError VariableResolutionMessage.toAstMessage)
     >=> (Inlining.inlineFunctionCalls
@@ -56,7 +60,8 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
          >> GslResult.mapError RoughageExpansionMessage.toAstMessage) // inline roughage expansion is pretty simple so we always do it
     >=> (AssemblyFlattening.flattenAssemblies parameters
          >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage)
-    >=> (Validation.validate Validation.checkMods)
+    >=> (Validation.validate PartValidation.checkMods
+         >> GslResult.mapError PartModifierValidationMessage.toAstMessage)
     >=> (AssemblyStuffing.stuffPragmasIntoAssemblies
          >> GslResult.mapError AssemblyStuffingMessage.toAstMessage)
 
