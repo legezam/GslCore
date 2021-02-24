@@ -182,21 +182,23 @@ module ParseErrorMessage =
 
 module PartBaseValidationMessage =
     open GslCore.Ast.Process.Validation
-    
+
     let toAstMessage: PartBaseValidationError -> AstMessage =
         function
         | NotValidBasePart node ->
             AstResult.errStringFMsg (InternalError(PartError)) "%s is not a valid base part." node.TypeName node
-            
+
 module PartModifierValidationMessage =
     open GslCore.Ast.Process.Validation
+
     let toAstMessage: PartModifierValidationError -> AstMessage =
         function
         | NotAValidModifierTarget node ->
             AstResult.errStringFMsg PartError "Can only apply part mods to Gene or PartId, not %s" node.TypeName node
-            
+
 module RecursiveCallCheckMessage =
     open GslCore.Ast.Process.Validation
+
     let toAstMessage: RecursiveCallCheckError -> AstMessage =
         function
         | RecursiveCallFoundError (functionCall, node) ->
@@ -204,4 +206,21 @@ module RecursiveCallCheckMessage =
                 RecursiveFunctionCall
                 "Found a recursive call to '%s'. GSL does not support recursive functions."
                 functionCall.Name
-                node                        
+                node
+
+module LinterHintMessage =
+    open GslCore.Ast.Linting
+
+    let toAstMessage: LinterHint -> AstMessage =
+        function
+        | VariableReferenceDeprecated (variableName, node) ->
+            let msgText =
+                sprintf "The syntax for using a variable has changed to &myVar from @myVar.\n@%s looks like it should probably be &%s."
+                    variableName variableName
+
+            AstMessage.createWarning msgText node
+        | PushPopDeprecated node ->
+            AstResult.errStringMsg
+                PragmaError
+                "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
+                node

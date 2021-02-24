@@ -1,6 +1,7 @@
 module GslCore.Ast.Phase1
 
 
+open GslCore.Ast.Linting
 open GslCore.Ast.Process.Validation
 open GslCore.GslResult
 open GslCore.Ast.Process
@@ -34,7 +35,8 @@ let immediateValidations =
 
 /// Phase 1 is everything before bioinformatics really gets involved.
 let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead> =
-    Linting.linters
+    (Linter.linters
+     >> GslResult.mapError LinterHintMessage.toAstMessage)
     >=> immediateValidations
     >=> (RecursiveCalls.check
          >> GslResult.mapError RecursiveCallCheckMessage.toAstMessage)

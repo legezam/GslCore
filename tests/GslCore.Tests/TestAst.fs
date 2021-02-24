@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open GslCore
+open GslCore.Ast.Linting
 open GslCore.Ast.MessageTranslation
 open GslCore.Ast.Process
 open GslCore.Ast.Process.Validation
@@ -27,7 +28,9 @@ type TestLinting() =
     member x.TestDetectOldVariableSyntax() =
         "@foo"
         |> GslSourceCode
-        |> compile Linting.linters
+        |> compile
+            ((Linter.linters
+              >> GslResult.mapError LinterHintMessage.toAstMessage))
         |> assertWarn Warning (Some("The syntax for using a variable has changed"))
         |> ignore
 
@@ -35,7 +38,9 @@ type TestLinting() =
     member x.TestDetectPushPop() =
         "#push\n#pop"
         |> GslSourceCode
-        |> compile Linting.linters
+        |> compile
+            (Linter.linters
+             >> GslResult.mapError LinterHintMessage.toAstMessage)
         |> assertFailMany [ PragmaError; PragmaError ] [
             Some("#push and #pop have been removed")
             Some("#push and #pop have been removed")
