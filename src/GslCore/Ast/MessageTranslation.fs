@@ -118,3 +118,13 @@ module PragmaBuildingMessage =
         | PragmaCreationError (message, node) -> AstMessage.createErrorWithStackTrace PragmaError message node
         | PragmaDeprecated (depreciation, node) ->
             AstMessage.create None DeprecationWarning depreciation.WarningMessage node
+
+module AssemblyFlatteningMessage =
+    open GslCore.Ast.Types
+    open GslCore.Ast.Process.AssemblyFlattening
+
+    let toAstMessage: AssemblyFlatteningError -> AstMessage =
+        function
+        | FlippingTrailingFuse part ->
+            AstResult.errStringMsg PragmaError "Found a trailing #fuse in an assembly that needs to flip." (Part part)
+        | PragmaMergeError msg -> msg

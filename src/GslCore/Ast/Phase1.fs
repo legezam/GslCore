@@ -12,6 +12,7 @@ open GslCore.Ast.Process.RelativePositionTranslation
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.ExpressionReduction
+open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.MessageTranslation
 
@@ -46,7 +47,8 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
     >=> (RelativePositionTranslation.compute
          >> GslResult.mapError RelativePositionTranslationMessage.toAstMessage)
     >=> RoughageExpansion.expandRoughageLines // inline roughage expansion is pretty simple so we always do it
-    >=> AssemblyFlattening.flattenAssemblies parameters
+    >=> (AssemblyFlattening.flattenAssemblies parameters
+         >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage)
     >=> (Validation.validate Validation.checkMods)
     >=> AssemblyStuffing.stuffPragmasIntoAssemblies
 

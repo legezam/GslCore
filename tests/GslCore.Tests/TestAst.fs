@@ -11,6 +11,7 @@ open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Process.ExpressionReduction
 open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.PragmaBuilding
+open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast
 open GslCore.AstFixtures
@@ -119,13 +120,15 @@ type TestTransformation() =
         sourceCompareTest
             ((PragmaBuilding.buildPragmas AssemblyTestSupport.defaultPhase1Parameters
               >> GslResult.mapError PragmaBuildingMessage.toAstMessage)
-             >=> AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters)
+             >=> (AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters
+                  >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage))
 
     let flattenPartTest =
         sourceCompareTest
             ((VariableResolution.resolveVariables
               >> GslResult.mapError VariableResolutionMessage.toAstMessage)
-             >=> AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters)
+             >=> (AssemblyFlattening.flattenAssemblies AssemblyTestSupport.defaultPhase1Parameters
+                  >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage))
 
     let variableResolutionPipeline =
         Validation.checkRecursiveCalls
