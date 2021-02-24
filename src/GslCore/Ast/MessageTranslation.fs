@@ -156,3 +156,16 @@ module PragmaWarningMessage =
             let msg = pragma.Arguments |> String.concat " "
 
             AstMessage.createWarning msg node
+
+module RoughageExpansionMessage =
+    open GslCore.Ast.Algorithms
+    open GslCore.Ast.Process.RoughageExpansion
+
+    let toAstMessage: RoughageExpansionError -> AstMessage =
+        function
+        | ConstructHasIndeterminateLocus node ->
+            AstResult.errStringFMsg
+                ValueError
+                "Roughage construct has indeterminate locus: %s"
+                (AstNode.decompile node)
+                node

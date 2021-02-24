@@ -14,6 +14,7 @@ open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.ExpressionReduction
 open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Process.AssemblyFlattening
+open GslCore.Ast.Process.RoughageExpansion
 open GslCore.Ast.Process.PragmaWarning
 open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.MessageTranslation
@@ -49,7 +50,8 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> AstResult<AstTreeHead>
          >> GslResult.mapError PragmaWarningMessage.toAstMessage)
     >=> (RelativePositionTranslation.compute
          >> GslResult.mapError RelativePositionTranslationMessage.toAstMessage)
-    >=> RoughageExpansion.expandRoughageLines // inline roughage expansion is pretty simple so we always do it
+    >=> (RoughageExpansion.expandRoughageLines
+         >> GslResult.mapError RoughageExpansionMessage.toAstMessage) // inline roughage expansion is pretty simple so we always do it
     >=> (AssemblyFlattening.flattenAssemblies parameters
          >> GslResult.mapError AssemblyFlatteningMessage.toAstMessage)
     >=> (Validation.validate Validation.checkMods)
