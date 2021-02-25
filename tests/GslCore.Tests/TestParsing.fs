@@ -74,7 +74,7 @@ type TestParsing() =
             |> GslResult.assertError
 
         match result with
-        | Choice2Of2 (ParseErrorType (ParseError _)) -> Assert.Pass()
+        | Choice1Of2 _message -> Assert.Pass()
         | x -> Assert.Fail(sprintf "Expected ParseError, got %O instead" x)
 
 

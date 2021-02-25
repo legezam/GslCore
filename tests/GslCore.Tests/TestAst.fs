@@ -39,15 +39,15 @@ type TestLinting() =
         |> compile
             (Phase1.linting
              >> GslResult.mapError Phase1Message.toAstMessage)
-        |> GslResult.assertWarnings
-        |> fun warnings ->
-            match warnings.[0] with
+        |> GslResult.assertErrors
+        |> fun errors ->
+            match errors.[0] with
             | Choice2Of2 msg ->
                 Assert.AreEqual(PragmaError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("#push and #pop have been removed"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
-            match warnings.[1] with
+            match errors.[1] with
             | Choice2Of2 msg ->
                 Assert.AreEqual(PragmaError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("#push and #pop have been removed"))
@@ -439,7 +439,7 @@ testFunc(&fooPart, &fooInt)
             match errors.[1] with
             | Choice2Of2 msg ->
                 Assert.AreEqual(TypeError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("The variable int has been inferred to have the type Int"))
+                Assert.IsTrue(msg.Message.Contains("The variable part has been inferred to have the type Int"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
 

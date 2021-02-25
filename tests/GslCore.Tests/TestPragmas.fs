@@ -165,7 +165,7 @@ bar("qux")
                                                                                                         _allowedScope,
                                                                                                         usedScope,
                                                                                                         _node))) ->
-            Assert.AreEqual("#fuse", name)
+            Assert.AreEqual("fuse", name)
             Assert.AreEqual("block-level", usedScope)
         | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
 
@@ -174,7 +174,7 @@ bar("qux")
                                                                                                         _allowedScope,
                                                                                                         usedScope,
                                                                                                         _node))) ->
-            Assert.AreEqual("#capa", name)
+            Assert.AreEqual("capa", name)
             Assert.AreEqual("part-level", usedScope)
         | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
 
@@ -317,6 +317,6 @@ gBAZ"""
         |> GslResult.assertError
         |> function
         | AssemblyStuffingError (GslCore.Ast.Process.AssemblyStuffing.CollidingPragmas (incoming, existing, _node)) ->
-            Assert.AreEqual("name", incoming)
-            Assert.AreEqual("name", existing)
+            Assert.AreEqual("name", incoming.Name)
+            Assert.AreEqual("name", existing.Name)
         | x -> Assert.Fail(sprintf "Expecting CollidingPragmas. Got something else instead: %A" x)

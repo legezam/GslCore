@@ -66,7 +66,7 @@ gHO^ ; &myAssembly>gACS1"""
             |> GslResult.assertError
 
         match error with
-        | Choice2Of2 message -> Assert.AreEqual(ParserError, message.Type)
+        | Choice1Of2 _message -> Assert.Pass()
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
 
