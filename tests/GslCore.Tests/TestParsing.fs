@@ -1,16 +1,17 @@
 ﻿namespace GslCore.Tests
 
 open System
+
 open GslCore.Ast
 open GslCore.Ast.Phase1Message
 open GslCore.Ast.Process
+open GslCore.Ast.Process.Validation
 open GslCore.GslResult
 open NUnit.Framework
 open GslCore.Ast.Types
 open GslCore.AstFixtures
 open GslCore.AstAssertions
 open GslCore.Ast.Algorithms
-open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 
 [<TestFixture>]
@@ -66,13 +67,17 @@ type TestParsing() =
     member x.TestNoTrailingSemicolons() =
         let source = "gFOO ;"
 
-        source
-        |> GslSourceCode
-        |> compile
-            (Validation.validate Phase1.checkParseError
-             >> GslResult.mapError Phase1Message.toAstMessage)
-        |> assertFail ParserError (Some("syntax error"))
-        |> ignore
+        let result =
+            source
+            |> GslSourceCode
+            |> compile (Validation.validate Phase1.checkParseError)
+            |> GslResult.assertError
+
+        match result with
+        | Choice2Of2 (ParseErrorType (ParseError _)) -> Assert.Pass()
+        | x -> Assert.Fail(sprintf "Expected ParseError, got %O instead" x)
+
+
 
     [<Test>]
     member x.TestVariableUse() =
@@ -235,11 +240,6 @@ end"""
     member x.TestL2ImplicitPromoterSwapRabit() =
         let source = "@R41811>gADH1"
         sourceCompareTest (GslResult.promote id) source source
-
-    //    [<Test>]
-//    member x.TestL2ImplicitPromoterSwapAssembly() =
-//        let source = "(!gERG10 ; !pFBA1 ; pSLN1)>gADH1"
-//        sourceCompareTest (promote id) source source
 
     [<Test>]
     member x.TestL2ImplicitPromoterSwapVariable() =

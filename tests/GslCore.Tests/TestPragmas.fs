@@ -1,6 +1,7 @@
 ﻿namespace GslCore
 
 
+open FsToolkit.ErrorHandling
 open GslCore.Ast
 open GslCore.Ast.Process
 open GslCore.DesignParams
@@ -12,7 +13,6 @@ open GslCore.Ast.Types
 open GslCore.AstFixtures
 open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
-open GslCore.Ast.ErrorHandling
 open GslCore.Constants
 open GslCore.Ast.Phase1Message
 
@@ -80,24 +80,21 @@ type TestPragmasAST() =
         >=> Phase1.expressionReduction
         >=> Phase1.pragmaBuilding phase1Params
 
-    let compilePragmas =
-        compile
-            (pragmaBuildPipeline
-             >> GslResult.mapError Phase1Message.toAstMessage)
+    let compilePragmas = compile pragmaBuildPipeline
 
     let checkPragmaIsBuilt node =
         match node with
-        | AstNode.Pragma _ -> Validation.good
-        | AstNode.ParsePragma (p) -> AstResult.errStringF GeneralError "Pragma '%s' was not built." p.Value.Name node
-        | _ -> Validation.good
+        | AstNode.Pragma _ -> GslResult.ok ()
+        | AstNode.ParsePragma parsePragmaWrapper -> GslResult.err parsePragmaWrapper.Value.Name
+        | _ -> GslResult.ok ()
 
     let pragmaBuildTest source =
         let source = GslSourceCode source
 
         source
-        |> compilePragmas
+        |> (compilePragmas >> GslResult.mapErrorToAnything)
         >>= Validation.validate checkPragmaIsBuilt
-        |> failIfBad (Some(source))
+        |> GslResult.assertOk
         |> ignore
 
     let stuffPragmasPipeline =
@@ -106,9 +103,7 @@ type TestPragmasAST() =
         >=> Phase1.assemblyStuffing
 
     let compilePragmasAndStuffAssemblies =
-        compile
-            (pragmaBuildPipeline >=> stuffPragmasPipeline
-             >> GslResult.mapError Phase1Message.toAstMessage)
+        compile (pragmaBuildPipeline >=> stuffPragmasPipeline)
 
     [<Test>]
     member x.TestBasicPragmaBuild() =
@@ -140,43 +135,69 @@ bar("qux")
     member x.TestUnknownPragma() =
         let source = "#verybadpragma"
 
-        source
-        |> GslSourceCode
-        |> compilePragmas
-        |> assertFail PragmaError (Some("Unknown or invalid pragma: '#verybadpragma'"))
-        |> ignore
+        let error =
+            source
+            |> GslSourceCode
+            |> compilePragmas
+            |> GslResult.assertError
+
+        match error with
+        | Choice2Of2 (PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaCreationError (message, _node))) ->
+            if message.Contains "verybadpragma" then
+                Assert.Pass()
+            else
+                Assert.Fail
+                    (sprintf "Expected error message that contains reference to #verybadpragma. Instead got: %s" message)
+        | x -> Assert.Fail(sprintf "Expecting PragmaCreationError. Got something else instead: %A" x)
 
     [<Test>]
     member x.TestBadPragmaScopes() =
         let source = "#fuse\ngFOO {#capa capa1} ; gBAR"
 
-        source
-        |> GslSourceCode
-        |> compilePragmas
-        |> assertFailMany [ PragmaError; PragmaError ] [
-            Some("#fuse is used at block-level")
-            Some("#capa is used at part-level")
-           ]
-        |> ignore
+        let errors =
+            source
+            |> GslSourceCode
+            |> compilePragmas
+            |> GslResult.assertErrors
+
+        match errors.[0] with
+        | Choice2Of2 (PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaIsUsedInWrongScope (name,
+                                                                                                        _allowedScope,
+                                                                                                        usedScope,
+                                                                                                        _node))) ->
+            Assert.AreEqual("#fuse", name)
+            Assert.AreEqual("block-level", usedScope)
+        | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
+
+        match errors.[1] with
+        | Choice2Of2 (PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaIsUsedInWrongScope (name,
+                                                                                                        _allowedScope,
+                                                                                                        usedScope,
+                                                                                                        _node))) ->
+            Assert.AreEqual("#capa", name)
+            Assert.AreEqual("part-level", usedScope)
+        | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
 
 
     [<Test>]
     member x.TestDeprecatedPragma() =
         let source = "#stitch\n#stitch"
 
-        source
-        |> GslSourceCode
-        |> compilePragmas
-        |> assertWarnMany [ DeprecationWarning
-                            DeprecationWarning ] [
-            Some("#stitch is deprecated")
-            Some("#stitch is deprecated")
-           ]
-        // test the deprecation warning deduplication mechanism
-        |> fun success -> GslParseErrorContext.deduplicateMessages success.Warnings
-        |> (fun msgs -> GslResult.warns msgs ())
-        |> assertWarn DeprecationWarning (Some("appear only once per file"))
-        |> ignore
+        let warnings =
+            source
+            |> GslSourceCode
+            |> compilePragmas
+            |> GslResult.assertWarnings
+
+        match warnings.[0] with
+        | Choice2Of2 (PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaDeprecated (deprecation, _node))) ->
+            Assert.AreEqual("stitch", deprecation.Name)
+        | x -> Assert.Fail(sprintf "Expecting PragmaDeprecated. Got something else instead: %A" x)
+
+        match warnings.[1] with
+        | Choice2Of2 (PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaDeprecated (deprecation, _node))) ->
+            Assert.AreEqual("stitch", deprecation.Name)
+        | x -> Assert.Fail(sprintf "Expecting PragmaDeprecated. Got something else instead: %A" x)
 
 
     [<Test>]
@@ -275,7 +296,7 @@ gBAZ"""
 
         let tree =
             compilePragmasAndStuffAssemblies (GslSourceCode(source))
-            |> GslResult.valueOr (failwithf "%A")
+            |> GslResult.assertOk
         // now replace the outer name pragma and make sure the second pass triggers the collision error
         match tree.wrappedNode with
         | AstNode.Block ({ Value = [ AstNode.Pragma (npw); assem ]
@@ -292,10 +313,10 @@ gBAZ"""
                    Positions = p })
         | _ -> failwith "Didn't unwrap correctly."
         |> AstTreeHead
-        |> (stuffPragmasPipeline
-            >> GslResult.mapError Phase1Message.toAstMessage)
-        |> assertFail
-            PragmaError
-               (Some
-                   ("The pragma #name is set in this assembly as well as in the enclosing environment with conflicting values."))
-        |> ignore
+        |> stuffPragmasPipeline
+        |> GslResult.assertError
+        |> function
+        | AssemblyStuffingError (GslCore.Ast.Process.AssemblyStuffing.CollidingPragmas (incoming, existing, _node)) ->
+            Assert.AreEqual("name", incoming)
+            Assert.AreEqual("name", existing)
+        | x -> Assert.Fail(sprintf "Expecting CollidingPragmas. Got something else instead: %A" x)

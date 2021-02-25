@@ -35,7 +35,7 @@ let assertTreesEqual (expected: AstTreeHead) (actual: AstTreeHead) =
 
 /// Assert that passed tree decompiles to the provided source literal.
 /// Optionally trim leading and trailing whitespace.
-let assertDecompilesTo (source: string) (tree: AstTreeHead) =
+let assertDecompilesTo (source: string) (tree: AstTreeHead): unit =
     let treeAsText = AstNode.decompile tree.wrappedNode
 
     let cleanString (s: string) = s.Trim().Replace("\r\n", "\n")
@@ -76,46 +76,24 @@ let assertRoundtrip source astItems =
     assertTreesEqual (treeify astItems) tree
     assertDecompilesTo source tree
 
-/// Parse and run op on parsed tree.
-let compile (op: AstTreeHead -> AstResult<'a>) (source: GslSourceCode): AstResult<'a> =
-    (lexparse source
-     |> GslResult.mapError LexParseError.toAstMessage)
-    >>= op
 
-let compile2 (op: AstTreeHead -> GslResult<'a, 'b>) (source: GslSourceCode): GslResult<'a, Choice<LexParseError, 'b>> =
+let compile (op: AstTreeHead -> GslResult<'a, 'b>) (source: GslSourceCode): GslResult<'a, Choice<LexParseError, 'b>> =
     (lexparse source |> GslResult.mapError Choice1Of2)
     >>= (op >> GslResult.mapError Choice2Of2)
-
-/// Fail if the incoming result is Bad.
-/// Optionally pass in source code for message printing.
-let failIfBad (sourceCode: GslSourceCode option) (r: GslResult<_, _>) =
-    let printMsg (m: AstMessage) =
-        match sourceCode with
-        | Some s -> m |> AstResult.getLongForm (false, s)
-        | None -> m.Summary
-
-    match r.Value with
-    | Error errs ->
-        errs
-        |> Seq.map printMsg
-        |> String.concat "\n"
-        |> Assert.Fail
-    | _ -> ()
-
-    r
 
 ///<summary>
 /// Compare expected and reprinted source for a provided source sample.
 /// The source is parsed, the tree is operated on by op, and the
 /// resulting source is compared to the expected source.
 ///</summary>
-let sourceCompareTest op sourceIn expectedSource =
+let sourceCompareTest (op: AstTreeHead -> GslResult<AstTreeHead, 'b>) (sourceIn: string) (expectedSource: string): unit =
     let source = GslSourceCode sourceIn
 
     source
     |> compile op
-    |> failIfBad (Some(source))
-    |> GslResult.valueOr (failwithf "%A")
+    |> GslResult.valueOr (fun err ->
+        Assert.Fail(sprintf "%A" err)
+        failwith "impossible")
     |> assertDecompilesTo expectedSource
 
 ///<summary>
@@ -125,66 +103,58 @@ let sourceCompareTest op sourceIn expectedSource =
 let testExpectedReprinting (sourceIn: string) (expectedOut: string) =
     sourceCompareTest (GslResult.promote id) sourceIn expectedOut
 
+module GslResult =
+    open FsToolkit.ErrorHandling
 
-let checkMessages (expectedTypes: AstMessageType list)
-                  (textSnippets: string option list)
-                  (msgs: AstMessage list)
-                  : AstMessage list =
+    let mapErrorToAnything (result: GslResult<'a, 'b>): GslResult<'a, 'c> =
+        result
+        |> GslResult.mapError (failwithf "Expected no error, got %A instead")
 
-    Assert.AreEqual
-        (expectedTypes.Length,
-         textSnippets.Length,
-         "Please provide the same number of expected types and text snippets.")
+    let assertOkSuccess (result: GslResult<'a, 'b>) =
+        result.Value
+        |> Result.either id (fun errorMessages ->
+               let message =
+                   [ "Expected Ok, received Error instead:"
+                     for message in errorMessages do
+                         sprintf "%O" message ]
+                   |> String.concat Environment.NewLine
 
-    if expectedTypes.Length <> msgs.Length then
-        Assert.Fail(sprintf "Wrong number of errors.  Expected %d, got %d: %+A" expectedTypes.Length msgs.Length msgs)
+               Assert.Fail message
+               failwith "Impossible")
 
-    // optionally check text snippet inclusion
-    let textSnips =
-        textSnippets
-        |> List.map (fun (s: string option) -> defaultArg s "")
+    let assertOk (result: GslResult<'a, 'b>): 'a =
+        result
+        |> assertOkSuccess
+        |> fun success -> success.Result
 
-    Seq.zip3 msgs expectedTypes textSnips
-    |> Seq.iter (fun (msg, ft, ts) ->
-        Assert.AreEqual(ft, msg.Type)
-        Assert.That(msg.Message.Contains(ts), sprintf "Didn't find '%s' in '%s'" ts msg.Message))
+    let assertWarnings (result: GslResult<'a, 'b>) =
+        assertOkSuccess result
+        |> fun success -> success.Warnings
 
-    msgs
+    let assertWarning (result: GslResult<'a, 'b>) =
+        assertOkSuccess result
+        |> fun success -> success.Warnings |> List.head
 
-/// Assert that a result is a success with many warnings, with matching types and message texts.
-/// Returns the value and messages for further processing. Otherwise, fail.
-let assertWarnMany (failTypes: AstMessageType list)
-                   (textSnippets: string option list)
-                   (r: AstResult<'a>)
-                   : Success<'a, AstMessage> =
-    match r.Value with
-    | Ok success ->
-        checkMessages failTypes textSnippets success.Warnings
-        |> ignore
+    let assertErrors (result: GslResult<'a, 'b>) =
+        match result.Value with
+        | Ok success ->
+            let message =
+                [ "Expected Error, received success instead:"
+                  success.ToString() ]
+                |> String.concat Environment.NewLine
 
-        success
-    | x ->
-        Assert.Fail(sprintf "Validation test didn't succeed.  Result was %A" x)
-        failwith "" // need this line to allow compiler to return msg value above
+            Assert.Fail message
+            failwith "Impossible"
+        | Error messages -> messages
 
-let assertWarn (failType: AstMessageType) (textSnippet: string option) (r: AstResult<'a>): 'a * AstMessage =
-    let success =
-        assertWarnMany [ failType ] [ textSnippet ] r
+    let assertError (result: GslResult<'a, 'b>) =
+        match result.Value with
+        | Ok success ->
+            let message =
+                [ "Expected Error, received success instead:"
+                  success.ToString() ]
+                |> String.concat Environment.NewLine
 
-    (success.Result, success.Warnings.[0])
-
-/// Assert that a result is a failure with many messages, with matching types and message texts.
-/// Returns the failure messages for further processing. Otherwise, fail.
-let assertFailMany (failTypes: AstMessageType list) (textSnippets: string option list) (r: AstResult<'a>): AstMessage list =
-    match r.Value with
-    | Error msgs -> checkMessages failTypes textSnippets msgs
-    | x ->
-        Assert.Fail(sprintf "Validation test didn't fail.  Result was %A" x)
-        failwith "" // need this line to allow compiler to return msg value above
-
-/// Assert that a result is a failure with a single message, with matching type and message text.
-/// Return the failure message for further processing. Otherwise, fail.
-let assertFail (failType: AstMessageType) (textSnippet: string option) (r: AstResult<'a>): AstMessage =
-    let msgs =
-        assertFailMany [ failType ] [ textSnippet ] r
-    msgs.[0]
+            Assert.Fail message
+            failwith "Impossible"
+        | Error messages -> messages |> List.head

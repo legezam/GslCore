@@ -47,8 +47,7 @@ type TestBootstrapping() =
         source
         |> bootstrapPhase1NoCapas []
         |> GslResult.map bootstrapToTree
-        |> failIfBad (Some(source))
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> assertDecompilesTo source.String
 
 
@@ -74,14 +73,11 @@ type TestBootstrapping() =
             "gFOO ; ### ; ~ ; gFOO[1S:30E] {#name foo}"
 
         let compiledTree =
-            compilePhase1NoCapas source
-            |> failIfBad (Some(GslSourceCode source))
-            |> GslResult.valueOr (failwithf "%A")
+            compilePhase1NoCapas source |> GslResult.assertOk
 
         compiledTree
         |> testPhase1
-        |> failIfBad None
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> assertDecompilesTo source
 
         printfn "Source in: %s" source
@@ -91,8 +87,9 @@ type TestBootstrapping() =
         let source = "gFOO" // doesn't matter what's in here for this test
 
         compilePhase1NoCapas source
-        |> failIfBad (Some(GslSourceCode source))
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> testCaptureException
-        |> assertFail (GeneralError) (Some "Expansion failed with an exception.")
-        |> ignore
+        |> GslResult.assertError
+        |> fun msg ->
+            Assert.AreEqual(GeneralError, msg.Type)
+            Assert.IsTrue(msg.Message.Contains("Expansion failed with an exception."))

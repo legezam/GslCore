@@ -2,7 +2,6 @@
 module GslCore.AssemblyTestSupport
 
 open GslCore.Ast
-open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
 open GslCore.AstAssertions
 open GslCore.Constants
@@ -42,10 +41,8 @@ let rec extractAssemblies (n: AstNode): AstNode list =
 let compileOne source =
     source
     |> GslSourceCode
-    |> compile
-        (Phase1.phase1 defaultPhase1Parameters
-         >> GslResult.mapError Phase1Message.toAstMessage)
-    |> GslResult.valueOr (failwithf "%A")
+    |> compile (Phase1.phase1 defaultPhase1Parameters)
+    |> GslResult.assertOk
     |> fun x -> extractAssemblies x.wrappedNode
 
 /// Simple slice creator with just the parameters

@@ -47,10 +47,8 @@ type TestTagging() =
 
         source
         |> GslSourceCode
-        |> compile
-            (Phase1.phase1 parameters
-             >> GslResult.mapError Phase1Message.toAstMessage)
-        |> GslResult.valueOr (failwithf "%A")
+        |> compile (Phase1.phase1 parameters)
+        |> GslResult.assertOk
         |> fun x -> extractParts x.wrappedNode
 
     /// example with no #tag

@@ -34,25 +34,41 @@ let myAssembly = (pSLN1; mERG10 ; pTDH3)
 gHO^ ; &myAssembly>gACS1"""
             |> GslSourceCode
 
-        compile phase1WithL2Validation source
-        |> assertFailMany [ L2ExpansionError
-                            L2ExpansionError
-                            L2ExpansionError ] [
-            (Some errorText)
-            (Some errorText)
-            (Some errorText)
-           ]
-        |> ignore
+        let errors =
+            compile phase1WithL2Validation source
+            |> GslResult.assertErrors
 
+        match errors.[0] with
+        | Choice2Of2 message ->
+            Assert.AreEqual(L2ExpansionError, message.Type)
+            Assert.IsTrue(message.Message.Contains errorText)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+
+        match errors.[1] with
+        | Choice2Of2 message ->
+            Assert.AreEqual(L2ExpansionError, message.Type)
+            Assert.IsTrue(message.Message.Contains errorText)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+
+        match errors.[2] with
+        | Choice2Of2 message ->
+            Assert.AreEqual(L2ExpansionError, message.Type)
+            Assert.IsTrue(message.Message.Contains errorText)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
     [<Test>]
     member x.TestInlineL2PromoterSwap() =
         let source =
             GslSourceCode("!gERG10 ; !pFBA1 ; pSLN1>gADH1")
 
-        compile phase1WithL2Validation source
-        |> assertFail ParserError None
-        |> ignore
+        let error =
+            compile phase1WithL2Validation source
+            |> GslResult.assertError
+
+        match error with
+        | Choice2Of2 message -> Assert.AreEqual(ParserError, message.Type)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+
 
 
     [<Test>]
@@ -66,7 +82,7 @@ gHO^ ; pGAL1>mERG10"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> ignore
 
     [<Test>]
@@ -79,7 +95,7 @@ pTDH3>gADH1"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> ignore
 
 
@@ -94,7 +110,7 @@ gHO^ ; @R52888>mERG10"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> ignore
 
 
@@ -111,5 +127,5 @@ gDIT1^; /$PLQVGSASKYWALKERMYYQACLPH/>gACS1"""
             |> GslSourceCode
 
         compile phase1WithL2Validation source
-        |> GslResult.valueOr (failwithf "%A")
+        |> GslResult.assertOk
         |> ignore
