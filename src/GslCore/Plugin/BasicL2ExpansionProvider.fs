@@ -5,6 +5,7 @@
 /// Modelled roughly on roughage syntax  e.g. gHO^ ; a> b ; c>d etc
 ///
 open GslCore.Ast.Process
+open GslCore.Ast.Process.Naming
 open GslCore.Pragma
 open GslCore.Legacy.Types
 open GslCore.Ast.Types
@@ -139,7 +140,7 @@ let generateOutputsTitrations (args: L2DesignParams) =
                         "#name u%s_%s_d%s"
                         locusGene
                         (AstNode.decompile locusExp.Promoter
-                         |> Naming.cleanHashName)
+                         |> NameChecking.cleanHashName)
                         locusGene
 
             // yield a new linker line because the default pattern will cause an A linker

@@ -2,6 +2,7 @@
 module GslCore.GslcProcess
 
 open Amyris.Bio
+open GslCore.Ast.Process.Naming
 open GslCore.Legacy
 open GslCore.Ast.Phase1Message
 open GslCore.Constants
@@ -72,7 +73,8 @@ let rec processGSL (s: ConfigurationState) gslText =
         phase1Result
         //>>= failOnAssemblyInL2Promoter
         >>= Level2Expansion.expandLevel2 phase1Params l2Providers globalAssets.ReferenceGenomes
-        >>= Phase1.postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
+        >>= (Phase1.postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
+             >> GslResult.mapError NameCheckError.toAstMessage)
         >>= (Phase2.phase2 phase2Params)
         >>= (AssemblyGathering.convertAndGatherAssemblies
              >> GslResult.mapError LegacyAssemblyCreationError.toAstMessage)

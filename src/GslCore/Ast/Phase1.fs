@@ -17,6 +17,7 @@ open GslCore.Ast.Process.AssemblyFlattening
 open GslCore.Ast.Process.RoughageExpansion
 open GslCore.Ast.Process.PragmaWarning
 open GslCore.Ast.Process.PragmaBuilding
+open GslCore.Ast.Process.Naming
 open GslCore.Ast.Phase1Message
 
 // ==================
@@ -115,5 +116,5 @@ let phase1 (parameters: Phase1Parameters): AstTreeHead -> GslResult<AstTreeHead,
 
 /// Prep a tree for phase 2, after phase 1 compilation is complete.
 let postPhase1 rgs library =
-    Naming.checkGeneNames rgs library
-    >=> Naming.nameAssemblies
+    NameChecking.checkGeneNames rgs library
+    >=> NameChecking.nameAssemblies
