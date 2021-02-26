@@ -56,7 +56,11 @@ module BoostrapSelection =
     /// Wrap a bootstrap operation in a check that passes the existing node through if it doesn't need
     /// the current expansion step.
     ///</summary>
-    let maybeBypassBootstrap mode bootstrapOperation state (node: AstNode) =
+    let maybeBypassBootstrap (mode: BootstrapExpansionMode)
+                             (bootstrapOperation: 'a -> AstNode -> GslResult<AstNode, 'b>)
+                             (state: 'a)
+                             (node: AstNode)
+                             : GslResult<AstNode, 'b> =
         let modesRequiredByThisNode =
             AstTreeHead(node)
             |> AstNode.traverse

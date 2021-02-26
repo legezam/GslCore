@@ -1,8 +1,12 @@
 module GslCore.Core.Expansion.ProteinExpansion
 
+open GslCore.Ast.Phase1Message
+open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.Core.Expansion.Bootstrapping
+open GslCore.GslResult
 open GslCore.Legacy.Types
 open GslCore.Legacy
 open GslCore.Core
@@ -23,8 +27,8 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
         | Part.InlineProtein (s) ->
             // Check amino acid sequence is legal
             for c in s do
-                if not (Default.ValidAminoAcids.Contains(c))
-                then failwithf "Protein sequence contains illegal amino acid '%c'" c
+                if not (Default.ValidAminoAcids.Contains(c)) then
+                    failwithf "Protein sequence contains illegal amino acid '%c'" c
 
             let refGenome' =
                 match p.Pragma
@@ -72,7 +76,9 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
     |> LegacyPrettyPrint.assembly
 
 /// Expand all inline protein sequences in an AST.
-let expandInlineProteins (parameters: Phase2Parameters) tree =
+let expandInlineProteins (parameters: Phase2Parameters)
+                         (tree: AstTreeHead)
+                         : GslResult<AstTreeHead, BootstrapError<BootstrapError<Phase1Message>>> =
 
     let mode =
         if parameters.Parallel then Parallel else Serial
@@ -83,10 +89,8 @@ let expandInlineProteins (parameters: Phase2Parameters) tree =
         let phase1Params =
             parameters |> Phase1Parameters.fromPhase2
 
-        Bootstrapping.bootstrapExpandLegacyAssembly
-            ProteinError
-            assemblyExpansion
-            (Bootstrapping.bootstrapPhase1 phase1Params)
+        //ProteinError
+        Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
     let expansionOnlyOnNodesWithProteins =
         BoostrapSelection.maybeBypassBootstrap ExpandProtein bootstrapOperation

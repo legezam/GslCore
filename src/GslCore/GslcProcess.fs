@@ -16,6 +16,7 @@ open GslCore.Primer
 open GslCore.ProcessCmdLineArgs
 open GslCore.Core.PluginTypes
 open GslCore.Core.AssemblyGathering
+open GslCore.Core.Expansion.Level2Expansion
 open GslCore.Ast
 open GslCore.GslResult
 
@@ -72,10 +73,12 @@ let rec processGSL (s: ConfigurationState) gslText =
     else
         phase1Result
         //>>= failOnAssemblyInL2Promoter
-        >>= Level2Expansion.expandLevel2 phase1Params l2Providers globalAssets.ReferenceGenomes
+        >>= (Level2Expansion.expandLevel2 phase1Params l2Providers globalAssets.ReferenceGenomes
+             >> GslResult.mapError (failwithf "%A"))
         >>= (Phase1.postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
              >> GslResult.mapError NameCheckError.toAstMessage)
-        >>= (Phase2.phase2 phase2Params)
+        >>= (Phase2.phase2 phase2Params
+             >> GslResult.mapError (failwithf "%A"))
         >>= (AssemblyGathering.convertAndGatherAssemblies
              >> GslResult.mapError LegacyAssemblyCreationError.toAstMessage)
 

@@ -7,6 +7,7 @@ open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.Core.Expansion.Bootstrapping
 open GslCore.Legacy.Types
 open GslCore.Legacy
 open GslCore.Core.Expansion
@@ -20,7 +21,9 @@ type Level2ExpansionError =
     //                    AstResult.exceptionToError L2ExpansionError node e
 //                    |> GslResult.err
     | ExpansionException of exn * node: AstNode
-    | L2LineCreationERror of LegacyL2LineCreationError
+    | L2LineCreationError of LegacyL2LineCreationError
+    | BoostrapError of BootstrapError<Phase1Message>
+    | AssemblyStuffingFailure of AssemblyStuffingError
 
 // ==========================
 // expanding L2 GSL
@@ -150,12 +153,13 @@ module Level2Expansion =
             match node with
             | AstNode.L2Expression l2e ->
                 LegacyL2Conversion.convertL2Line pragmaContext l2e
-                |> GslResult.mapError L2LineCreationERror
+                |> GslResult.mapError L2LineCreationError
                 >>= expandCaptureException
-                >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions)
+                >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions
+                     >> GslResult.mapError BoostrapError)
             | _ -> GslResult.ok node
 
-        let foldmapParameters =
+        let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
               StateUpdate = AssemblyStuffing.updatePragmaEnvironment
@@ -163,8 +167,8 @@ module Level2Expansion =
 
         FoldMap.foldMap  // run the bootstrapped expand operation
             PragmaEnvironment.empty
-            foldmapParameters
+            foldMapParameters
             tree
-        >>= Bootstrapping.healSplices // heal the splices
+        >>= Bootstrapping.healSplices
         >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
-             >> GslResult.mapError AssemblyStuffingMessage.toAstMessage) // Bootstrapped assemblies need their pragma environment reinjected
+             >> GslResult.mapError AssemblyStuffingFailure) // Bootstrapped assemblies need their pragma environment reinjected

@@ -1,9 +1,13 @@
 module GslCore.Core.Expansion.MutationExpansion
 
+open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.Constants
+open GslCore.GslResult
 open GslCore.Legacy.Types
+open GslCore.Core.Expansion.Bootstrapping
 open GslCore.Legacy
 open GslCore.Core.DnaCreation
 open GslCore.Core.Expansion
@@ -11,19 +15,19 @@ open GslCore.Pragma
 open GslCore.Core
 open GslCore.Reference
 open GslCore.Core.PluginTypes
-
+// TODO although it seems there are no errors this file is returning, actually there are a lot since the file uses failwith for errohandling
 // =========================
 // expanding mutations
 // =========================
 
-let modIsMutation m =
-    match m with
-    | Modifier.Mutation (m) -> Some(m)
+let modIsMutation: Modifier -> Mutation option =
+    function
+    | Modifier.Mutation m -> Some m
     | _ -> None
 
 /// Remove mutation definitions and replace with a lower level representation.
 /// Note that mutations can expand to more than a single line of GSL, so bootstrap these as a block.
-let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
+let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSourceCode =
     /// Rewrite an individual part p in an assembly a.
     /// Assembly is passed in for context if needed
     let rewritePPP (a: Assembly) (p: PartPlusPragma) =
@@ -34,7 +38,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
         // TODO: we should have already expanded names, so this shouldn't be necessary
         // Refactor Assembly to have an unconditional name.
         match p.Part with
-        | Part.HeterologyBlock  // don't expect this but just in case
+        | Part.HeterologyBlock // don't expect this but just in case
         | Part.InlineDna _
         | Part.InlineProtein _
         | Part.MarkerPart
@@ -44,7 +48,8 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
             match part.Modifiers |> List.choose modIsMutation with
             | [] -> p
             | [ mutMod ] ->
-                let rg' = getReferenceGenome a parameters.References p.Pragma
+                let rg' =
+                    getReferenceGenome a parameters.References p.Pragma
 
                 let asAACheck =
                     match a.Pragmas
@@ -52,7 +57,8 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
                     | Some pragma -> pragma |> Pragma.hasVal "asaacheck" |> not
                     | None -> true
 
-                if parameters.Verbose then printfn "***** %A" a.Pragmas
+                if parameters.Verbose then
+                    printfn "***** %A" a.Pragmas
 
                 // Leave pragmas intact
                 { p with
@@ -72,7 +78,8 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
                         (gp.Part.Gene.[0])
                         gp.Part.Gene
 
-                let rg' = getReferenceGenome a parameters.References p.Pragma
+                let rg' =
+                    getReferenceGenome a parameters.References p.Pragma
 
                 // TODO: unclear if this was the right behavior, as the rg is selected from both
                 // assembly and part pragmas yet the actual ref genome selected here was only using
@@ -135,7 +142,8 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
                          |> PragmaCollection.mergeInCollection a.Pragmas)  // combine the part and assembly pragmas to pass to the swap
                         longStyle
 
-                { p with Part = Part.SourceCode(swapImpl) } // Leave pragmas intact
+                { p with
+                      Part = Part.SourceCode(swapImpl) }
             | tooManyMuts -> failwithf "Internal error, found more than one mutation mod: %A" tooManyMuts
 
     // To perform an allele swap, we require an assembly with exactly one part.
@@ -155,21 +163,19 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly) =
 // amount to more than a single line.  Be careful.
 
 /// Expand all mutations in an AST.
-let expandMutations (parameters: Phase2Parameters) (tree: AstTreeHead) =
+let expandMutations (parameters: Phase2Parameters)
+                    (tree: AstTreeHead)
+                    : GslResult<AstTreeHead, BootstrapError<BootstrapError<Phase1Message>>> =
 
     let assemblyExpansion = expandMut parameters
 
     let bootstrapOperation =
         let phase1Params =
             parameters |> Phase1Parameters.fromPhase2
-
-        Bootstrapping.bootstrapExpandLegacyAssembly
-            MutationError
-            assemblyExpansion
-            (Bootstrapping.bootstrapPhase1 phase1Params)
+        //MutationError
+        Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
     let expansionOnlyOnNodesWithMutations =
-
         BoostrapSelection.maybeBypassBootstrap ExpandMutation bootstrapOperation
 
     Bootstrapping.executeBootstrap expansionOnlyOnNodesWithMutations Serial tree

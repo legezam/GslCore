@@ -2,10 +2,13 @@ module GslCore.Core.Expansion.HeterologyExpansion
 
 open System
 open FsToolkit.ErrorHandling
+open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
+open GslCore.Core.Expansion.Bootstrapping
+open GslCore.GslResult
 open GslCore.Legacy.Types
 open GslCore.Legacy
 open Amyris.Dna
@@ -99,8 +102,8 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
             // but that's embedded down in the mod list
 
             // Assume they must be using a gene part next to a het block.  Bad?
-            if (not (gp.Part.Gene.StartsWith("g")))
-            then failwithf "Heterology block must be adjacent to g part, %s not allowed" gp.Part.Gene
+            if (not (gp.Part.Gene.StartsWith("g"))) then
+                failwithf "Heterology block must be adjacent to g part, %s not allowed" gp.Part.Gene
 
             let s =
                 translateGenePrefix a.Pragmas rg' StandardSlice.Gene // Start with standard slice
@@ -162,8 +165,8 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
 
             assert (alt <> sliceSeq.[0..alt.Length - 1])
 
-            if verbose
-            then printf "// %O -> %O\n" alt sliceSeq.[0..alt.Length - 1]
+            if verbose then
+                printf "// %O -> %O\n" alt sliceSeq.[0..alt.Length - 1]
 
             // tricky part - need to slightly adjust the slice range of gp,
             // but that's embedded down in the mod list
@@ -415,12 +418,15 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
 
     let newSource = LegacyPrettyPrint.assembly res
 
-    if remainingHetblocks
-    then failwithf "Attempt to expand heterology block in design %s left remaining hetblock" newSource.String
-    else newSource
+    if remainingHetblocks then
+        failwithf "Attempt to expand heterology block in design %s left remaining hetblock" newSource.String
+    else
+        newSource
 
 /// Expand all heterology blocks in an AST.
-let expandHetBlocks (parameters: Phase2Parameters) (tree: AstTreeHead): AstResult<AstTreeHead> =
+let expandHetBlocks (parameters: Phase2Parameters)
+                    (tree: AstTreeHead)
+                    : GslResult<AstTreeHead, BootstrapError<BootstrapError<Phase1Message>>> =
 
     let assemblyExpansion = expandHB parameters
 
@@ -428,10 +434,8 @@ let expandHetBlocks (parameters: Phase2Parameters) (tree: AstTreeHead): AstResul
         let phase1Params =
             parameters |> Phase1Parameters.fromPhase2
 
-        Bootstrapping.bootstrapExpandLegacyAssembly
-            HetBlockError
-            assemblyExpansion
-            (Bootstrapping.bootstrapPhase1 phase1Params)
+        //HetBlockError
+        Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
     let expansionOnlyOnNodesWithHetBlocks =
         BoostrapSelection.maybeBypassBootstrap ExpandHetBlock bootstrapOperation

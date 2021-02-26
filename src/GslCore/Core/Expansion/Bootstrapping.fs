@@ -12,7 +12,7 @@ open GslCore.Legacy
 open GslCore.GslResult
 open GslCore.Ast.Process.AssemblyStuffing
 
-type BootstrapError =
+type BootstrapError<'ExternalError> =
     // ==================
     // bootstrapping literal source into an AST node
     // ==================
@@ -25,8 +25,22 @@ type BootstrapError =
 //        let msg =
 //            sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
 //
-//        AstResult.errString (BootstrapError(Some(tree))) msg tree    
+//        AstResult.errString (BootstrapError(Some(tree))) msg tree
     | FailedToUnpack of expectedType: string * maybeNote: string option * node: AstNode
+    | LexError of LexParseError
+    //        let contextMsg =
+//            sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
+//            (AstMessage.createErrorWithStackTrace
+//                (InternalError(ParserError))
+//                 contextMsg
+//                 (AstNode.String
+//                     ({ Node.Value = source.String
+//                        Positions = originalPosition })))
+    | LexSupplementError of node: AstNode
+    | ExternalOperationError of 'ExternalError
+    | AssemblyStuffingFailure of AssemblyStuffingError
+    | LegacyAssemblyCreationFailure of LegacyAssemblyCreationError
+    | ExpansionError of exn
 
 module Bootstrapping =
 
@@ -83,41 +97,36 @@ module Bootstrapping =
     /// block that results from compilation and re-packs it as a Splice, to indicate
     /// to a subsequent expansion pass that this node needs to be unpacked into its outer context.
     ///</summary>
-    let bootstrap originalPosition
-                  (op: AstTreeHead -> TreeTransformResult<AstMessage>)
+    let bootstrap (originalPosition: SourcePosition list)
+                  (operation: AstTreeHead -> GslResult<AstTreeHead, 'a>)
                   (source: GslSourceCode)
-                  : GslResult<AstNode, AstMessage> =
+                  : GslResult<AstNode, BootstrapError<'a>> =
         /// Unpack a bootstrapped AST to a block or fail.
         let asBlock tree =
             match tree with
             | AstTreeHead (AstNode.Block blockWrapper) -> GslResult.ok (AstNode.Splice(Array.ofList blockWrapper.Value))
-            | AstTreeHead node -> bootstrapError "Block" None node
-
-        let contextMsg =
-            sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
+            | AstTreeHead node -> GslResult.err (FailedToUnpack("Block", None, node))
 
         LexAndParse.lexAndParse false source
-        |> GslResult.mapError (LexParseError.toAstMessage)
+        |> GslResult.mapError LexError
         |> GslResult.addMessageToError
-            (AstMessage.createErrorWithStackTrace
-                (InternalError(ParserError))
-                 contextMsg
-                 (AstNode.String
-                     ({ Node.Value = source.String
-                        Positions = originalPosition })))
+            (LexSupplementError
+                (AstNode.String
+                    ({ Node.Value = source.String
+                       Positions = originalPosition })))
+
         >>= (replaceSourcePositions originalPosition)
-        >>= op
+        >>= (operation
+             >> GslResult.mapError ExternalOperationError)
         >>= asBlock
+
 
     /// Parse string source code, run compiler phase 1, and return the resulting contents of the
     /// top-level block.
     let bootstrapPhase1 (parameters: Phase1Parameters)
                         (originalPosition: SourcePosition list)
-                        : GslSourceCode -> GslResult<AstNode, AstMessage> =
-        bootstrap
-            originalPosition
-            (Phase1.phase1 parameters
-             >> GslResult.mapError Phase1Message.toAstMessage)
+                        : GslSourceCode -> GslResult<AstNode, BootstrapError<Phase1Message>> =
+        bootstrap originalPosition (Phase1.phase1 parameters)
 
 
     // =================
@@ -135,7 +144,7 @@ module Bootstrapping =
 
     /// Explode Splice nodes into their enclosing context.
     /// They can appear in Blocks or Assemblies.
-    let private healSplice node =
+    let private healSplice (node: AstNode): AstNode =
         match node with
         | AstNode.Block (bw) ->
             let nodeList = bw.Value
@@ -156,8 +165,8 @@ module Bootstrapping =
         | _ -> node
 
     /// Explode all Splices into their enclosing context.
-    let healSplices =
-        FoldMap.map Serial TopDown (GslResult.promote healSplice)
+    let healSplices (head: AstTreeHead): TreeTransformResult<'a> =
+        FoldMap.map Serial TopDown (GslResult.promote healSplice) head
 
 
     // ==================================
@@ -167,24 +176,21 @@ module Bootstrapping =
     /// Convert an assembly into a Splice using an expansion function and a bootstrap operation.
     /// Since the expansion function may raise an exception, we capture that exception
     /// and inject it into the result stream.
-    let bootstrapExpandLegacyAssembly errorMsgType
-                                      (expansionFunction: Assembly -> GslSourceCode)
-                                      bootstrapOperation
-                                      assemblyConversionContext
-                                      node
-                                      : NodeTransformResult<AstMessage> =
+    let bootstrapExpandLegacyAssembly (expansionFunction: Assembly -> GslSourceCode)
+                                      (bootstrapOperation: SourcePosition list -> GslSourceCode -> GslResult<AstNode, BootstrapError<'b>>)
+                                      (assemblyConversionContext: AssemblyConversionContext)
+                                      (node: AstNode)
+                                      : NodeTransformResult<BootstrapError<'b>> =
         /// Perform the expansion operation, capturing any exception as an error.
-        let expandCaptureException assembly =
+        let expandCaptureException (assembly: Assembly): GslResult<GslSourceCode, BootstrapError<'b>> =
             try
                 expansionFunction assembly |> GslResult.ok
-            with e ->
-                AstResult.exceptionToError errorMsgType node e
-                |> GslResult.err
+            with e -> ExpansionError e |> GslResult.err
 
         match node with
         | AssemblyPart apUnpack ->
             LegacyConversion.convertAssembly assemblyConversionContext apUnpack
-            |> GslResult.mapError LegacyAssemblyCreationError.toAstMessage
+            |> GslResult.mapError LegacyAssemblyCreationFailure
             >>= expandCaptureException
             >>= (bootstrapOperation ((fst apUnpack).Positions))
         | _ -> GslResult.ok node
@@ -194,8 +200,11 @@ module Bootstrapping =
     /// an operation that heals all of the scars in the AST left by the expansion.
     /// This is necessary because some bootstrapped expansion phases convert a single
     /// node into a miniature block, which we want to expand into the outer context.
-    let executeBootstrap bootstrappedExpansionFunction mode (tree: AstTreeHead) =
-        let foldmapParameters =
+    let executeBootstrap (bootstrappedExpansionFunction: AssemblyConversionContext -> AstNode -> NodeTransformResult<'a>)
+                         (mode: FoldmapMode)
+                         (tree: AstTreeHead)
+                         : GslResult<AstTreeHead, BootstrapError<'a>> =
+        let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = mode
               StateUpdate = LegacyConversion.updateConversionContext
@@ -203,8 +212,9 @@ module Bootstrapping =
 
         FoldMap.foldMap  // run the bootstrapped expand operation
             AssemblyConversionContext.empty
-            foldmapParameters
+            foldMapParameters
             tree
-        >>= healSplices // heal the splices
+        |> GslResult.mapError ExternalOperationError
+        >>= healSplices
         >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
-             >> GslResult.mapError AssemblyStuffingMessage.toAstMessage) // Bootstrapped assemblies need their pragma environment reinjected
+             >> GslResult.mapError AssemblyStuffingFailure) // Bootstrapped assemblies need their pragma environment reinjected

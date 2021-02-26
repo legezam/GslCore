@@ -12,6 +12,7 @@ open GslCore.AstAssertions
 open GslCore.Ast.Algorithms
 open GslCore.Ast.ErrorHandling
 open GslCore.Constants
+open GslCore.Core.Expansion.Level2Expansion
 
 [<TestFixture>]
 type TestL2Expansion() =
