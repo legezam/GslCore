@@ -6,8 +6,8 @@ open GslCore.Pragma
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.Uri
-open GslCore.Ast.Legacy.Types
-open GslCore.Ast.Legacy
+open GslCore.Legacy.Types
+open GslCore.Legacy
 open Amyris.Dna
 open GslCore.Ast.Types
 
@@ -165,6 +165,7 @@ module OrfAnnotation =
     /// Create an ORF annotation from a slice on gene-relative coordiantes.
     let orfAnnotationFromSlice (slice: Slice) (orfLen: int) fwd context =
         let sliceStart, sliceEnd =
+            
             LegacySliceContext.getBoundsFromSlice slice orfLen context
             |> Result.valueOr failwith
             |> (fun (l, r) -> OneOffset.toZero l, OneOffset.toZero r)

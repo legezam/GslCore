@@ -1,142 +1,17 @@
-﻿namespace GslCore.Ast.Legacy
+﻿namespace GslCore.Legacy
 
 open Amyris.Dna
 open GslCore.Ast.Algorithms
 open GslCore.Ast.Process
-open GslCore.Constants
-open System
 open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.PcrParamParse
 
-module LegacySliceContext =
-    /// Return a tuple of OneOffset left/right slice bounds from a slice record.
-    /// These bounds are both relative to the FivePrime end.
-    /// Requires the length of the feature being sliced to be interpreted correctly.
-    let getBoundsFromSlice (slice: Slice)
-                           (featureLength: int)
-                           (context: SliceContext)
-                           : Result<int<OneOffset> * int<OneOffset>, string> =
-        let left =
-            match slice.Left.RelativeTo with
-            | FivePrime -> slice.Left.Position
-            | ThreePrime ->
-                (featureLength + 1) * 1<OneOffset>
-                + slice.Left.Position
-
-        let right =
-            match slice.Right.RelativeTo with
-            | FivePrime -> slice.Right.Position
-            | ThreePrime ->
-                (featureLength + 1) * 1<OneOffset>
-                + slice.Right.Position
-
-        match context with
-        | Genomic ->
-            // no validation necessary
-            Ok(left, right)
-        | Library partId ->
-            // the slice bounds are not allowed to fall outside the feature as we don't have
-            // data on flanking regions in this context
-            if left < 1<OneOffset>
-               || right <= left
-               || right > (featureLength * 1<OneOffset>) then
-                Result.Error(sprintf "Illegal slice (%A) outside core gene range for library item %s." slice partId)
-            else
-                Ok(left, right)
-
-
-// ========================
-// pretty-printing legacy assemblies as GSL source code
-// ========================
-module LegacyPrettyPrint =
-    /// Pretty print a RelPos
-    let relativePosition (position: RelativePosition): string =
-        sprintf
-            "%A/%s"
-            position.Position
-            (match position.RelativeTo with
-             | FivePrime -> "S"
-             | ThreePrime -> "E")
-
-    let slice (slice: Slice): string =
-        sprintf
-            "[%s%A%s:%s%A%s]"
-            (if slice.LeftApprox then "~" else "")
-            slice.Left.Position
-            (match slice.Left.RelativeTo with
-             | FivePrime -> "S"
-             | ThreePrime -> "E")
-            (if slice.RightApprox then "~" else "")
-            slice.Right.Position
-            (match slice.Right.RelativeTo with
-             | FivePrime -> "S"
-             | ThreePrime -> "E")
-
-    let expandModifiers (modifiers: Modifier list): string =
-        seq {
-            for modifier in modifiers do
-                match modifier with
-                | Modifier.Mutation mutation ->
-                    yield
-                        sprintf
-                            "%c%c%d%c"
-                            (match mutation.Type with
-                             | AA -> '$'
-                             | NT -> '*')
-                            mutation.From
-                            mutation.Location
-                            mutation.To
-                | Modifier.Slice slicee -> yield slice slicee
-                | Modifier.Dot dot -> yield sprintf ".%s" dot
-        }
-        |> fun x -> String.Join("", x)
-
-    let rec partPlusPragma (partPlusPragma: PartPlusPragma): string =
-        let partOut =
-            match partPlusPragma.Part with
-            | Part.HeterologyBlock -> "~ " // don't do anything at this level
-            | Part.InlineDna (s) -> sprintf "/%O/ " s // inline DNA sequence
-            | Part.InlineProtein (s) -> sprintf "/$%s/ " s // inline protein sequence
-            | Part.MarkerPart -> "### "
-            | Part.PartId (p) -> sprintf "@%s" p.Id + (expandModifiers p.Modifiers)
-            | Part.SourceCode (s) -> s.String // Part that was already expanded into a string
-            | Part.GenePart (gp) ->
-                let lOut =
-                    match gp.Linker with
-                    | None -> ""
-                    | Some (l) -> sprintf "%s-%s-%s-" l.Linker1 l.Linker2 l.Orient // Emit linker
-
-                let p = gp.Part
-
-                let gOut = p.Gene
-                let modOut = expandModifiers p.Modifiers
-
-                lOut + gOut + modOut // String.Join("",Array.ofSeq modOut)
-        // Now add in any inline pragma part with braces, ; separated etc
-        let prOut =
-            if partPlusPragma.Pragma.Pragmas.Count = 0 then
-                ""
-            else
-                partPlusPragma.Pragma.Pragmas
-                |> Seq.map (fun pv -> sprintf "#%s %s" pv.Key (pv.Value.Arguments |> String.concat " "))
-                |> fun ss -> String.Join(";", ss)
-                |> sprintf "{%s}"
-
-        (if partPlusPragma.IsForward then "" else "!")
-        + partOut
-        + prOut
-
-    /// Pretty print a built GSL assembly
-    let assembly (assembly: Assembly): GslSourceCode =
-        [ for ppp in assembly.Parts -> partPlusPragma ppp ]
-        |> String.concat ";"
-        |> GslSourceCode
 
 type LegacyPartCreationError =
     | IllegalSliceConstruction of left: AstNode * right: AstNode
@@ -184,12 +59,12 @@ module LegacyAssemblyCreationError =
 module LegacyConversion =
     let private sliceFromAstSlice (parseSlice: ParseSlice): GslResult<Modifier, LegacyPartCreationError> =
         match parseSlice.Left, parseSlice.Right with
-        | AstNode.RelPos (lw), AstNode.RelPos (rw) ->
+        | AstNode.RelPos leftWrapper, AstNode.RelPos rightWrapper ->
             GslResult.ok
                 (Modifier.Slice
-                    ({ Left = lw.Value
+                    ({ Slice.Left = leftWrapper.Value
                        LeftApprox = parseSlice.LeftApprox
-                       Right = rw.Value
+                       Right = rightWrapper.Value
                        RightApprox = parseSlice.RightApprox }))
         | x, y -> GslResult.err (IllegalSliceConstruction(x, y))
 
@@ -212,12 +87,12 @@ module LegacyConversion =
             convertModifiers part.Value.Modifiers
             |> GslResult.map (fun mods ->
                 let genePart =
-                    { Gene = geneWrapper.Value.Gene
+                    { GenePart.Gene = geneWrapper.Value.Gene
                       Modifiers = mods
                       Where = geneWrapper.Positions }
 
                 Part.GenePart
-                    { Part = genePart
+                    { GenePartWithLinker.Part = genePart
                       Linker = geneWrapper.Value.Linker })
         | AstNode.Marker _ -> GslResult.ok Part.MarkerPart
         | AstNode.InlineDna dnaSequence ->

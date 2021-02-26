@@ -1,6 +1,6 @@
 ﻿module GslCore.Core.ApplySlices
 
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Constants
 
 /// Given a gene end and two one based offsets, calculate a new one based offset

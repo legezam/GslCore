@@ -4,7 +4,7 @@ open System
 open GslCore.Core
 open GslCore.Reference
 open NUnit.Framework
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Constants
 open GslCore.Core.Types
 open GslCore.Pragma

@@ -1,4 +1,4 @@
-namespace GslCore.Ast.Legacy.Types
+namespace GslCore.Legacy.Types
 
 open Amyris.Dna
 open GslCore.Ast.Process

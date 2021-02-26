@@ -5,7 +5,7 @@ open GslCore.DesignParams
 open GslCore.GslResult
 open NUnit.Framework
 open GslCore.GslcProcess
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Core.Types
 open GslCore.Pragma
 open Amyris.Dna

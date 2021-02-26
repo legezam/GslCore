@@ -3,8 +3,8 @@
 open FsToolkit.ErrorHandling
 open GslCore.Core.Types
 open GslCore.Pragma
-open GslCore.Ast.Legacy.Types
-open GslCore.Ast.Legacy
+open GslCore.Legacy.Types
+open GslCore.Legacy
 open GslCore.Core.Ryse
 open GslCore.Core
 open GslCore.Constants

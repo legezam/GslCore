@@ -8,7 +8,7 @@ open GslCore.Primer
 open GslCore.Reference
 open NUnit.Framework
 open Amyris.Bio.biolib
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Core.Types
 open GslCore.GslResult
 open GslCore.Constants

@@ -6,7 +6,7 @@
 ///
 open GslCore.Ast.Process
 open GslCore.Pragma
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Constants

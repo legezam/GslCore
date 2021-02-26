@@ -5,7 +5,7 @@ open GslCore.Core.Types
 open GslCore.Core.CommandConfig
 open Amyris.Bio
 open GslCore.Constants
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Ast.Types

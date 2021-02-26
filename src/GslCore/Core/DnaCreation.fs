@@ -5,8 +5,8 @@ open System
 open FsToolkit.ErrorHandling
 open GslCore.Ast.Types
 open GslCore.Constants
-open GslCore.Ast.Legacy.Types
-open GslCore.Ast.Legacy
+open GslCore.Legacy.Types
+open GslCore.Legacy
 open GslCore.Core.ResolveExtPart
 open GslCore.GslResult
 open GslCore.Pragma

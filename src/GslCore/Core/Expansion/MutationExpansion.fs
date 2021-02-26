@@ -3,8 +3,8 @@ module GslCore.Core.Expansion.MutationExpansion
 open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
-open GslCore.Ast.Legacy.Types
-open GslCore.Ast.Legacy
+open GslCore.Legacy.Types
+open GslCore.Legacy
 open GslCore.Core.DnaCreation
 open GslCore.Core.Expansion
 open GslCore.Pragma

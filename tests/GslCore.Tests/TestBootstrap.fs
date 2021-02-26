@@ -11,7 +11,7 @@ open GslCore.Ast.Types
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
-open GslCore.Ast.Legacy
+open GslCore.Legacy
 
 [<TestFixture>]
 type TestBootstrapping() =

@@ -71,10 +71,12 @@
     <Compile Include="Ast\Process\PragmaWarning.fs" />
     <Compile Include="Ast\Process\RoughageExpansion.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
-    <Compile Include="Ast\Legacy\Types.fs" />
-    <Compile Include="Ast\Legacy\Legacy.fs" />
     <Compile Include="Ast\Phase1Message.fs" />
     <Compile Include="Ast\Phase1.fs" />
+    <Compile Include="Legacy\Types.fs" />
+    <Compile Include="Legacy\SliceContext.fs" />
+    <Compile Include="Legacy\PrettyPrint.fs" />
+    <Compile Include="Legacy\AssemblyCreation.fs" />    
     <Compile Include="Core\Types.fs" />
     <Compile Include="Core\ApplySlices.fs" />
     <Compile Include="Core\SbolExample.fs" />
@@ -113,6 +115,7 @@
     <Compile Include="GslcProcess.fs" />
     <Compile Include="SeamlessPlugin.fs" />
     <Compile Include="Gslc.fs" />
+    
   </ItemGroup>
   <Import Project="..\..\packages\FsLexYacc\build\FsLexYacc.targets" />
   <Import Project="..\..\.paket\Paket.Restore.targets" />

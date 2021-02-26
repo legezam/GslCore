@@ -1,7 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open NUnit.Framework
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Constants
 open GslCore.Core.Types
 

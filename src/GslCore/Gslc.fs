@@ -4,7 +4,7 @@ open System.IO
 open System
 open System.Text
 open System.Reflection
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference

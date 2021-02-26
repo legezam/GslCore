@@ -1,6 +1,6 @@
 ﻿module GslCore.Plugin.BasicMarkerProvider
 
-open GslCore.Ast.Legacy.Types
+open GslCore.Legacy.Types
 open GslCore.Constants
 
 open GslCore.Core.Types

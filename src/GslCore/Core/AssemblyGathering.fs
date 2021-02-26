@@ -2,8 +2,8 @@ namespace GslCore.Core.AssemblyGathering
 
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
-open GslCore.Ast.Legacy.Types
-open GslCore.Ast.Legacy
+open GslCore.Legacy.Types
+open GslCore.Legacy
 open GslCore.GslResult
 
 // ===============================
