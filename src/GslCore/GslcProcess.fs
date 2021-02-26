@@ -2,6 +2,7 @@
 module GslCore.GslcProcess
 
 open Amyris.Bio
+open GslCore.Ast.Legacy
 open GslCore.Ast.Phase1Message
 open GslCore.Constants
 open GslCore.Core
@@ -13,6 +14,7 @@ open GslCore.Pragma
 open GslCore.Primer
 open GslCore.ProcessCmdLineArgs
 open GslCore.Core.PluginTypes
+open GslCore.Core.AssemblyGathering
 open GslCore.Ast
 open GslCore.GslResult
 
@@ -64,14 +66,16 @@ let rec processGSL (s: ConfigurationState) gslText =
 
     if options.OnlyPhase1 then
         phase1Result
-        >>= AssemblyGathering.convertAndGatherAssemblies
+        >>= (AssemblyGathering.convertAndGatherAssemblies
+             >> GslResult.mapError LegacyAssemblyCreationError.toAstMessage)
     else
         phase1Result
         //>>= failOnAssemblyInL2Promoter
         >>= Level2Expansion.expandLevel2 phase1Params l2Providers globalAssets.ReferenceGenomes
         >>= Phase1.postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
         >>= (Phase2.phase2 phase2Params)
-        >>= AssemblyGathering.convertAndGatherAssemblies // collect the assemblies in the tree and return them
+        >>= (AssemblyGathering.convertAndGatherAssemblies
+             >> GslResult.mapError LegacyAssemblyCreationError.toAstMessage)
 
 /// Convert all assemblies to DnaAssemblies.
 let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
@@ -82,8 +86,8 @@ let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
         s.Plugins
         |> Behavior.getAllProviders Behavior.getMarkerProviders
 
-    if opts.Verbose
-    then printf "Processing %d assemblies\n" (Seq.length assem)
+    if opts.Verbose then
+        printf "Processing %d assemblies\n" (Seq.length assem)
 
     assem
     |> Seq.mapi (fun index dnaAssembly ->
@@ -232,7 +236,8 @@ let doOutputGeneration (s: ConfigurationState) primers assemblies =
           Assemblies = assemblies
           Primers = primers }
 
-    if outputData.Options.Verbose then printfn "ok"
+    if outputData.Options.Verbose then
+        printfn "ok"
 
     // Use any output providers provided by plugins
     // They have already been configured to run or not during command line arg parsing.

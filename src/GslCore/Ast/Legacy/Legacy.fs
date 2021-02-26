@@ -12,6 +12,7 @@ open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
 open GslCore.Ast.Legacy.Types
+open GslCore.PcrParamParse
 
 module LegacySliceContext =
     /// Return a tuple of OneOffset left/right slice bounds from a slice record.
@@ -137,11 +138,51 @@ module LegacyPrettyPrint =
         |> String.concat ";"
         |> GslSourceCode
 
+type LegacyPartCreationError =
+    | IllegalSliceConstruction of left: AstNode * right: AstNode
+    | IllegalModifierNode of node: AstNode
+    | IllegalLegacyBasePart of node: AstNode
+    | IllegalPart of node: AstNode
+
+type LegacyAssemblyCreationError =
+    | DesignParamCreationError of DesignParameterError * AstNode
+    | PartCreationError of LegacyPartCreationError
+
+module LegacyAssemblyCreationError =
+    let makeDesignParamCreationError (node: AstNode) (originalError: DesignParameterError) =
+        DesignParamCreationError(originalError, node)
+
+    let toAstMessage: LegacyAssemblyCreationError -> AstMessage =
+        function
+        | DesignParamCreationError (paramError, node) ->
+
+            match paramError with
+            | PcrParameterRevisionError err ->
+                let message = err |> PcrParameterParseError.toString
+                AstMessage.createErrorWithStackTrace PragmaError message node
+        | PartCreationError partError ->
+            match partError with
+            | IllegalSliceConstruction (left, right) ->
+                let context =
+                    sprintf "legacy slice construction; found [%s:%s]" left.TypeName right.TypeName
+
+                AstResult.internalTypeMismatchMsg (Some context) "RelPos" left
+            | IllegalModifierNode node ->
+                let context = Some "legacy mod conversion"
+                AstResult.internalTypeMismatchMsg context "Slice or Mutation or DotMod" node
+            | IllegalLegacyBasePart node ->
+                let context = Some "legacy part conversion"
+                AstResult.internalTypeMismatchMsg context "legacy-compatible base part" node
+            | IllegalPart node ->
+                let context = Some "legacy part conversion"
+                AstResult.internalTypeMismatchMsg context "Part" node
+
+
 // =====================
 // conversion from AST parts to legacy parts
 // =====================
 module LegacyConversion =
-    let private sliceFromAstSlice (parseSlice: ParseSlice): AstResult<Modifier> =
+    let private sliceFromAstSlice (parseSlice: ParseSlice): GslResult<Modifier, LegacyPartCreationError> =
         match parseSlice.Left, parseSlice.Right with
         | AstNode.RelPos (lw), AstNode.RelPos (rw) ->
             GslResult.ok
@@ -150,26 +191,22 @@ module LegacyConversion =
                        LeftApprox = parseSlice.LeftApprox
                        Right = rw.Value
                        RightApprox = parseSlice.RightApprox }))
-        | x, y ->
-            let contextStr =
-                sprintf "legacy slice construction; found [%s:%s]" x.TypeName y.TypeName
+        | x, y -> GslResult.err (IllegalSliceConstruction(x, y))
 
-            AstResult.internalTypeMismatch (Some(contextStr)) "RelPos" x
-
-    let private astNodeToLegacyMod (node: AstNode): AstResult<Modifier> =
+    let private astNodeToLegacyMod (node: AstNode): GslResult<Modifier, LegacyPartCreationError> =
         match node with
         | AstNode.Slice sw -> sliceFromAstSlice sw.Value
         | AstNode.Mutation mw -> GslResult.ok (Modifier.Mutation(mw.Value))
         | AstNode.DotMod dm -> GslResult.ok (Modifier.Dot(dm.Value))
-        | _ -> AstResult.internalTypeMismatch (Some "legacy mod conversion") "Slice or Mutation or DotMod" node
+        | _ -> GslResult.err (IllegalModifierNode node)
 
-    let private convertModifiers (mods: AstNode list): AstResult<Modifier list> =
+    let private convertModifiers (mods: AstNode list): GslResult<Modifier list, LegacyPartCreationError> =
         mods
         |> List.map astNodeToLegacyMod
         |> GslResult.collectA
 
     /// Convert an AST base part into a legacy Part.
-    let private createLegacyPart (part: Node<ParsePart>): AstResult<Part> =
+    let private createLegacyPart (part: Node<ParsePart>): GslResult<Part, LegacyPartCreationError> =
         match part.Value.BasePart with
         | AstNode.Gene geneWrapper ->
             convertModifiers part.Value.Modifiers
@@ -183,15 +220,16 @@ module LegacyConversion =
                     { Part = genePart
                       Linker = geneWrapper.Value.Linker })
         | AstNode.Marker _ -> GslResult.ok Part.MarkerPart
-        | AstNode.InlineDna dnaSequence -> GslResult.ok (Part.InlineDna(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
+        | AstNode.InlineDna dnaSequence ->
+            GslResult.ok (Part.InlineDna(Dna(dnaSequence.Value, true, AllowAmbiguousBases)))
         | AstNode.InlineProtein proteinSequence -> GslResult.ok (Part.InlineProtein proteinSequence.Value)
         | AstNode.HetBlock _ -> GslResult.ok Part.HeterologyBlock
         | AstNode.PartId partId ->
             convertModifiers part.Value.Modifiers
             |> GslResult.map (fun mods -> Part.PartId { Id = partId.Value; Modifiers = mods })
-        | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "legacy-compatible base part" x
+        | x -> GslResult.err (IllegalLegacyBasePart x)
 
-    let private createPartPlusPragma (node: AstNode): AstResult<PartPlusPragma> =
+    let private createPartPlusPragma (node: AstNode): GslResult<PartPlusPragma, LegacyPartCreationError> =
         match node with
         | AstNode.Part part ->
             createLegacyPart part
@@ -199,7 +237,7 @@ module LegacyConversion =
                 { PartPlusPragma.Part = legacyPart
                   Pragma = ParsePart.getPragmas part
                   IsForward = part.Value.IsForward })
-        | x -> AstResult.internalTypeMismatch (Some "legacy part conversion") "Part" x
+        | x -> GslResult.err (IllegalPart x)
 
 
     /// Accumulate both pragma and docstring context.
@@ -220,7 +258,7 @@ module LegacyConversion =
     /// Convert an AST assembly into a legacy assembly.
     let convertAssembly (context: AssemblyConversionContext)
                         (partWrapper: Node<ParsePart>, assemblyPartsWrapper: Node<AstNode list>)
-                        : AstResult<Assembly> =
+                        : GslResult<Assembly, LegacyAssemblyCreationError> =
         let assemblyPragmas = ParsePart.getPragmas partWrapper
 
         let name =
@@ -240,13 +278,13 @@ module LegacyConversion =
 
         let parameters =
             DesignParams.fromPragmas DesignParams.identity assemblyPragmas
-            |> GslResult.mapError (fun message ->
-                AstMessage.createErrorWithStackTrace PragmaError message (AstNode.Part(partWrapper)))
+            |> GslResult.mapError (LegacyAssemblyCreationError.makeDesignParamCreationError (AstNode.Part(partWrapper)))
 
         let parts =
             assemblyPartsWrapper.Value
             |> List.map createPartPlusPragma
             |> GslResult.collectA
+            |> GslResult.mapError PartCreationError
 
         (parts, parameters)
         ||> GslResult.map2 (fun parts designParams ->

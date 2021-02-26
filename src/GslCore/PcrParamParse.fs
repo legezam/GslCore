@@ -19,11 +19,31 @@ type PcrParamTag =
     | Template
     | Primer
 
+type PcrParameterParseError =
+    | UnknownPcrParameter of param: string
+    | InvalidPcrArgument of argument: string
+
+module PcrParameterParseError =
+    [<Literal>]
+    let private MatchErrorMsg = "#pcrparams should match tag=valueunit pattern (no spaces).
+    tags: [mon, div, dntp, template, primer]; value: a decimal number; unit: [uM, mM, nM]
+    e.g. #pcrparams mon=50mM div=1.5mM dNTP=200uM template=0.01uM primer=0.25uM"
+
+    let toString =
+        function
+        | UnknownPcrParameter param ->
+            sprintf "unknown pcr parameter '%s', should be one of mon, div, dntp, template or primer" param
+        | InvalidPcrArgument arg -> sprintf "Invalid argument: '%s'. %s" arg MatchErrorMsg
+
 /// Handle parsing of PCR parameters
 module PcrParameterParser =
     // e.g.   ERROR: unknown pragma #pcrparams mon=50mM div=m5mM dNTP=0uM template=0uM primer=0.25uM
 
-    let private pcrParamRegex = Regex("([^= ]*)=(\d*\.?\d*)(\w*)", RegexOptions.Compiled ||| RegexOptions.CultureInvariant)
+    let private pcrParamRegex =
+        Regex
+            ("([^= ]*)=(\d*\.?\d*)(\w*)",
+             RegexOptions.Compiled
+             ||| RegexOptions.CultureInvariant)
 
     // ParseRegex parses a regular expression and returns a list of the strings that match each group in
     // the regular expression.
@@ -36,6 +56,7 @@ module PcrParameterParser =
             let values =
                 [ for group in regexMatch.Groups -> group.Value ]
                 |> List.tail
+
             Some values
         else
             None
@@ -61,9 +82,7 @@ module PcrParameterParser =
         | "primer" -> KnownTag Primer
         | unknown -> UnknownTag unknown
 
-    let [<Literal>] private MatchErrorMsg = "#pcrparams should match tag=valueunit pattern (no spaces).
-    tags: [mon, div, dntp, template, primer]; value: a decimal number; unit: [uM, mM, nM]
-    e.g. #pcrparams mon=50mM div=1.5mM dNTP=200uM template=0.01uM primer=0.25uM"
+
 
     /// Try to parse a single argument.
     let parseArg (a: string) =
@@ -77,19 +96,26 @@ module PcrParameterParser =
 
             match tag with
             | KnownTag t -> GslResult.ok (t, unitVal)
-            | UnknownTag t ->
-                GslResult.err (sprintf "unknown pcr parameter '%s', should be one of mon, div, dntp, template or primer" t)
-        | _ -> GslResult.err (sprintf "Invalid argument: '%s'. %s" a MatchErrorMsg)
+            | UnknownTag t -> GslResult.err (UnknownPcrParameter t)
+        | _ -> GslResult.err (InvalidPcrArgument a)
 
     /// Try to parse a single argument, and use it to up
     let private updatePP (primerParams: PrimerParams) (tag: PcrParamTag, unitVal: float<M>) =
         match tag with
-        | Mon -> { primerParams with monovalentConc = unitVal }
-        | Div -> { primerParams with divalentConc = unitVal }
+        | Mon ->
+            { primerParams with
+                  monovalentConc = unitVal }
+        | Div ->
+            { primerParams with
+                  divalentConc = unitVal }
         | Dntp -> { primerParams with dNTPConc = unitVal }
-        | Template -> { primerParams with templateConc = unitVal }
-        | Primer -> { primerParams with primerConc = unitVal }
+        | Template ->
+            { primerParams with
+                  templateConc = unitVal }
+        | Primer ->
+            { primerParams with
+                  primerConc = unitVal }
 
-    let parseArgUpdatePP (a: string) (primerParams: PrimerParams) =
+    let parseArgUpdatePP (a: string) (primerParams: PrimerParams): GslResult<PrimerParams, PcrParameterParseError> =
         parseArg a
         |> GslResult.map (updatePP primerParams)

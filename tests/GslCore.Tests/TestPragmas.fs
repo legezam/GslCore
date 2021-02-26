@@ -6,6 +6,7 @@ open GslCore.Ast
 open GslCore.Ast.Process
 open GslCore.DesignParams
 open GslCore.GslResult
+open GslCore.PcrParamParse
 open GslCore.Pragma
 open NUnit.Framework
 open Amyris.Bio.primercore
@@ -49,7 +50,11 @@ type TestPragmas() =
             | Error msgs -> ifBad msgs
 
         let shouldPass =
-            doParse ignore (fun errs -> Assert.Fail(String.concat ", " errs))
+            doParse ignore (fun errs ->
+                Assert.Fail
+                    (errs
+                     |> List.map PcrParameterParseError.toString
+                     |> String.concat ", "))
 
         let shouldFail =
             doParse (fun _ -> Assert.Fail("Parsing didn't fail.")) ignore

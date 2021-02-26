@@ -27,10 +27,11 @@ module Validation =
 
     let validatePcrParams (args: string list) =
         args
-        |> Seq.map PcrParameterParser.parseArg
-        |> Seq.toList
+        |> List.map PcrParameterParser.parseArg
         |> GslResult.collectA
         |> GslResult.ignore
+        |> GslResult.mapError PcrParameterParseError.toString
+
 
 type Platform =
     | Stitch
@@ -175,7 +176,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Validation.noValidate }
 
-    let [<Literal>] StitchName = "stitch"
+    [<Literal>]
+    let StitchName = "stitch"
+
     let stitchPragmaDef =
         { PragmaDefinition.Name = StitchName
           Shape = Zero
@@ -184,7 +187,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Validation.noValidate }
 
-    let [<Literal>] MegaStitchName = "megastitch"
+    [<Literal>]
+    let MegaStitchName = "megastitch"
+
     let megastitchPragmaDef =
         { PragmaDefinition.Name = MegaStitchName
           Shape = Zero
@@ -234,7 +239,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Parse.parseInt }
 
-    let [<Literal>] PcrParamsName = "pcrparams"
+    [<Literal>]
+    let PcrParamsName = "pcrparams"
+
     let pcrParamsPragmaDef =
         { PragmaDefinition.Name = PcrParamsName
           Shape = Range(1, 5)
@@ -243,7 +250,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Validation.validatePcrParams }
 
-    let [<Literal>] TargetTmName = "targettm"
+    [<Literal>]
+    let TargetTmName = "targettm"
+
     let targetTmPragmaDef =
         { PragmaDefinition.Name = TargetTmName
           Shape = One
@@ -261,7 +270,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Parse.parseDouble }
 
-    let [<Literal>] SeamlesOverlapTmName = "seamlessoverlaptm"
+    [<Literal>]
+    let SeamlesOverlapTmName = "seamlessoverlaptm"
+
     let seamlessOverlapTmPragmaDef =
         { PragmaDefinition.Name = SeamlesOverlapTmName
           Shape = One
@@ -271,7 +282,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Parse.parseDouble }
 
-    let [<Literal>] AtPenaltyName = "atpenalty"
+    [<Literal>]
+    let AtPenaltyName = "atpenalty"
+
     let atPenaltyPragmaDef =
         { PragmaDefinition.Name = AtPenaltyName
           Shape = One
@@ -279,8 +292,10 @@ module BuiltIn =
           Description = "Set degree of tm flexibility to get a terminal G or C and unstable 3' end of an oligo."
           InvertsTo = None
           Validate = Parse.parseDouble }
-    
-    let [<Literal>] PcrAssemblyParamsName = "pcrassemblyparams"
+
+    [<Literal>]
+    let PcrAssemblyParamsName = "pcrassemblyparams"
+
     let pcrAssemblyParamsPragmaDef =
         { PragmaDefinition.Name = PcrAssemblyParamsName
           Shape = Range(1, 5)
@@ -289,7 +304,9 @@ module BuiltIn =
           InvertsTo = None
           Validate = Validation.validatePcrParams }
 
-    let [<Literal>] MinOverlapLenName = "minoverlaplen"
+    [<Literal>]
+    let MinOverlapLenName = "minoverlaplen"
+
     let minOverlapLenPragmaDef =
         { PragmaDefinition.Name = MinOverlapLenName
           Shape = One

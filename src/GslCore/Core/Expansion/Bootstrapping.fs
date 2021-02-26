@@ -177,8 +177,9 @@ let bootstrapExpandLegacyAssembly errorMsgType
             |> GslResult.err
 
     match node with
-    | AssemblyPart (apUnpack) ->
+    | AssemblyPart apUnpack ->
         LegacyConversion.convertAssembly assemblyConversionContext apUnpack
+        |> GslResult.mapError LegacyAssemblyCreationError.toAstMessage
         >>= expandCaptureException
         >>= (bootstrapOperation ((fst apUnpack).Positions))
     | _ -> GslResult.ok node
