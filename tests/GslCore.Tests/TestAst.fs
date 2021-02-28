@@ -2,7 +2,7 @@
 
 open GslCore
 open GslCore.Ast
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Ast.Process
 open GslCore.Ast.Process.Validation
 open GslCore.Pragma
@@ -113,7 +113,7 @@ type TestValidation() =
             (Some "Can only apply part mods to Gene or PartId, not Marker")
             (PartValidation.validateModifiers
              >> GslResult.mapError
-                 (PartModifierValidationError
+                 (Phase1Error.PartModifierValidationError
                   >> Phase1Error.toAstMessage))
             tree
         |> ignore
@@ -131,7 +131,7 @@ type TestValidation() =
             (Some "Can only apply part mods to Gene or PartId, not Assembly")
             (PartValidation.validateModifiers
              >> GslResult.mapError
-                 (PartModifierValidationError
+                 (Phase1Error.PartModifierValidationError
                   >> Phase1Error.toAstMessage))
             tree
         |> ignore

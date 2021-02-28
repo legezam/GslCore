@@ -5,10 +5,11 @@ open Amyris.Bio
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Process.Naming
 open GslCore.Legacy
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Constants
 open GslCore.Core
 open GslCore.Legacy.Types
+open GslCore.Legacy.AstMessage
 open GslCore.Core.Expansion
 open GslCore.Core.Types
 open GslCore.Core.DnaCreation
@@ -18,6 +19,7 @@ open GslCore.ProcessCmdLineArgs
 open GslCore.Core.PluginTypes
 open GslCore.Core.AssemblyGathering
 open GslCore.Core.Expansion.Level2Expansion
+open GslCore.Core.Expansion.AstMessage
 open GslCore.Ast
 open GslCore.GslResult
 

@@ -3,9 +3,8 @@
 open System
 
 open GslCore.Ast
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Ast.Process
-open GslCore.Ast.Process.Validation
 open GslCore.GslResult
 open NUnit.Framework
 open GslCore.Ast.Types

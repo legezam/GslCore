@@ -6,11 +6,9 @@ open GslCore.Ast.Process
 open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
 open GslCore.Legacy.Types
-open GslCore.PcrParamParse
 
 
 type LegacyPartCreationError =
@@ -27,30 +25,6 @@ module LegacyAssemblyCreationError =
     let makeDesignParamCreationError (node: AstNode) (originalError: DesignParameterError) =
         DesignParamCreationError(originalError, node)
 
-    let toAstMessage: LegacyAssemblyCreationError -> AstMessage =
-        function
-        | DesignParamCreationError (paramError, node) ->
-
-            match paramError with
-            | PcrParameterRevisionError err ->
-                let message = err |> PcrParameterParseError.toString
-                AstMessage.createErrorWithStackTrace PragmaError message node
-        | PartCreationError partError ->
-            match partError with
-            | IllegalSliceConstruction (left, right) ->
-                let context =
-                    sprintf "legacy slice construction; found [%s:%s]" left.TypeName right.TypeName
-
-                AstResult.internalTypeMismatchMsg (Some context) "RelPos" left
-            | IllegalModifierNode node ->
-                let context = Some "legacy mod conversion"
-                AstResult.internalTypeMismatchMsg context "Slice or Mutation or DotMod" node
-            | IllegalLegacyBasePart node ->
-                let context = Some "legacy part conversion"
-                AstResult.internalTypeMismatchMsg context "legacy-compatible base part" node
-            | IllegalPart node ->
-                let context = Some "legacy part conversion"
-                AstResult.internalTypeMismatchMsg context "Part" node
 
 
 // =====================

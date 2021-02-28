@@ -1,7 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open System.Collections
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.GslResult
 
 open GslCore

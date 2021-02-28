@@ -1,7 +1,6 @@
 namespace GslCore.Core.Expansion.Bootstrapping
 
-open GslCore.Ast.ErrorHandling
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast
@@ -19,51 +18,15 @@ type BootstrapError<'ExternalError> =
     | LexParseSupplement of node: Node<string>
     | ExternalOperation of 'ExternalError
 
-module BootstrapError =
-    let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapError<'a> -> AstMessage =
-        function
-        | BootstrapError.LexParse innerError -> LexParseError.toAstMessage innerError
-        | BootstrapError.LexParseSupplement node ->
-            let contextMsg =
-                sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" node.Value
-
-            AstMessage.createErrorWithStackTrace (InternalError(ParserError)) contextMsg (AstNode.String node)
-        | BootstrapError.ExternalOperation externalError -> formatExternalError externalError
-        | BootstrapError.Unpack (expectedType, maybeNote, node) ->
-            let extraText =
-                match maybeNote with
-                | Some n -> sprintf " %s" n
-                | None -> ""
-
-            let msg =
-                sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
-
-            AstResult.errStringMsg (BootstrapError(Some(node))) msg node
-
 [<RequireQualifiedAccess>]
 type BootstrapExpandAssemblyError<'a> =
     | AssemblyCreation of LegacyAssemblyCreationError
     | Bootstrapping of 'a
 
-
-module BootstrapExpandAssemblyError =
-    let toAstMessage (formatBootstrapError: 'a -> AstMessage): BootstrapExpandAssemblyError<'a> -> AstMessage =
-        function
-        | BootstrapExpandAssemblyError.AssemblyCreation innerError ->
-            innerError
-            |> LegacyAssemblyCreationError.toAstMessage
-        | BootstrapExpandAssemblyError.Bootstrapping innerError -> innerError |> formatBootstrapError
-
 [<RequireQualifiedAccess>]
 type BootstrapExecutionError<'a> =
     | AssemblyStuffing of AssemblyStuffingError
     | ExternalOperation of 'a
-
-module BootstrapExecutionError =
-    let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapExecutionError<'a> -> AstMessage =
-        function
-        | BootstrapExecutionError.AssemblyStuffing innerError -> innerError |> AssemblyStuffingError.toAstMessage
-        | BootstrapExecutionError.ExternalOperation innerError -> innerError |> formatExternalError
 
 module Bootstrapping =
 

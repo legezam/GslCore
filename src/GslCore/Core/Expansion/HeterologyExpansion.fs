@@ -2,7 +2,7 @@ module GslCore.Core.Expansion.HeterologyExpansion
 
 open System
 open FsToolkit.ErrorHandling
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.Algorithms

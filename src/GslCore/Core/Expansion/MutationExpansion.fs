@@ -1,6 +1,6 @@
 module GslCore.Core.Expansion.MutationExpansion
 
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Constants

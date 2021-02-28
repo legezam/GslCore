@@ -1,7 +1,7 @@
 namespace GslCore.Core.Expansion.Level2Expansion
 
 
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Ast.Process
 open GslCore.Constants
 open GslCore.Ast.Types
@@ -24,13 +24,6 @@ type Level2ExpansionError =
     | BoostrapError of BootstrapError<Phase1Error>
     | AssemblyStuffingFailure of AssemblyStuffingError
 
-module Level2ExpansionError =
-    let toAstMessage: Level2ExpansionError -> AstMessage =
-        function
-        | ExpansionException (ex, node) -> AstResult.exceptionToError L2ExpansionError node ex
-        | L2LineCreationError innerError -> LegacyL2LineCreationError.toAstMessage innerError
-        | AssemblyStuffingFailure innerError -> AssemblyStuffingError.toAstMessage innerError
-        | BoostrapError innerError -> BootstrapError.toAstMessage Phase1Error.toAstMessage innerError
 
 // ==========================
 // expanding L2 GSL

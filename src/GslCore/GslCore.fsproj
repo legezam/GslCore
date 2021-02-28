@@ -77,7 +77,8 @@
     <Compile Include="Legacy\SliceContext.fs" />
     <Compile Include="Legacy\PrettyPrint.fs" />
     <Compile Include="Legacy\AssemblyCreation.fs" />
-    <Compile Include="Legacy\L2LineCreation.fs" />    
+    <Compile Include="Legacy\L2LineCreation.fs" />
+    <Compile Include="Legacy\AstMessage.fs" />    
     <Compile Include="Core\Types.fs" />
     <Compile Include="Core\ApplySlices.fs" />
     <Compile Include="Core\SbolExample.fs" />
@@ -95,6 +96,7 @@
     <Compile Include="Core\Expansion\MutationExpansion.fs" />
     <Compile Include="Core\Expansion\ProteinExpansion.fs" />
     <Compile Include="Core\Expansion\HeterologyExpansion.fs" />
+    <Compile Include="Core\Expansion\AstMessage.fs" />
     <Compile Include="Core\AssemblyGathering.fs" />
     <Compile Include="Core\Phase2.fs" />
     <Compile Include="Primer\PrimerValidation.fs" />

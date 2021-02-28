@@ -2,7 +2,7 @@
 
 
 open GslCore
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.GslResult
 open GslCore.Ast
 open GslCore.Core.Expansion

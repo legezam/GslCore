@@ -12,18 +12,6 @@ type LegacyL2LineCreationError =
     | IllegalIncomingL2Element of node: AstNode
     | FailedLocusUnpacking of node: AstNode
 
-module LegacyL2LineCreationError =
-    let toAstMessage: LegacyL2LineCreationError -> AstMessage =
-        function
-        | IllegalIncomingL2ElementContent (left, right, node) ->
-            let contextStr =
-                sprintf "L2 element construction; found [%s>%s]" left.TypeName right.TypeName
-
-            AstResult.internalTypeMismatchMsg (Some(contextStr)) "L2Id" node
-        | IllegalIncomingL2Element node ->
-            AstResult.internalTypeMismatchMsg (Some("L2 element construction")) "L2Id" node
-        | FailedLocusUnpacking node -> AstResult.internalTypeMismatchMsg (Some("L2 locus unpacking")) "L2Id" node
-
 // ======================
 // conversion from L2 AST node to legacy L2 line type
 // ======================

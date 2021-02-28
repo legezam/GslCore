@@ -9,6 +9,7 @@ open GslCore.Core.Types
 open GslCore.GslResult
 open GslCore.Pragma
 open Amyris.Dna
+open GslCore.Ast.Phase1
 
 
 let defaultPhase1Parameters =

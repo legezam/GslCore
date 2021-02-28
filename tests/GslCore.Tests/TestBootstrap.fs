@@ -2,13 +2,12 @@
 
 open GslCore
 open GslCore.Ast
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Core.Expansion
 open GslCore.GslResult
 open NUnit.Framework
 open GslCore.Constants
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.AstAssertions
 open GslCore.Legacy

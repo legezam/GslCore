@@ -2,9 +2,10 @@
 namespace GslCore.Core
 
 open GslCore.Ast.ErrorHandling
-open GslCore.Ast.Phase1Message
+open GslCore.Ast.Phase1
 open GslCore.Ast.Types
 open GslCore.Core.Expansion
+open GslCore.Core.Expansion.AstMessage
 open GslCore.Core.Expansion.Bootstrapping
 open GslCore.GslResult
 

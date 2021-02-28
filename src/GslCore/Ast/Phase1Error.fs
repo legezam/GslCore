@@ -1,4 +1,4 @@
-namespace GslCore.Ast.Phase1Message
+namespace GslCore.Ast.Phase1
 
 open GslCore.Ast.ErrorHandling
 
