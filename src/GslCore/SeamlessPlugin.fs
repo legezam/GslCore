@@ -12,7 +12,10 @@ open GslCore.Pragma
 open GslCore.Uri
 
 let mt =
-    let mtLinkerUri = Uri.linkerUri "MT" |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
+    let mtLinkerUri =
+        Uri.linkerUri "MT"
+        |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
+
     { Id = None
       ExternalId = None
       SliceName = ""
@@ -40,7 +43,10 @@ let mt =
 let mtRev = { mt with SourceForward = false }
 
 let dumpSliceLayout (slices: DNASlice list) =
-    String.Join(";", slices |> List.map (fun s -> SliceType.toString s.Type))
+    String.Join
+        (";",
+         slices
+         |> List.map (fun s -> SliceType.toString s.Type))
 
 /// Insert FUSE directives and MT linkers to get a seamless design from later primergen
 let procInsertFuse verbose (l: DNASlice list) =
@@ -50,8 +56,8 @@ let procInsertFuse verbose (l: DNASlice list) =
         printfn "Slices presented: %s" (String.Join(";", names))
 
     let rec procInsertFuseInternal (l: DNASlice list) res =
-        if verbose
-        then printfn "placeFuseForSeamless: top l=%s" (dumpSliceLayout l)
+        if verbose then
+            printfn "placeFuseForSeamless: top l=%s" (dumpSliceLayout l)
 
         let finish parts = mt :: (List.rev parts) @ [ mtRev ]
 
@@ -59,14 +65,14 @@ let procInsertFuse verbose (l: DNASlice list) =
         | [] -> finish l
         | [ x ] -> finish (x :: res) // don't fuse after last piece
         | hd :: tl when hd.Type = SliceType.Fusion ->
-            if verbose
-            then printfn "placeFuseForSeamless: .. skipping existing fuse"
+            if verbose then
+                printfn "placeFuseForSeamless: .. skipping existing fuse"
             // pass existing fuse elements straight through
             procInsertFuseInternal tl (hd :: res)
         | hd :: tl when hd.Type = SliceType.Inline ->
             // inline segments should get primer gen anyway I think
-            if verbose
-            then printfn "placeFuseForSeamless: .. ignoring inline"
+            if verbose then
+                printfn "placeFuseForSeamless: .. ignoring inline"
 
             procInsertFuseInternal tl (hd :: res)
 
@@ -76,12 +82,11 @@ let procInsertFuse verbose (l: DNASlice list) =
             procInsertFuseInternal tl (middle :: res)
 
         | hd :: middle :: tl when hd.Type = SliceType.Regular
-                                  && middle.Type = SliceType.Inline ->
-            procInsertFuseInternal tl (middle :: hd :: res)
+                                  && middle.Type = SliceType.Inline -> procInsertFuseInternal tl (middle :: hd :: res)
 
         | hd :: tl ->
-            if verbose
-            then printfn "placeFuseForSeamless: .. general case gets fuse"
+            if verbose then
+                printfn "placeFuseForSeamless: .. general case gets fuse"
 
             procInsertFuseInternal tl (DnaAssembly.fusionSliceConstant :: hd :: res)
 
@@ -93,7 +98,8 @@ let procInsertFuse verbose (l: DNASlice list) =
 /// request a seamless design
 let placeFuseForSeamless (at: ATContext) (a: DnaAssembly) =
     let printVerbose message =
-        if at.Options.Verbose then printfn "%s" message
+        if at.Options.Verbose then
+            printfn "%s" message
 
 
     let linkered =
@@ -146,14 +152,17 @@ type SeamlessAssembler =
             |> x.processExtraArgs arg :> IAssemblyTransform
 
         member x.ConfigureFromOptions(opts) =
-            if opts.NoPrimers then { x with run = false } :> IAssemblyTransform else x :> IAssemblyTransform
+            if opts.NoPrimers then
+                { x with run = false } :> IAssemblyTransform
+            else
+                x :> IAssemblyTransform
 
         member x.TransformAssembly context assembly =
             if x.run then
                 placeFuseForSeamless context assembly
                 // Run existing fuse processor to clean up fuses between certain part combinations.
                 // Is this necessary or does the seamless logic already account for this?
-                >>= preProcessFuse context
+                >>= GslcProcess.preProcessFuse context
             else
                 GslResult.ok assembly
 

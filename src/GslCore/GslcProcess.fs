@@ -1,7 +1,8 @@
 ﻿/// Top-level compiler operations.
-module GslCore.GslcProcess
+namespace GslCore.GslcProcess
 
 open Amyris.Bio
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Process.Naming
 open GslCore.Legacy
 open GslCore.Ast.Phase1Message
@@ -20,231 +21,268 @@ open GslCore.Core.Expansion.Level2Expansion
 open GslCore.Ast
 open GslCore.GslResult
 
-/// Run GSLC on string input.
-let rec processGSL (s: ConfigurationState) gslText =
 
-    let options = s.Options
-    let plugins = s.Plugins
-    let globalAssets = s.GlobalAssets
+[<RequireQualifiedAccess>]
+type GslProcessError =
+    | LexParseError of LexParseError
+    | Phase1Error of Phase1Message
+    | AssemblyGatheringError of LegacyAssemblyCreationError
+    | L2ExpansionError of Level2ExpansionError
+    | PostPhase1Error of NameCheckError
+    | Phase2Error of Phase2Error
 
-    let verbose = options.Verbose
-    let pragmaBuilder = globalAssets.PragmaBuilder
-    /// Build up all legal capabilities by going through plugins
-    // TODO: need to inject this and validate legal capabilities
-    // Should also eliminate global pragma state while we're at it, if possible.
-    let legalCapas =
-        plugins
-        |> List.map (fun pi -> pi.ProvidesCapas)
-        |> List.concat
-        |> Set.ofList
+module GslProcessError =
+    let toAstMessage: GslProcessError -> AstMessage =
+        function
+        | GslProcessError.LexParseError inner -> inner |> LexParseError.toAstMessage
+        | GslProcessError.Phase1Error inner -> inner |> Phase1Message.toAstMessage
+        | GslProcessError.AssemblyGatheringError inner -> inner |> LegacyAssemblyCreationError.toAstMessage
+        | GslProcessError.L2ExpansionError inner -> inner |> Level2ExpansionError.toAstMessage
+        | GslProcessError.PostPhase1Error inner -> inner |> NameCheckError.toAstMessage
+        | GslProcessError.Phase2Error inner -> inner |> Phase2Error.toAstMessage
 
-    let alleleSwapAlgs =
-        plugins
-        |> Behavior.getAllProviders Behavior.getAlleleSwapAAProviders
 
-    let l2Providers =
-        plugins
-        |> Behavior.getAllProviders Behavior.getL2KOTitrationProviders
+module GslcProcess =
+    let private lexAndParse verbose gslText =
+        LexAndParse.lexAndParse verbose gslText
+        |> GslResult.mapError GslProcessError.LexParseError
 
-    let phase2Params =
-        { Phase2Parameters.Parallel = options.DoParallel
-          OneShot = not options.Iter
-          MaxPasses = Default.maxPhase2Passes
-          Verbose = verbose
-          LegalCapas = legalCapas
-          PragmaBuilder = pragmaBuilder
-          AlleleSwapProviders = alleleSwapAlgs
-          References = globalAssets.ReferenceGenomes
-          CodonTableCache = globalAssets.CodonProvider }
+    let private phase1 phase1Params =
+        Phase1.phase1 phase1Params
+        >> GslResult.mapError GslProcessError.Phase1Error
 
-    let phase1Params =
-        phase2Params |> Phase1Parameters.fromPhase2
-    /// Main compiler pipeline.
-    let phase1Result =
-        (LexAndParse.lexAndParse verbose gslText
-         |> GslResult.mapError LexParseError.toAstMessage)
-        >>= (Phase1.phase1 phase1Params
-             >> GslResult.mapError Phase1Message.toAstMessage)
+    let private assemblyGathering =
+        AssemblyGathering.convertAndGatherAssemblies
+        >> GslResult.mapError GslProcessError.AssemblyGatheringError
 
-    if options.OnlyPhase1 then
-        phase1Result
-        >>= (AssemblyGathering.convertAndGatherAssemblies
-             >> GslResult.mapError LegacyAssemblyCreationError.toAstMessage)
-    else
-        phase1Result
-        //>>= failOnAssemblyInL2Promoter
-        >>= (Level2Expansion.expandLevel2 phase1Params l2Providers globalAssets.ReferenceGenomes
-             >> GslResult.mapError (failwithf "%A"))
-        >>= (Phase1.postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
-             >> GslResult.mapError NameCheckError.toAstMessage)
-        >>= (Phase2.phase2 phase2Params
-             >> GslResult.mapError (failwithf "%A"))
-        >>= (AssemblyGathering.convertAndGatherAssemblies
-             >> GslResult.mapError LegacyAssemblyCreationError.toAstMessage)
+    let private l2Expansion phase1Params l2Providers referenceGenomes =
+        Level2Expansion.expandLevel2 phase1Params l2Providers referenceGenomes
+        >> GslResult.mapError GslProcessError.L2ExpansionError
 
-/// Convert all assemblies to DnaAssemblies.
-let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
-    let opts, library, rgs =
-        s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
+    let private postPhase1 referenceGenomes sequenceLibrary =
+        Phase1.postPhase1 referenceGenomes sequenceLibrary
+        >> GslResult.mapError GslProcessError.PostPhase1Error
 
-    let markerProviders =
-        s.Plugins
-        |> Behavior.getAllProviders Behavior.getMarkerProviders
+    let private phase2 phase2Params =
+        Phase2.phase2 phase2Params
+        >> GslResult.mapError GslProcessError.Phase2Error
 
-    if opts.Verbose then
-        printf "Processing %d assemblies\n" (Seq.length assem)
+    /// Run GSLC on string input.
+    let processGSL (s: ConfigurationState) gslText =
 
-    assem
-    |> Seq.mapi (fun index dnaAssembly ->
-        try
-            expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
-            |> GslResult.ok
-        with ex -> GslResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
-    |> Seq.toList
-    |> GslResult.collectA
-    >>= (fun assemblies ->
+        let options = s.Options
+        let plugins = s.Plugins
+        let globalAssets = s.GlobalAssets
+
+        let verbose = options.Verbose
+        let pragmaBuilder = globalAssets.PragmaBuilder
+        /// Build up all legal capabilities by going through plugins
+        // TODO: need to inject this and validate legal capabilities
+        // Should also eliminate global pragma state while we're at it, if possible.
+        let legalCapas =
+            plugins
+            |> List.map (fun pi -> pi.ProvidesCapas)
+            |> List.concat
+            |> Set.ofList
+
+        let alleleSwapAlgs =
+            plugins
+            |> Behavior.getAllProviders Behavior.getAlleleSwapAAProviders
+
+        let l2Providers =
+            plugins
+            |> Behavior.getAllProviders Behavior.getL2KOTitrationProviders
+
+        let phase2Params =
+            { Phase2Parameters.Parallel = options.DoParallel
+              OneShot = not options.Iter
+              MaxPasses = Default.maxPhase2Passes
+              Verbose = verbose
+              LegalCapas = legalCapas
+              PragmaBuilder = pragmaBuilder
+              AlleleSwapProviders = alleleSwapAlgs
+              References = globalAssets.ReferenceGenomes
+              CodonTableCache = globalAssets.CodonProvider }
+
+        let phase1Params =
+            phase2Params |> Phase1Parameters.fromPhase2
+
+        let phase1Result =
+            lexAndParse verbose gslText
+            >>= phase1 phase1Params
+
+        if options.OnlyPhase1 then
+            phase1Result >>= assemblyGathering
+        else
+            phase1Result
+            >>= l2Expansion phase1Params l2Providers globalAssets.ReferenceGenomes
+            >>= postPhase1 globalAssets.ReferenceGenomes globalAssets.SequenceLibrary
+            >>= phase2 phase2Params
+            >>= assemblyGathering
+
+    /// Convert all assemblies to DnaAssemblies.
+    let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
+        let opts, library, rgs =
+            s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
+
+        let markerProviders =
+            s.Plugins
+            |> Behavior.getAllProviders Behavior.getMarkerProviders
 
         if opts.Verbose then
-            printf "log: dnaParts dump\n"
+            printf "Processing %d assemblies\n" (Seq.length assem)
 
-            for a in assemblies do
-                printf "log: dnaPart: %s\n" a.Name
+        assem
+        |> Seq.mapi (fun index dnaAssembly ->
+            try
+                expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
+                |> GslResult.ok
+            with ex -> GslResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
+        |> Seq.toList
+        |> GslResult.collectA
+        >>= (fun assemblies ->
 
-                for p in a.DnaParts do
-                    printf "log:      %s\n" p.Description
-                    printf "%s\n" (utils.format60 p.Dna.arr)
+            if opts.Verbose then
+                printf "log: dnaParts dump\n"
 
-        // Check for reused pieces and number them accordingly
-        // Make a list of all parts, determine unique set and assign ids
-        let partIDs =
-            seq {
                 for a in assemblies do
+                    printf "log: dnaPart: %s\n" a.Name
+
                     for p in a.DnaParts do
-                        yield p.Dna
-            }
-            |> Set.ofSeq
-            |> Seq.mapi (fun i dna -> (dna, i))
-            |> Map.ofSeq // TODO - could be faster with checksums
-        // Relabel the pieces with IDs  - tedious, we have to reconstruct the tree
-        List.map (fun a ->
-            { a with
-                  DnaParts = List.map (fun (p: DNASlice) -> { p with Id = Some(partIDs.[p.Dna]) }) a.DnaParts })
-            assemblies
-        |> GslResult.ok)
+                        printf "log:      %s\n" p.Description
+                        printf "%s\n" (utils.format60 p.Dna.arr)
+
+            // Check for reused pieces and number them accordingly
+            // Make a list of all parts, determine unique set and assign ids
+            let partIDs =
+                seq {
+                    for a in assemblies do
+                        for p in a.DnaParts do
+                            yield p.Dna
+                }
+                |> Set.ofSeq
+                |> Seq.mapi (fun i dna -> (dna, i))
+                |> Map.ofSeq // TODO - could be faster with checksums
+            // Relabel the pieces with IDs  - tedious, we have to reconstruct the tree
+            List.map (fun a ->
+                { a with
+                      DnaParts = List.map (fun (p: DNASlice) -> { p with Id = Some(partIDs.[p.Dna]) }) a.DnaParts })
+                assemblies
+            |> GslResult.ok)
 
 
-/// Promote long slices to regular rabits to avoid trying to build
-/// impossibly long things with oligos.
-let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
-    l
-    |> List.map (fun s ->
-        if (s.Type = SliceType.Inline
-            && s.Dna.Length > 30
-            && not
-                (s.Pragmas
-                 |> PragmaCollection.contains BuiltIn.inlinePragmaDef)) then
-            { s with
-                  Type = SliceType.Regular
-                  DnaSource =
-                      match s.Pragmas
-                            |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
-                      | Some (x) -> x
-                      | None ->
-                          match p
-                                |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
-                          | None -> "synthetic"
+    /// Promote long slices to regular rabits to avoid trying to build
+    /// impossibly long things with oligos.
+    let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
+        l
+        |> List.map (fun s ->
+            if (s.Type = SliceType.Inline
+                && s.Dna.Length > 30
+                && not
+                    (s.Pragmas
+                     |> PragmaCollection.contains BuiltIn.inlinePragmaDef)) then
+                { s with
+                      Type = SliceType.Regular
+                      DnaSource =
+                          match s.Pragmas
+                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
                           | Some (x) -> x
-                  // add in an amp tag on this guy too, since we are now comitting to
-                  // not placing it inline using primers
-                  Pragmas =
-                      match s.Pragmas
-                            |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
-                      | Some _ -> s.Pragmas // already there
-                      | None ->
-                          s.Pragmas
-                          |> PragmaCollection.add
-                              { Pragma.Definition = BuiltIn.ampPragmaDef
-                                Arguments = [] } }
+                          | None ->
+                              match p
+                                    |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
+                              | None -> "synthetic"
+                              | Some (x) -> x
+                      // add in an amp tag on this guy too, since we are now comitting to
+                      // not placing it inline using primers
+                      Pragmas =
+                          match s.Pragmas
+                                |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
+                          | Some _ -> s.Pragmas // already there
+                          | None ->
+                              s.Pragmas
+                              |> PragmaCollection.add
+                                  { Pragma.Definition = BuiltIn.ampPragmaDef
+                                    Arguments = [] } }
+            else
+                s)
+
+    /// Promote long slices to regular rabits to avoid trying to build
+    /// impossibly long things with oligos.
+    let cleanLongSlices _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
+        GslResult.ok
+            { a with
+                  DnaParts = cleanLongSlicesInPartsList a.Pragmas a.DnaParts }
+
+
+    /// we run into trouble during primer generation if a virtual part (fuse) gets between two parts that
+    /// would otherwise get fused anyway (a dna slice and a linker for example).   Strip out the fuse diective
+    /// in this case, otherwise primer doesn't get built against the real target
+    let preProcessFuse _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
+        let rec proc (l: DNASlice list) res =
+            match l with
+            | [] -> List.rev res
+            | hd :: middle :: tl when hd.Type = SliceType.Fusion
+                                      && middle.Type = SliceType.Inline -> proc tl (middle :: res)
+            | hd :: tl -> proc tl (hd :: res)
+
+        GslResult.ok
+            { a with
+                  DnaParts = (proc a.DnaParts []) }
+
+    /// Once GSL is expanded as far as possible,
+    /// go into more target-specific activities like assigning parts, reusing parts, etc.
+    let transformAssemblies (configurationState: ConfigurationState)
+                            (assemblies: DnaAssembly list)
+                            : GslResult<DnaAssembly list, AssemblyTransformationMessage<DnaAssembly>> =
+
+        let atContext: ATContext =
+            { Options = configurationState.Options
+              GlobalAssets = configurationState.GlobalAssets }
+
+        let builtinAssemblyTransforms = [ cleanLongSlices; preProcessFuse ]
+
+        let assemblyTransformers =
+            builtinAssemblyTransforms
+            @ (Behavior.getAllProviders Behavior.getAssemblyTransformers configurationState.Plugins)
+
+        // do all the assembly transformation steps
+        // the transformations are done in the order in which plugins were passed in, and in order
+        // inside each plugin if it provides multiple transformers.
+        // TODO: should force transformers to provide a description, then provide command line args for
+        // listing all available transformations and showing which transformations will run given the
+        // provided args.
+        /// use all assembly transformers to transform an assembly
+        let transformAssembly a =
+            assemblyTransformers
+            |> List.fold (fun r transformer -> r >>= (transformer atContext)) (GslResult.ok a)
+
+        /// Attempt to transform all of the assemblies
+        assemblies
+        |> List.map transformAssembly
+        |> GslResult.collectA
+
+    let doPrimerDesign opts assemblyOuts =
+        if opts.NoPrimers then
+            None, assemblyOuts
         else
-            s)
+            let p, t =
+                PrimerCreation.designPrimers opts assemblyOuts
 
-/// Promote long slices to regular rabits to avoid trying to build
-/// impossibly long things with oligos.
-let cleanLongSlices _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
-    GslResult.ok
-        { a with
-              DnaParts = cleanLongSlicesInPartsList a.Pragmas a.DnaParts }
-
-
-/// we run into trouble during primer generation if a virtual part (fuse) gets between two parts that
-/// would otherwise get fused anyway (a dna slice and a linker for example).   Strip out the fuse diective
-/// in this case, otherwise primer doesn't get built against the real target
-let preProcessFuse _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
-    let rec proc (l: DNASlice list) res =
-        match l with
-        | [] -> List.rev res
-        | hd :: middle :: tl when hd.Type = SliceType.Fusion
-                                  && middle.Type = SliceType.Inline -> proc tl (middle :: res)
-        | hd :: tl -> proc tl (hd :: res)
-
-    GslResult.ok
-        { a with
-              DnaParts = (proc a.DnaParts []) }
-
-/// Once GSL is expanded as far as possible,
-/// go into more target-specific activities like assigning parts, reusing parts, etc.
-let transformAssemblies (configurationState: ConfigurationState)
-                        (assemblies: DnaAssembly list)
-                        : GslResult<DnaAssembly list, AssemblyTransformationMessage<DnaAssembly>> =
-
-    let atContext: ATContext =
-        { Options = configurationState.Options
-          GlobalAssets = configurationState.GlobalAssets }
-
-    let builtinAssemblyTransforms = [ cleanLongSlices; preProcessFuse ]
-
-    let assemblyTransformers =
-        builtinAssemblyTransforms
-        @ (Behavior.getAllProviders Behavior.getAssemblyTransformers configurationState.Plugins)
-
-    // do all the assembly transformation steps
-    // the transformations are done in the order in which plugins were passed in, and in order
-    // inside each plugin if it provides multiple transformers.
-    // TODO: should force transformers to provide a description, then provide command line args for
-    // listing all available transformations and showing which transformations will run given the
-    // provided args.
-    /// use all assembly transformers to transform an assembly
-    let transformAssembly a =
-        assemblyTransformers
-        |> List.fold (fun r transformer -> r >>= (transformer atContext)) (GslResult.ok a)
-
-    /// Attempt to transform all of the assemblies
-    assemblies
-    |> List.map transformAssembly
-    |> GslResult.collectA
-
-let doPrimerDesign opts assemblyOuts =
-    if opts.NoPrimers then
-        None, assemblyOuts
-    else
-        let p, t =
-            PrimerCreation.designPrimers opts assemblyOuts
-
-        Some(p), t
+            Some(p), t
 
 
 
-let doOutputGeneration (s: ConfigurationState) primers assemblies =
-    let outputData =
-        { GlobalAssets = s.GlobalAssets
-          Options = s.Options
-          Assemblies = assemblies
-          Primers = primers }
+    let doOutputGeneration (s: ConfigurationState) primers assemblies =
+        let outputData =
+            { GlobalAssets = s.GlobalAssets
+              Options = s.Options
+              Assemblies = assemblies
+              Primers = primers }
 
-    if outputData.Options.Verbose then
-        printfn "ok"
+        if outputData.Options.Verbose then
+            printfn "ok"
 
-    // Use any output providers provided by plugins
-    // They have already been configured to run or not during command line arg parsing.
-    for op in Behavior.getAllProviders Behavior.getOutputProviders s.Plugins do
-        op.ProduceOutput(outputData)
+        // Use any output providers provided by plugins
+        // They have already been configured to run or not during command line arg parsing.
+        for op in Behavior.getAllProviders Behavior.getOutputProviders s.Plugins do
+            op.ProduceOutput(outputData)

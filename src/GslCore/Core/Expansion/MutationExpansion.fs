@@ -2,7 +2,6 @@ module GslCore.Core.Expansion.MutationExpansion
 
 open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Constants
 open GslCore.GslResult
@@ -30,47 +29,47 @@ let modIsMutation: Modifier -> Mutation option =
 let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSourceCode =
     /// Rewrite an individual part p in an assembly a.
     /// Assembly is passed in for context if needed
-    let rewritePPP (a: Assembly) (p: PartPlusPragma) =
-        let aName =
-            match a.Name with
-            | Some (n) -> n
-            | None -> a.Parts.Head.Part.ToString()
+    let rewritePPP (assembly: Assembly) (partPlusPragma: PartPlusPragma) =
+        let assemblyName =
+            match assembly.Name with
+            | Some name -> name
+            | None -> assembly.Parts.Head.Part.ToString()
         // TODO: we should have already expanded names, so this shouldn't be necessary
         // Refactor Assembly to have an unconditional name.
-        match p.Part with
+        match partPlusPragma.Part with
         | Part.HeterologyBlock // don't expect this but just in case
         | Part.InlineDna _
         | Part.InlineProtein _
         | Part.MarkerPart
-        | Part.SourceCode _ -> p
+        | Part.SourceCode _ -> partPlusPragma
         | Part.PartId part ->
             // Does it contain a mutation modification
             match part.Modifiers |> List.choose modIsMutation with
-            | [] -> p
+            | [] -> partPlusPragma
             | [ mutMod ] ->
                 let rg' =
-                    getReferenceGenome a parameters.References p.Pragma
+                    getReferenceGenome assembly parameters.References partPlusPragma.Pragma
 
                 let asAACheck =
-                    match a.Pragmas
+                    match assembly.Pragmas
                           |> PragmaCollection.tryFind BuiltIn.warnoffPragmaDef with
                     | Some pragma -> pragma |> Pragma.hasVal "asaacheck" |> not
                     | None -> true
 
                 if parameters.Verbose then
-                    printfn "***** %A" a.Pragmas
+                    printfn "***** %A" assembly.Pragmas
 
                 // Leave pragmas intact
-                { p with
+                { partPlusPragma with
                       Part = Part.SourceCode(AlleleSwaps.expandSimpleMut asAACheck rg' part mutMod) }
             | tooManyMuts -> failwithf "Internal error, found more than one mutation mod: %A" tooManyMuts
 
-        | Part.GenePart (gp) ->
+        | Part.GenePart gp ->
             // Does it contain a mutation modification?
             // Make sure we have only one if so.
             // TODO: this restriction may not be necessary
             match gp.Part.Modifiers |> List.choose modIsMutation with
-            | [] -> p
+            | [] -> partPlusPragma
             | [ mutMod ] ->
                 if (not (gp.Part.Gene.[0] = 'G' || gp.Part.Gene.[0] = 'g')) then
                     failwithf
@@ -79,7 +78,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
                         gp.Part.Gene
 
                 let rg' =
-                    getReferenceGenome a parameters.References p.Pragma
+                    getReferenceGenome assembly parameters.References partPlusPragma.Pragma
 
                 // TODO: unclear if this was the right behavior, as the rg is selected from both
                 // assembly and part pragmas yet the actual ref genome selected here was only using
@@ -91,7 +90,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
                     parameters.CodonTableCache.GetCodonLookupTable(rg')
 
                 let endPref =
-                    match p.Pragma
+                    match partPlusPragma.Pragma
                           |> PragmaCollection.tryGetValue BuiltIn.swapEndPragmaDef with
                     | Some ("5") -> NTERM
                     | Some ("3") -> CTERM
@@ -111,7 +110,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
                     failwithf "Undefined gene '%s' %O\n" (gp.Part.Gene.[1..]) (gp.Part.Where)
 
                 let asAACheck =
-                    match a.Pragmas
+                    match assembly.Pragmas
                           |> PragmaCollection.tryFind BuiltIn.warnoffPragmaDef with
                     | Some (p) -> not (p |> Pragma.hasVal "asaacheck")
                     | None -> true
@@ -119,7 +118,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
                 // Check if there is a style pragma on the part itself.  User can designate
                 // short or long allele swap styles at the part level
                 let longStyle =
-                    match p.Pragma
+                    match partPlusPragma.Pragma
                           |> PragmaCollection.tryGetValue BuiltIn.stylePragmaDef with
                     | None -> true // default is long style
                     | Some ("long") -> true // long style
@@ -130,19 +129,19 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
                     AlleleSwaps.expandAS
                         parameters.AlleleSwapProviders
                         asAACheck
-                        aName
+                        assemblyName
                         parameters.Verbose
                         rg'
                         codonUsage
                         gp.Part.Gene
                         mutMod
                         endPref
-                        a.Capabilities
-                        (p.Pragma
-                         |> PragmaCollection.mergeInCollection a.Pragmas)  // combine the part and assembly pragmas to pass to the swap
+                        assembly.Capabilities
+                        (partPlusPragma.Pragma
+                         |> PragmaCollection.mergeInCollection assembly.Pragmas)  // combine the part and assembly pragmas to pass to the swap
                         longStyle
 
-                { p with
+                { partPlusPragma with
                       Part = Part.SourceCode(swapImpl) }
             | tooManyMuts -> failwithf "Internal error, found more than one mutation mod: %A" tooManyMuts
 
@@ -165,14 +164,14 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
 /// Expand all mutations in an AST.
 let expandMutations (parameters: Phase2Parameters)
                     (tree: AstTreeHead)
-                    : GslResult<AstTreeHead, BootstrapError<BootstrapError<Phase1Message>>> =
+                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>>> =
 
     let assemblyExpansion = expandMut parameters
 
     let bootstrapOperation =
         let phase1Params =
             parameters |> Phase1Parameters.fromPhase2
-        //MutationError
+
         Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
     let expansionOnlyOnNodesWithMutations =

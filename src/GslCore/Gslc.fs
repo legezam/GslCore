@@ -69,12 +69,13 @@ let fullExceptionMessage (e: Exception) =
         if (e :? TargetException && e.InnerException <> null) then
             printException (e.InnerException) count
         else
-            if (count = 1)
-            then bprintf sb "%s%s" e.Message nl
-            else bprintf sb "%d: %s%s" (count - 1) e.Message nl
+            if (count = 1) then
+                bprintf sb "%s%s" e.Message nl
+            else
+                bprintf sb "%d: %s%s" (count - 1) e.Message nl
 
-            if (e.InnerException <> null)
-            then printException e.InnerException (count + 1)
+            if (e.InnerException <> null) then
+                printException e.InnerException (count + 1)
 
     printException e 1
     sb.ToString()
@@ -89,7 +90,10 @@ let basicExceptionHandler verbose f =
             if s.StartsWith("ERROR") then s else sprintf "ERROR: %s" s
 
         let msg =
-            if verbose then Utils.prettyPrintException e else prependERROR (fullExceptionMessage e)
+            if verbose then
+                Utils.prettyPrintException e
+            else
+                prependERROR (fullExceptionMessage e)
 
         Exit(1, Some(msg))
 
@@ -127,9 +131,10 @@ let checkInputFileList (s: ConfigurationState) =
     match s.Files with
     | [] -> Exit(1, Some "no input files specified")
     | [ inputFile ] ->
-        if not (File.Exists inputFile)
-        then Exit(1, Some(sprintf "can't find file '%s'\n" inputFile))
-        else Continue(s)
+        if not (File.Exists inputFile) then
+            Exit(1, Some(sprintf "can't find file '%s'\n" inputFile))
+        else
+            Continue(s)
     | n -> Exit(1, Some(sprintf "ERROR: GSLC only supports one input file at a time. Got %A" n))
 
 
@@ -158,7 +163,7 @@ let configureGslc unconfiguredPlugins argv =
         Exit(1, Some(msg))
     // temporary entry point for primer test
     | "--test" :: _ ->
-        testPrimer () |> ignore
+        testPrimer ()
         Exit(1, None)
     // Configure GSLc and plugins from command line arguments
     | args ->
@@ -183,8 +188,8 @@ let configureGslc unconfiguredPlugins argv =
 
 
             // fulfill this request only after we've processed all the plugins and determined full list of pragmas
-            if s.Options.DoHelpPragmas
-            then PragmaBuilder.printPragmaUsage s.GlobalAssets.PragmaBuilder
+            if s.Options.DoHelpPragmas then
+                PragmaBuilder.printPragmaUsage s.GlobalAssets.PragmaBuilder
 
             Continue(s)
         with e -> Exit(1, Some(sprintf "An error occurred during configuration:\n%s" e.Message))
@@ -199,7 +204,9 @@ let runCompiler (configurationState: ConfigurationState)
 
     // Run GSLC on the input file.
     // No exception handler necessary here as processGSL never raises an exception.
-    let compileResult = processGSL configurationState input
+    let compileResult =
+        GslcProcess.processGSL configurationState input
+        |> GslResult.mapError GslProcessError.toAstMessage
 
     Continue(compileResult, input, configurationState)
 
@@ -232,10 +239,10 @@ let handleCompileResult (result: AstResult<Assembly list * AstTreeHead>,
         Exit(1, Some(messages |> String.concat "\n\n"))
 
 let doDnaMaterialization (assemblies: Assembly seq, input: GslSourceCode, configurationState: ConfigurationState) =
-    Continue(materializeDna configurationState assemblies, input, configurationState)
+    Continue(GslcProcess.materializeDna configurationState assemblies, input, configurationState)
 
 let doAssemblyTransform (assemblies: DnaAssembly list, input: GslSourceCode, configurationState: ConfigurationState) =
-    Continue(transformAssemblies configurationState assemblies, input, configurationState)
+    Continue(GslcProcess.transformAssemblies configurationState assemblies, input, configurationState)
 
 let handleTransformResult (phase: string)
                           (transformResult: GslResult<DnaAssembly list, AssemblyTransformationMessage<_>>,
@@ -261,9 +268,9 @@ let doOutput (assemblies: DnaAssembly list, _input: GslSourceCode, configuration
              : FlowControl<unit> =
     let doOutput () =
         let primers, modifiedAssemblies =
-            doPrimerDesign configurationState.Options assemblies
+            GslcProcess.doPrimerDesign configurationState.Options assemblies
 
-        doOutputGeneration configurationState primers modifiedAssemblies
+        GslcProcess.doOutputGeneration configurationState primers modifiedAssemblies
         Exit(0, None)
 
     basicExceptionHandler configurationState.Options.Verbose doOutput

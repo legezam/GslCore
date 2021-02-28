@@ -65,7 +65,8 @@ module AssemblyTestBase =
 type Test() =
     let runTest assembly expectedSource =
         let transformed =
-            cleanLongSlices () assembly |> GslResult.valueOr (fun _ -> failwith "illegal")
+            GslcProcess.cleanLongSlices () assembly
+            |> GslResult.valueOr (fun _ -> failwith "illegal")
 
         let source =
             transformed.DnaParts
@@ -76,7 +77,8 @@ type Test() =
 
     [<Test>]
     member x.TestLongSliceUsesDnaSrc() =
-        let sliceNoSource = AssemblyTestBase.testSlice PragmaCollection.empty
+        let sliceNoSource =
+            AssemblyTestBase.testSlice PragmaCollection.empty
 
         let assemblyNoSource =
             AssemblyTestBase.testAssembly sliceNoSource PragmaCollection.empty
@@ -86,9 +88,9 @@ type Test() =
         let refGenomePragmas =
             PragmaCollection.empty
             |> PragmaCollection.add
-                   { Pragma.Definition = BuiltIn.refGenomePragmaDef
-                     Arguments = [ "foogenome" ] }
-            
+                { Pragma.Definition = BuiltIn.refGenomePragmaDef
+                  Arguments = [ "foogenome" ] }
+
 
         let assemblyHasRefGenome =
             AssemblyTestBase.testAssembly sliceNoSource refGenomePragmas
@@ -98,8 +100,8 @@ type Test() =
         let sliceWithSource =
             PragmaCollection.empty
             |> PragmaCollection.add
-                   { Pragma.Definition = BuiltIn.dnaSrcPragmaDef
-                     Arguments = [ "foosource" ] }
+                { Pragma.Definition = BuiltIn.dnaSrcPragmaDef
+                  Arguments = [ "foosource" ] }
             |> AssemblyTestBase.testSlice
 
         let assemblyHasSource =

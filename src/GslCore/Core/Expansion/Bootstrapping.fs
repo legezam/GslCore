@@ -1,10 +1,10 @@
 namespace GslCore.Core.Expansion.Bootstrapping
 
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Phase1Message
 open GslCore.Constants
 open GslCore.Ast.Types
 open GslCore.Ast
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Ast.Process
 open GslCore.Legacy.Types
@@ -12,35 +12,58 @@ open GslCore.Legacy
 open GslCore.GslResult
 open GslCore.Ast.Process.AssemblyStuffing
 
+[<RequireQualifiedAccess>]
 type BootstrapError<'ExternalError> =
-    // ==================
-    // bootstrapping literal source into an AST node
-    // ==================
-//    let bootstrapError expectedType note tree =
-//        let extraText =
-//            match note with
-//            | Some n -> sprintf " %s" n
-//            | None -> ""
-//
-//        let msg =
-//            sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
-//
-//        AstResult.errString (BootstrapError(Some(tree))) msg tree
-    | FailedToUnpack of expectedType: string * maybeNote: string option * node: AstNode
-    | LexError of LexParseError
-    //        let contextMsg =
-//            sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" source.String
-//            (AstMessage.createErrorWithStackTrace
-//                (InternalError(ParserError))
-//                 contextMsg
-//                 (AstNode.String
-//                     ({ Node.Value = source.String
-//                        Positions = originalPosition })))
-    | LexSupplementError of node: AstNode
-    | ExternalOperationError of 'ExternalError
-    | AssemblyStuffingFailure of AssemblyStuffingError
-    | LegacyAssemblyCreationFailure of LegacyAssemblyCreationError
-    | ExpansionError of exn
+    | Unpack of expectedType: string * maybeNote: string option * node: AstNode
+    | LexParse of LexParseError
+    | LexParseSupplement of node: Node<string>
+    | ExternalOperation of 'ExternalError
+
+module BootstrapError =
+    let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapError<'a> -> AstMessage =
+        function
+        | BootstrapError.LexParse innerError -> LexParseError.toAstMessage innerError
+        | BootstrapError.LexParseSupplement node ->
+            let contextMsg =
+                sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" node.Value
+
+            AstMessage.createErrorWithStackTrace (InternalError(ParserError)) contextMsg (AstNode.String node)
+        | BootstrapError.ExternalOperation externalError -> formatExternalError externalError
+        | BootstrapError.Unpack (expectedType, maybeNote, node) ->
+            let extraText =
+                match maybeNote with
+                | Some n -> sprintf " %s" n
+                | None -> ""
+
+            let msg =
+                sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
+
+            AstResult.errStringMsg (BootstrapError(Some(node))) msg node
+
+[<RequireQualifiedAccess>]
+type BootstrapExpandAssemblyError<'a> =
+    | AssemblyCreation of LegacyAssemblyCreationError
+    | Bootstrapping of 'a
+
+
+module BootstrapExpandAssemblyError =
+    let toAstMessage (formatBootstrapError: 'a -> AstMessage): BootstrapExpandAssemblyError<'a> -> AstMessage =
+        function
+        | BootstrapExpandAssemblyError.AssemblyCreation innerError ->
+            innerError
+            |> LegacyAssemblyCreationError.toAstMessage
+        | BootstrapExpandAssemblyError.Bootstrapping innerError -> innerError |> formatBootstrapError
+
+[<RequireQualifiedAccess>]
+type BootstrapExecutionError<'a> =
+    | AssemblyStuffing of AssemblyStuffingError
+    | ExternalOperation of 'a
+
+module BootstrapExecutionError =
+    let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapExecutionError<'a> -> AstMessage =
+        function
+        | BootstrapExecutionError.AssemblyStuffing innerError -> innerError |> AssemblyStuffingMessage.toAstMessage
+        | BootstrapExecutionError.ExternalOperation innerError -> innerError |> formatExternalError
 
 module Bootstrapping =
 
@@ -105,19 +128,18 @@ module Bootstrapping =
         let asBlock tree =
             match tree with
             | AstTreeHead (AstNode.Block blockWrapper) -> GslResult.ok (AstNode.Splice(Array.ofList blockWrapper.Value))
-            | AstTreeHead node -> GslResult.err (FailedToUnpack("Block", None, node))
+            | AstTreeHead node -> GslResult.err (BootstrapError.Unpack("Block", None, node))
 
         LexAndParse.lexAndParse false source
-        |> GslResult.mapError LexError
+        |> GslResult.mapError BootstrapError.LexParse
         |> GslResult.addMessageToError
-            (LexSupplementError
-                (AstNode.String
-                    ({ Node.Value = source.String
-                       Positions = originalPosition })))
+            (BootstrapError.LexParseSupplement
+                { Node.Value = source.String
+                  Positions = originalPosition })
 
         >>= (replaceSourcePositions originalPosition)
         >>= (operation
-             >> GslResult.mapError ExternalOperationError)
+             >> GslResult.mapError BootstrapError.ExternalOperation)
         >>= asBlock
 
 
@@ -177,33 +199,31 @@ module Bootstrapping =
     /// Since the expansion function may raise an exception, we capture that exception
     /// and inject it into the result stream.
     let bootstrapExpandLegacyAssembly (expansionFunction: Assembly -> GslSourceCode)
-                                      (bootstrapOperation: SourcePosition list -> GslSourceCode -> GslResult<AstNode, BootstrapError<'b>>)
+                                      (bootstrapOperation: SourcePosition list -> GslSourceCode -> GslResult<AstNode, 'a>)
                                       (assemblyConversionContext: AssemblyConversionContext)
                                       (node: AstNode)
-                                      : NodeTransformResult<BootstrapError<'b>> =
-        /// Perform the expansion operation, capturing any exception as an error.
-        let expandCaptureException (assembly: Assembly): GslResult<GslSourceCode, BootstrapError<'b>> =
-            try
-                expansionFunction assembly |> GslResult.ok
-            with e -> ExpansionError e |> GslResult.err
+                                      : NodeTransformResult<BootstrapExpandAssemblyError<'a>> =
 
         match node with
         | AssemblyPart apUnpack ->
+            let (part, _) = apUnpack
+
             LegacyConversion.convertAssembly assemblyConversionContext apUnpack
-            |> GslResult.mapError LegacyAssemblyCreationFailure
-            >>= expandCaptureException
-            >>= (bootstrapOperation ((fst apUnpack).Positions))
+            |> GslResult.mapError BootstrapExpandAssemblyError.AssemblyCreation
+            |> GslResult.map expansionFunction // TODO force expansion functions to provide their error types
+            >>= (bootstrapOperation (part.Positions)
+                 >> GslResult.mapError BootstrapExpandAssemblyError.Bootstrapping)
         | _ -> GslResult.ok node
 
     /// Execute a complete bootstrapped expansion on an AST.
-    /// Runs foldmap on the provided expansion function, followed by
+    /// Runs foldMap on the provided expansion function, followed by
     /// an operation that heals all of the scars in the AST left by the expansion.
     /// This is necessary because some bootstrapped expansion phases convert a single
     /// node into a miniature block, which we want to expand into the outer context.
     let executeBootstrap (bootstrappedExpansionFunction: AssemblyConversionContext -> AstNode -> NodeTransformResult<'a>)
                          (mode: FoldmapMode)
                          (tree: AstTreeHead)
-                         : GslResult<AstTreeHead, BootstrapError<'a>> =
+                         : GslResult<AstTreeHead, BootstrapExecutionError<'a>> =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = mode
@@ -214,7 +234,7 @@ module Bootstrapping =
             AssemblyConversionContext.empty
             foldMapParameters
             tree
-        |> GslResult.mapError ExternalOperationError
+        |> GslResult.mapError BootstrapExecutionError.ExternalOperation
         >>= healSplices
         >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
-             >> GslResult.mapError AssemblyStuffingFailure) // Bootstrapped assemblies need their pragma environment reinjected
+             >> GslResult.mapError BootstrapExecutionError.AssemblyStuffing) // Bootstrapped assemblies need their pragma environment reinjected

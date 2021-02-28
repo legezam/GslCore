@@ -18,12 +18,19 @@ open GslCore.Core.PluginTypes
 open GslCore.Ast.Process.AssemblyStuffing
 
 type Level2ExpansionError =
-    //                    AstResult.exceptionToError L2ExpansionError node e
-//                    |> GslResult.err
+
     | ExpansionException of exn * node: AstNode
     | L2LineCreationError of LegacyL2LineCreationError
     | BoostrapError of BootstrapError<Phase1Message>
     | AssemblyStuffingFailure of AssemblyStuffingError
+
+module Level2ExpansionError =
+    let toAstMessage: Level2ExpansionError -> AstMessage =
+        function
+        | ExpansionException (ex, node) -> AstResult.exceptionToError L2ExpansionError node ex
+        | L2LineCreationError innerError -> LegacyL2LineCreationError.toAstMessage innerError
+        | AssemblyStuffingFailure innerError -> AssemblyStuffingMessage.toAstMessage innerError
+        | BoostrapError innerError -> BootstrapError.toAstMessage Phase1Message.toAstMessage innerError
 
 // ==========================
 // expanding L2 GSL

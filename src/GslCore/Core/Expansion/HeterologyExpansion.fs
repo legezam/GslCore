@@ -5,7 +5,6 @@ open FsToolkit.ErrorHandling
 open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
 open GslCore.Constants
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Core.Expansion.Bootstrapping
 open GslCore.GslResult
@@ -426,7 +425,7 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
 /// Expand all heterology blocks in an AST.
 let expandHetBlocks (parameters: Phase2Parameters)
                     (tree: AstTreeHead)
-                    : GslResult<AstTreeHead, BootstrapError<BootstrapError<Phase1Message>>> =
+                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>>> =
 
     let assemblyExpansion = expandHB parameters
 
@@ -434,7 +433,6 @@ let expandHetBlocks (parameters: Phase2Parameters)
         let phase1Params =
             parameters |> Phase1Parameters.fromPhase2
 
-        //HetBlockError
         Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
     let expansionOnlyOnNodesWithHetBlocks =

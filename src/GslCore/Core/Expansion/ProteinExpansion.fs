@@ -3,7 +3,6 @@ module GslCore.Core.Expansion.ProteinExpansion
 open GslCore.Ast.Phase1Message
 open GslCore.Ast.Types
 open GslCore.Constants
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.Core.Expansion.Bootstrapping
 open GslCore.GslResult
@@ -78,7 +77,7 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
 /// Expand all inline protein sequences in an AST.
 let expandInlineProteins (parameters: Phase2Parameters)
                          (tree: AstTreeHead)
-                         : GslResult<AstTreeHead, BootstrapError<BootstrapError<Phase1Message>>> =
+                         : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>>> =
 
     let mode =
         if parameters.Parallel then Parallel else Serial
@@ -89,7 +88,6 @@ let expandInlineProteins (parameters: Phase2Parameters)
         let phase1Params =
             parameters |> Phase1Parameters.fromPhase2
 
-        //ProteinError
         Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
     let expansionOnlyOnNodesWithProteins =

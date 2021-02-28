@@ -83,7 +83,8 @@ type TestBootstrapping() =
 
         printfn "Source in: %s" source
 
-    [<Test>]
+    [<Test;
+      Ignore("Should be ignored as of now as phase2 is supposed to stay away from exception based error handling (WIP)")>]
     member x.TestCaptureExpansionFailure() =
         let source = "gFOO" // doesn't matter what's in here for this test
 
