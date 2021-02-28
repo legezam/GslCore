@@ -223,7 +223,7 @@ gBAZ"""
         // outer assemblies shouldn't reprint their pragma context as that isn't idiomatic GSL
         sourceCompareTest
             (stuffPragmasPipeline
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
             source
             source
 

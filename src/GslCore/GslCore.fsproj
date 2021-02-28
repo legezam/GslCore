@@ -71,7 +71,7 @@
     <Compile Include="Ast\Process\PragmaWarning.fs" />
     <Compile Include="Ast\Process\RoughageExpansion.fs" />
     <Compile Include="Ast\LexAndParse.fs" />
-    <Compile Include="Ast\Phase1Message.fs" />
+    <Compile Include="Ast\Phase1Error.fs" />
     <Compile Include="Ast\Phase1.fs" />
     <Compile Include="Legacy\Types.fs" />
     <Compile Include="Legacy\SliceContext.fs" />

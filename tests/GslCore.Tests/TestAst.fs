@@ -24,7 +24,7 @@ type TestLinting() =
         |> GslSourceCode
         |> compile
             (Phase1.linting
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
         |> GslResult.assertWarning
         |> function
         | Choice2Of2 msg ->
@@ -38,7 +38,7 @@ type TestLinting() =
         |> GslSourceCode
         |> compile
             (Phase1.linting
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
         |> GslResult.assertErrors
         |> fun errors ->
             match errors.[0] with
@@ -95,7 +95,7 @@ type TestValidation() =
                 ParserError
                 (Some errorText)
                 (Phase1.checkParseError
-                 >> GslResult.mapError Phase1Message.toAstMessage)
+                 >> GslResult.mapError Phase1Error.toAstMessage)
                 tree
 
         Assert.AreEqual(err, failure.Node)
@@ -114,7 +114,7 @@ type TestValidation() =
             (PartValidation.validateModifiers
              >> GslResult.mapError
                  (PartModifierValidationError
-                  >> Phase1Message.toAstMessage))
+                  >> Phase1Error.toAstMessage))
             tree
         |> ignore
 
@@ -132,7 +132,7 @@ type TestValidation() =
             (PartValidation.validateModifiers
              >> GslResult.mapError
                  (PartModifierValidationError
-                  >> Phase1Message.toAstMessage))
+                  >> Phase1Error.toAstMessage))
             tree
         |> ignore
 
@@ -143,32 +143,32 @@ type TestTransformation() =
     let variableTest =
         sourceCompareTest
             (Phase1.variableResolution
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
 
     let mathReductionTest =
         sourceCompareTest
             (Phase1.variableResolution
              >=> Phase1.expressionReduction
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
 
     let functionInliningTest =
         sourceCompareTest
             (Phase1.variableResolution
              >=> Phase1.functionInlining
              >=> Phase1.stripFunctions
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
 
     let flattenAssemblyTest =
         sourceCompareTest
             (Phase1.pragmaBuilding AssemblyTestSupport.defaultPhase1Parameters
              >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
 
     let flattenPartTest =
         sourceCompareTest
             (Phase1.variableResolution
              >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
 
     let variableResolutionPipeline =
         Phase1.recursiveCallCheck
@@ -176,7 +176,7 @@ type TestTransformation() =
         >=> Phase1.functionInlining
         >=> Phase1.stripFunctions
         >=> Phase1.variableResolutionStrict
-        >> GslResult.mapError Phase1Message.toAstMessage
+        >> GslResult.mapError Phase1Error.toAstMessage
 
     let fullVariableResolutionTest =
         sourceCompareTest variableResolutionPipeline
@@ -216,7 +216,7 @@ end
         GslSourceCode(source)
         |> compile
             (Phase1.variableResolution
-             >> GslResult.mapError Phase1Message.toAstMessage)
+             >> GslResult.mapError Phase1Error.toAstMessage)
         |> GslResult.assertErrors
         |> fun errors ->
             match errors.[0] with

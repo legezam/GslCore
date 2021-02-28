@@ -62,7 +62,7 @@ type BootstrapExecutionError<'a> =
 module BootstrapExecutionError =
     let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapExecutionError<'a> -> AstMessage =
         function
-        | BootstrapExecutionError.AssemblyStuffing innerError -> innerError |> AssemblyStuffingMessage.toAstMessage
+        | BootstrapExecutionError.AssemblyStuffing innerError -> innerError |> AssemblyStuffingError.toAstMessage
         | BootstrapExecutionError.ExternalOperation innerError -> innerError |> formatExternalError
 
 module Bootstrapping =
@@ -147,7 +147,7 @@ module Bootstrapping =
     /// top-level block.
     let bootstrapPhase1 (parameters: Phase1Parameters)
                         (originalPosition: SourcePosition list)
-                        : GslSourceCode -> GslResult<AstNode, BootstrapError<Phase1Message>> =
+                        : GslSourceCode -> GslResult<AstNode, BootstrapError<Phase1Error>> =
         bootstrap originalPosition (Phase1.phase1 parameters)
 
 

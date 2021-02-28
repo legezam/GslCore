@@ -425,7 +425,7 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
 /// Expand all heterology blocks in an AST.
 let expandHetBlocks (parameters: Phase2Parameters)
                     (tree: AstTreeHead)
-                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>>> =
+                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>>> =
 
     let assemblyExpansion = expandHB parameters
 

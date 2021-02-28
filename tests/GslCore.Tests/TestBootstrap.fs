@@ -39,7 +39,7 @@ type TestBootstrapping() =
         GslSourceCode
         >> (compile
                 (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
-                 >> GslResult.mapError Phase1Message.toAstMessage))
+                 >> GslResult.mapError Phase1Error.toAstMessage))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =

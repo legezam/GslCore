@@ -29,7 +29,7 @@ module private RelativePositionTranslationMessage =
 
         | PositionIsNotInteger node -> AstResult.internalTypeMismatchMsg (Some "relative position building") "Int" node
 
-module private VariableResolutionMessage =
+module private VariableResolutionError =
     open GslCore.Ast.Process.VariableResolution
 
     let toAstMessage: VariableResolutionError -> AstMessage =
@@ -50,12 +50,12 @@ module private VariableResolutionMessage =
         | UnresolvedVariable (variableName, node) ->
             AstResult.errStringMsg AstMessageType.UnresolvedVariable variableName node
 
-module private FunctionInliningMessage =
+module private FunctionInliningError =
     open GslCore.Ast.Process.Inlining
 
     let toAstMessage: FunctionInliningError -> AstMessage =
         function
-        | VariableResolution err -> err |> VariableResolutionMessage.toAstMessage
+        | VariableResolution err -> err |> VariableResolutionError.toAstMessage
         | ParameterNumberMismatchError (functionCallNode, functionCall, neededArgs, passedArgs) ->
             AstResult.errStringMsg
                 TypeError
@@ -87,7 +87,7 @@ module private ExpressionReductionMessage =
         | TypeIsNotAllowedInNegationExpression node ->
             AstResult.errStringMsg TypeError (sprintf "'%s' is not allowed to appear in a negation." node.TypeName) node
 
-module private PragmaBuildingMessage =
+module private PragmaBuildingError =
     open GslCore.Ast.Process.PragmaBuilding
 
     let toAstMessage: PragmaBuildingError -> AstMessage =
@@ -123,7 +123,7 @@ module private PragmaBuildingMessage =
         | PragmaDeprecated (depreciation, node) ->
             AstMessage.create None DeprecationWarning depreciation.WarningMessage node
 
-module private AssemblyFlatteningMessage =
+module private AssemblyFlatteningError =
     open GslCore.Ast.Types
     open GslCore.Ast.Process.AssemblyFlattening
 
@@ -136,7 +136,7 @@ module private AssemblyFlatteningMessage =
                 (AstNode.Part part)
         | PragmaMergeError msg -> msg
 
-module internal AssemblyStuffingMessage =
+module internal AssemblyStuffingError =
     open GslCore.Ast.Process.AssemblyStuffing
     open GslCore.Pragma
 
@@ -154,7 +154,7 @@ module internal AssemblyStuffingMessage =
 
             AstResult.errStringMsg PragmaError msg node
 
-module private PragmaWarningMessage =
+module private PragmaWarningError =
     open GslCore.Ast.Process.PragmaWarning
 
     let toAstMessage: PragmaWarningError -> AstMessage =
@@ -164,7 +164,7 @@ module private PragmaWarningMessage =
 
             AstMessage.createWarning msg node
 
-module private RoughageExpansionMessage =
+module private RoughageExpansionError =
     open GslCore.Ast.Algorithms
     open GslCore.Ast.Process.RoughageExpansion
 
@@ -177,14 +177,14 @@ module private RoughageExpansionMessage =
                 (AstNode.decompile node)
                 node
 
-module private ParseErrorMessage =
+module private ParseErrorType =
     open GslCore.Ast.Process.Validation
 
     let toAstMessage: ParseErrorType -> AstMessage =
         function
         | ParseError (message, node) -> AstMessage.createErrorWithStackTrace ParserError message node
 
-module private PartBaseValidationMessage =
+module private PartBaseValidationError =
     open GslCore.Ast.Process.Validation
 
     let toAstMessage: PartBaseValidationError -> AstMessage =
@@ -192,7 +192,7 @@ module private PartBaseValidationMessage =
         | NotValidBasePart node ->
             AstResult.errStringFMsg (InternalError(PartError)) "%s is not a valid base part." node.TypeName node
 
-module private PartModifierValidationMessage =
+module private PartModifierValidationError =
     open GslCore.Ast.Process.Validation
 
     let toAstMessage: PartModifierValidationError -> AstMessage =
@@ -200,7 +200,7 @@ module private PartModifierValidationMessage =
         | NotAValidModifierTarget node ->
             AstResult.errStringFMsg PartError "Can only apply part mods to Gene or PartId, not %s" node.TypeName node
 
-module private RecursiveCallCheckMessage =
+module private RecursiveCallCheckError =
     open GslCore.Ast.Process.Validation
 
     let toAstMessage: RecursiveCallCheckError -> AstMessage =
@@ -212,7 +212,7 @@ module private RecursiveCallCheckMessage =
                 functionCall.Name
                 node
 
-module private LinterHintMessage =
+module private LinterHint =
     open GslCore.Ast.Linting
 
     let toAstMessage: LinterHint -> AstMessage =
@@ -229,39 +229,51 @@ module private LinterHintMessage =
                 "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
                 node
 
-type Phase1Message =
-    | RelativePositionTranslationMessage of
-        GslCore.Ast.Process.RelativePositionTranslation.RelativePositionTranslationMessage
-    | VariableResolutionError of GslCore.Ast.Process.VariableResolution.VariableResolutionError
-    | FunctionInliningError of GslCore.Ast.Process.Inlining.FunctionInliningError
-    | ExpressionReductionError of GslCore.Ast.Process.ExpressionReduction.ExpressionReductionError
-    | PragmaBuildingError of GslCore.Ast.Process.PragmaBuilding.PragmaBuildingError
-    | AssemblyFlatteningError of GslCore.Ast.Process.AssemblyFlattening.AssemblyFlatteningError
-    | AssemblyStuffingError of GslCore.Ast.Process.AssemblyStuffing.AssemblyStuffingError
-    | PragmaWarningError of GslCore.Ast.Process.PragmaWarning.PragmaWarningError
-    | RoughageExpansionError of GslCore.Ast.Process.RoughageExpansion.RoughageExpansionError
-    | ParseErrorType of GslCore.Ast.Process.Validation.ParseErrorType
-    | PartBaseValidationError of GslCore.Ast.Process.Validation.PartBaseValidationError
-    | PartModifierValidationError of GslCore.Ast.Process.Validation.PartModifierValidationError
-    | RecursiveCallCheckError of GslCore.Ast.Process.Validation.RecursiveCallCheckError
-    | LinterHint of GslCore.Ast.Linting.LinterHint
+open GslCore.Ast.Process.RelativePositionTranslation
+open GslCore.Ast.Process.VariableResolution
+open GslCore.Ast.Process.Inlining
+open GslCore.Ast.Process.ExpressionReduction
+open GslCore.Ast.Process.PragmaBuilding
+open GslCore.Ast.Process.AssemblyFlattening
+open GslCore.Ast.Process.AssemblyStuffing
+open GslCore.Ast.Process.PragmaWarning
+open GslCore.Ast.Process.RoughageExpansion
+open GslCore.Ast.Process.Validation
+open GslCore.Ast.Linting
+
+[<RequireQualifiedAccess>]
+type Phase1Error =
+    | RelativePositionTranslationMessage of RelativePositionTranslationMessage
+    | VariableResolutionError of VariableResolutionError
+    | FunctionInliningError of FunctionInliningError
+    | ExpressionReductionError of ExpressionReductionError
+    | PragmaBuildingError of PragmaBuildingError
+    | AssemblyFlatteningError of AssemblyFlatteningError
+    | AssemblyStuffingError of AssemblyStuffingError
+    | PragmaWarningError of PragmaWarningError
+    | RoughageExpansionError of RoughageExpansionError
+    | ParseErrorType of ParseErrorType
+    | PartBaseValidationError of PartBaseValidationError
+    | PartModifierValidationError of PartModifierValidationError
+    | RecursiveCallCheckError of RecursiveCallCheckError
+    | LinterHint of LinterHint
     | NoError of unit
 
-module Phase1Message =
-    let toAstMessage: Phase1Message -> AstMessage =
+module Phase1Error =
+    let toAstMessage: Phase1Error -> AstMessage =
         function
-        | RelativePositionTranslationMessage msg -> RelativePositionTranslationMessage.toAstMessage msg
-        | VariableResolutionError msg -> VariableResolutionMessage.toAstMessage msg
-        | ExpressionReductionError msg -> ExpressionReductionMessage.toAstMessage msg
-        | PragmaBuildingError msg -> PragmaBuildingMessage.toAstMessage msg
-        | AssemblyFlatteningError msg -> AssemblyFlatteningMessage.toAstMessage msg
-        | AssemblyStuffingError msg -> AssemblyStuffingMessage.toAstMessage msg
-        | PragmaWarningError msg -> PragmaWarningMessage.toAstMessage msg
-        | RoughageExpansionError msg -> RoughageExpansionMessage.toAstMessage msg
-        | ParseErrorType msg -> ParseErrorMessage.toAstMessage msg
-        | PartBaseValidationError msg -> PartBaseValidationMessage.toAstMessage msg
-        | PartModifierValidationError msg -> PartModifierValidationMessage.toAstMessage msg
-        | RecursiveCallCheckError msg -> RecursiveCallCheckMessage.toAstMessage msg
-        | LinterHint msg -> LinterHintMessage.toAstMessage msg
-        | FunctionInliningError msg -> FunctionInliningMessage.toAstMessage msg
-        | NoError _ -> failwith "IMPOSSIBLE"
+        | Phase1Error.RelativePositionTranslationMessage msg -> RelativePositionTranslationMessage.toAstMessage msg
+        | Phase1Error.VariableResolutionError msg -> VariableResolutionError.toAstMessage msg
+        | Phase1Error.ExpressionReductionError msg -> ExpressionReductionMessage.toAstMessage msg
+        | Phase1Error.PragmaBuildingError msg -> PragmaBuildingError.toAstMessage msg
+        | Phase1Error.AssemblyFlatteningError msg -> AssemblyFlatteningError.toAstMessage msg
+        | Phase1Error.AssemblyStuffingError msg -> AssemblyStuffingError.toAstMessage msg
+        | Phase1Error.PragmaWarningError msg -> PragmaWarningError.toAstMessage msg
+        | Phase1Error.RoughageExpansionError msg -> RoughageExpansionError.toAstMessage msg
+        | Phase1Error.ParseErrorType msg -> ParseErrorType.toAstMessage msg
+        | Phase1Error.PartBaseValidationError msg -> PartBaseValidationError.toAstMessage msg
+        | Phase1Error.PartModifierValidationError msg -> PartModifierValidationError.toAstMessage msg
+        | Phase1Error.RecursiveCallCheckError msg -> RecursiveCallCheckError.toAstMessage msg
+        | Phase1Error.LinterHint msg -> LinterHint.toAstMessage msg
+        | Phase1Error.FunctionInliningError msg -> FunctionInliningError.toAstMessage msg
+        | Phase1Error.NoError _ -> failwith "IMPOSSIBLE"

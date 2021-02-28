@@ -164,7 +164,7 @@ let private expandMut (parameters: Phase2Parameters) (assembly: Assembly): GslSo
 /// Expand all mutations in an AST.
 let expandMutations (parameters: Phase2Parameters)
                     (tree: AstTreeHead)
-                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>>> =
+                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>>> =
 
     let assemblyExpansion = expandMut parameters
 

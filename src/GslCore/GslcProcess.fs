@@ -25,7 +25,7 @@ open GslCore.GslResult
 [<RequireQualifiedAccess>]
 type GslProcessError =
     | LexParseError of LexParseError
-    | Phase1Error of Phase1Message
+    | Phase1Error of Phase1Error
     | AssemblyGatheringError of LegacyAssemblyCreationError
     | L2ExpansionError of Level2ExpansionError
     | PostPhase1Error of NameCheckError
@@ -35,7 +35,7 @@ module GslProcessError =
     let toAstMessage: GslProcessError -> AstMessage =
         function
         | GslProcessError.LexParseError inner -> inner |> LexParseError.toAstMessage
-        | GslProcessError.Phase1Error inner -> inner |> Phase1Message.toAstMessage
+        | GslProcessError.Phase1Error inner -> inner |> Phase1Error.toAstMessage
         | GslProcessError.AssemblyGatheringError inner -> inner |> LegacyAssemblyCreationError.toAstMessage
         | GslProcessError.L2ExpansionError inner -> inner |> Level2ExpansionError.toAstMessage
         | GslProcessError.PostPhase1Error inner -> inner |> NameCheckError.toAstMessage

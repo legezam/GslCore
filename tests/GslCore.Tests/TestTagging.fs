@@ -193,7 +193,7 @@ uADH2; dADH2
 
             Assert.IsTrue(pragmas1.Head |> Pragma.hasVal "flavor:vanilla")
             Assert.IsTrue(pragmas2.Head |> Pragma.hasVal "temp:hot")
-        | x -> failwithf "bad config %A in TwoSerialTags" x
+        | x -> Assert.Fail(sprintf "bad config %A in TwoSerialTags" x)
 
     [<Test>]
     member __.TwoTandemTags() =
@@ -207,9 +207,9 @@ uADH2; dADH2
             match pragmas1 with
             | [ p ] -> Assert.AreEqual([ "flavor:vanilla"; "temp:hot" ], p.Arguments)
 
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
-        | x -> failwithf "bad assembly pattern %A in TwoParallelTags" x
+        | x -> Assert.Fail(sprintf "bad assembly pattern %A in TwoParallelTags" x)
 
     [<Test>]
     member __.TwoParallelTags() =
@@ -224,9 +224,9 @@ uADH2; dADH2
             match pragmas1 with
             | [ p ] -> Assert.AreEqual([ "flavor:vanilla"; "temp:hot" ], p.Arguments)
 
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
-        | x -> failwithf "bad assembly pattern %A in TwoParallelTags" x
+        | x -> Assert.Fail(sprintf "bad assembly pattern %A in TwoParallelTags" x)
 
     [<Test>]
     member __.MixedTags() =
@@ -244,14 +244,14 @@ uADH2; dADH2
                        "condiment:ketchup" ],
                      p.Arguments)
 
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
             match pragmas2 with
             | [ p ] -> Assert.AreEqual([ "id:1234" ], p.Arguments)
 
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
-        | x -> failwithf "bad assembly pattern %A in TwoParallelTags" x
+        | x -> Assert.Fail(sprintf "bad assembly pattern %A in TwoParallelTags" x)
 
     [<Test>]
     member __.OneGlobalTag() =
@@ -279,9 +279,9 @@ uADH2; dADH2
                 Assert.AreEqual([ "flavor:vanilla" ], p1.Arguments)
                 Assert.AreEqual([ "temp:hot" ], p2.Arguments)
 
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
-        | x -> failwithf "bad assembly pattern %A in OneGlobalOneScopedTag" x
+        | x -> Assert.Fail(sprintf "bad assembly pattern %A in OneGlobalOneScopedTag" x)
 
     [<Test>]
     member __.OneGlobalTwoScopedTag() =
@@ -296,15 +296,15 @@ uADH2; dADH2
             | [ p1; p2 ] ->
                 Assert.AreEqual([ "flavor:vanilla" ], p1.Arguments)
                 Assert.AreEqual([ "temp:hot" ], p2.Arguments)
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
             match pragmas2 with
             | [ p1; p2 ] ->
                 Assert.AreEqual([ "flavor:vanilla" ], p1.Arguments)
                 Assert.AreEqual([ "condiment:ketchup" ], p2.Arguments)
-            | x -> failwithf "unexpected number of pragmas %d:\n%A" x.Length x
+            | x -> Assert.Fail(sprintf "unexpected number of pragmas %d:\n%A" x.Length x)
 
-        | x -> failwithf "bad assembly pattern %A in OneGlobalTwoScopedTag" x
+        | x -> Assert.Fail(sprintf "bad assembly pattern %A in OneGlobalTwoScopedTag" x)
 
     static member dummyContext =
         { ATContext.GlobalAssets =

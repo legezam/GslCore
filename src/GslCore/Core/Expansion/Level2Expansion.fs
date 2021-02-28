@@ -21,7 +21,7 @@ type Level2ExpansionError =
 
     | ExpansionException of exn * node: AstNode
     | L2LineCreationError of LegacyL2LineCreationError
-    | BoostrapError of BootstrapError<Phase1Message>
+    | BoostrapError of BootstrapError<Phase1Error>
     | AssemblyStuffingFailure of AssemblyStuffingError
 
 module Level2ExpansionError =
@@ -29,8 +29,8 @@ module Level2ExpansionError =
         function
         | ExpansionException (ex, node) -> AstResult.exceptionToError L2ExpansionError node ex
         | L2LineCreationError innerError -> LegacyL2LineCreationError.toAstMessage innerError
-        | AssemblyStuffingFailure innerError -> AssemblyStuffingMessage.toAstMessage innerError
-        | BoostrapError innerError -> BootstrapError.toAstMessage Phase1Message.toAstMessage innerError
+        | AssemblyStuffingFailure innerError -> AssemblyStuffingError.toAstMessage innerError
+        | BoostrapError innerError -> BootstrapError.toAstMessage Phase1Error.toAstMessage innerError
 
 // ==========================
 // expanding L2 GSL

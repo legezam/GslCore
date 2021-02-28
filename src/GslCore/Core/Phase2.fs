@@ -10,13 +10,13 @@ open GslCore.GslResult
 
 type Phase2Error =
     | MutationExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>> *
+        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>> *
         pass: int
     | ProteinExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>> *
+        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>> *
         pass: int
     | HeterologyExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>> *
+        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>> *
         pass: int
     | LimitExceeded of limit: int * node: AstNode
 
@@ -36,7 +36,7 @@ module Phase2Error =
         | ProteinExpansionError (err, _pass) ->
             err
             |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Message.toAstMessage))
+                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage))
 
 
         | LimitExceeded (limit, node) ->

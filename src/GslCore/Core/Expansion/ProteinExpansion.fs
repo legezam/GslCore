@@ -77,7 +77,7 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
 /// Expand all inline protein sequences in an AST.
 let expandInlineProteins (parameters: Phase2Parameters)
                          (tree: AstTreeHead)
-                         : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Message>>>> =
+                         : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>>> =
 
     let mode =
         if parameters.Parallel then Parallel else Serial
