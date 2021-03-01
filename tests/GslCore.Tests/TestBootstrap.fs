@@ -20,7 +20,7 @@ type TestBootstrapping() =
     let reprintAssembly a =
         let s = LegacyPrettyPrint.assembly a
         printfn "Reprinted assembly: %s" s.String
-        s
+        GslResult.ok s
 
     /// Expansion rule that always raises an exception.
     let expansionFail _ =

@@ -26,9 +26,12 @@ open GslCore.Core.ResolveExtPart
 // expanding heterology blocks
 // ==========================
 
+type HeterologyExpansionError = | HeterologyExpansionBooom
 
 /// Expand heterology blocks.
-let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
+let private expandHB (parameters: Phase2Parameters)
+                     (assemblyIn: Assembly)
+                     : GslResult<GslSourceCode, HeterologyExpansionError> =
 
     let modIsNotSlice m =
         match m with
@@ -420,12 +423,12 @@ let private expandHB (parameters: Phase2Parameters) (assemblyIn: Assembly) =
     if remainingHetblocks then
         failwithf "Attempt to expand heterology block in design %s left remaining hetblock" newSource.String
     else
-        newSource
+        newSource |> GslResult.ok
 
 /// Expand all heterology blocks in an AST.
 let expandHetBlocks (parameters: Phase2Parameters)
                     (tree: AstTreeHead)
-                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>>> =
+                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>>> =
 
     let assemblyExpansion = expandHB parameters
 

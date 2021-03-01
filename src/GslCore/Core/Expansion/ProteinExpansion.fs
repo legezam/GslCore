@@ -18,48 +18,57 @@ open GslCore.Core.PluginTypes
 // expanding inline protein sequences
 // ====================
 
-/// Take inline protein sequences and expand them out to DNA sequences
-let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
+type ProteinExpansionError = IllegalAminoAcid of char
 
-    let rewritePPP (codonProvider: ICodonProvider) (refGenome: string) (p: PartPlusPragma) =
-        match p.Part with
-        | Part.InlineProtein (s) ->
-            // Check amino acid sequence is legal
-            for c in s do
-                if not (Default.ValidAminoAcids.Contains(c)) then
-                    failwithf "Protein sequence contains illegal amino acid '%c'" c
+let rewritePPP (parameters: Phase2Parameters)
+               (codonProvider: ICodonProvider)
+               (refGenome: string)
+               (p: PartPlusPragma)
+               : GslResult<PartPlusPragma, ProteinExpansionError> =
+    match p.Part with
+    | Part.InlineProtein s ->
+        // Check amino acid sequence is legal
+        for c in s do
+            if not (Default.ValidAminoAcids.Contains(c)) then
+                failwithf "Protein sequence contains illegal amino acid '%c'" c
 
-            let refGenome' =
+        let refGenome' =
+            match p.Pragma
+                  |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
+            | Some rg -> rg
+            | None -> refGenome
+
+        match parameters.References
+              |> GenomeDefinitions.get
+              |> Map.tryFind refGenome' with
+        | None -> failwithf "Unable to load refgenome %s to determine environment" refGenome'
+        | Some (genomeDef) ->
+            // Check to see if there is a local #seed parameter and extract it else
+            // fall back on the version in the codon opt parameters globally
+            let seedOverride =
                 match p.Pragma
-                      |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
-                | Some (rg) -> rg
-                | None -> refGenome
+                      |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef with
+                | None -> None
+                | Some (seed) ->
+                    match System.Int32.TryParse seed with
+                    | true, s -> Some(s)
+                    | _ -> failwithf "#seed argument '%s' is not a valid integer" seed
 
-            match parameters.References
-                  |> GenomeDefinitions.get
-                  |> Map.tryFind refGenome' with
-            | None -> failwithf "Unable to load refgenome %s to determine environment" refGenome'
-            | Some (genomeDef) ->
-                // Check to see if there is a local #seed parameter and extract it else
-                // fall back on the version in the codon opt parameters globally
-                let seedOverride =
-                    match p.Pragma
-                          |> PragmaCollection.tryGetValue BuiltIn.seedPragmaDef with
-                    | None -> None
-                    | Some (seed) ->
-                        match System.Int32.TryParse seed with
-                        | true, s -> Some(s)
-                        | _ -> failwithf "#seed argument '%s' is not a valid integer" seed
+            let codonOptTask =
+                { CodonOptTask.IsVerbose = parameters.Verbose
+                  SeedOverride = seedOverride
+                  RefGenome = genomeDef
+                  AminoAcidSequence = s }
 
-                let codonOptTask =
-                    { CodonOptTask.IsVerbose = parameters.Verbose
-                      SeedOverride = seedOverride
-                      RefGenome = genomeDef
-                      AminoAcidSequence = s }
+            let result = codonProvider.DoCodonOpt codonOptTask
+            GslResult.ok { p with Part = Part.InlineDna(result) }
+    | _ -> GslResult.ok p
 
-                let result = codonProvider.DoCodonOpt codonOptTask
-                { p with Part = Part.InlineDna(result) }
-        | _ -> p
+
+/// Take inline protein sequences and expand them out to DNA sequences
+let private expandProtein (parameters: Phase2Parameters)
+                          (assembly: Assembly)
+                          : GslResult<GslSourceCode, ProteinExpansionError> =
 
     let refGenome =
         GenomeDefinitions.chooseReferenceGenome assembly.Pragmas
@@ -67,17 +76,19 @@ let private expandProtein (parameters: Phase2Parameters) (assembly: Assembly) =
     let configuredCodonProvider =
         parameters.CodonTableCache.Setup(assembly.Pragmas)
 
-    let expandedParts =
-        assembly.Parts
-        |> List.map (rewritePPP configuredCodonProvider refGenome)
+    assembly.Parts
+    |> List.map (rewritePPP parameters configuredCodonProvider refGenome)
+    |> GslResult.collectA
+    |> GslResult.map (fun expandedParts ->
+        { assembly with Parts = expandedParts }
+        |> LegacyPrettyPrint.assembly)
 
-    { assembly with Parts = expandedParts }
-    |> LegacyPrettyPrint.assembly
+
 
 /// Expand all inline protein sequences in an AST.
 let expandInlineProteins (parameters: Phase2Parameters)
                          (tree: AstTreeHead)
-                         : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>>> =
+                         : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>>> =
 
     let mode =
         if parameters.Parallel then Parallel else Serial

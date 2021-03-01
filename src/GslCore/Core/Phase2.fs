@@ -7,17 +7,20 @@ open GslCore.Ast.Types
 open GslCore.Core.Expansion
 open GslCore.Core.Expansion.AstMessage
 open GslCore.Core.Expansion.Bootstrapping
+open GslCore.Core.Expansion.HeterologyExpansion
+open GslCore.Core.Expansion.MutationExpansion
+open GslCore.Core.Expansion.ProteinExpansion
 open GslCore.GslResult
 
 type Phase2Error =
     | MutationExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>> *
+        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, MutationExpansionError>> *
         pass: int
     | ProteinExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>> *
+        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>> *
         pass: int
     | HeterologyExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>>> *
+        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>> *
         pass: int
     | LimitExceeded of limit: int * node: AstNode
 
@@ -32,12 +35,21 @@ module Phase2Error =
         // the step being executed. This is now the opposite, we know from the error that where it came from so this would
         // be a good place to make the AstMessage be specific to the step being executed. Now skipping that as it doesn't
         // fit correctly here (i removed the exception catching completely as it is not supposed to be the way of handling errors here more on that soon.
-        | MutationExpansionError (err, _pass)
-        | HeterologyExpansionError (err, _pass)
+        | MutationExpansionError (err, _pass) ->
+            err
+            |> BootstrapExecutionError.toAstMessage
+                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage) (fun _ ->
+                     failwith "NOOOO"))
+        | HeterologyExpansionError (err, _pass) ->
+            err
+            |> BootstrapExecutionError.toAstMessage
+                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage) (fun _ ->
+                     failwith "NOOOO"))
         | ProteinExpansionError (err, _pass) ->
             err
             |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage))
+                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage) (fun _ ->
+                     failwith "NOOOO"))
 
 
         | LimitExceeded (limit, node) ->

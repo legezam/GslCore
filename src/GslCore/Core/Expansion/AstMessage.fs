@@ -31,11 +31,14 @@ module BootstrapError =
             AstResult.errStringMsg (BootstrapError(Some(node))) msg node
 
 module BootstrapExpandAssemblyError =
-    let toAstMessage (formatBootstrapError: 'a -> AstMessage): BootstrapExpandAssemblyError<'a> -> AstMessage =
+    let toAstMessage (formatBootstrapError: 'a -> AstMessage)
+                     (formatExpansionError: 'b -> AstMessage)
+                     : BootstrapExpandAssemblyError<'a, 'b> -> AstMessage =
         function
         | BootstrapExpandAssemblyError.AssemblyCreation innerError ->
             innerError
             |> LegacyAssemblyCreationError.toAstMessage
+        | BootstrapExpandAssemblyError.Expansion innerError -> innerError |> formatExpansionError
         | BootstrapExpandAssemblyError.Bootstrapping innerError -> innerError |> formatBootstrapError
 
 

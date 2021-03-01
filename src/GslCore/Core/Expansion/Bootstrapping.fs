@@ -19,9 +19,10 @@ type BootstrapError<'ExternalError> =
     | ExternalOperation of 'ExternalError
 
 [<RequireQualifiedAccess>]
-type BootstrapExpandAssemblyError<'a> =
+type BootstrapExpandAssemblyError<'a, 'b> =
     | AssemblyCreation of LegacyAssemblyCreationError
     | Bootstrapping of 'a
+    | Expansion of 'b
 
 [<RequireQualifiedAccess>]
 type BootstrapExecutionError<'a> =
@@ -161,11 +162,11 @@ module Bootstrapping =
     /// Convert an assembly into a Splice using an expansion function and a bootstrap operation.
     /// Since the expansion function may raise an exception, we capture that exception
     /// and inject it into the result stream.
-    let bootstrapExpandLegacyAssembly (expansionFunction: Assembly -> GslSourceCode)
-                                      (bootstrapOperation: SourcePosition list -> GslSourceCode -> GslResult<AstNode, 'a>)
+    let bootstrapExpandLegacyAssembly (expansionFunction: Assembly -> GslResult<GslSourceCode, 'ExpansionError>)
+                                      (bootstrapOperation: SourcePosition list -> GslSourceCode -> GslResult<AstNode, 'BootstrapError>)
                                       (assemblyConversionContext: AssemblyConversionContext)
                                       (node: AstNode)
-                                      : NodeTransformResult<BootstrapExpandAssemblyError<'a>> =
+                                      : NodeTransformResult<BootstrapExpandAssemblyError<'BootstrapError, 'ExpansionError>> =
 
         match node with
         | AssemblyPart apUnpack ->
@@ -173,7 +174,8 @@ module Bootstrapping =
 
             LegacyConversion.convertAssembly assemblyConversionContext apUnpack
             |> GslResult.mapError BootstrapExpandAssemblyError.AssemblyCreation
-            |> GslResult.map expansionFunction // TODO force expansion functions to provide their error types
+            >>= (expansionFunction
+                 >> GslResult.mapError BootstrapExpandAssemblyError.Expansion)
             >>= (bootstrapOperation (part.Positions)
                  >> GslResult.mapError BootstrapExpandAssemblyError.Bootstrapping)
         | _ -> GslResult.ok node
