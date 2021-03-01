@@ -195,7 +195,7 @@ let configureGslc unconfiguredPlugins argv =
         with e -> Exit(1, Some(sprintf "An error occurred during configuration:\n%s" e.Message))
 
 let runCompiler (configurationState: ConfigurationState)
-                : FlowControl<AstResult<Assembly list * AstTreeHead> * GslSourceCode * ConfigurationState> =
+                : FlowControl<GslResult<Assembly list * AstTreeHead, GslProcessError> * GslSourceCode * ConfigurationState> =
 
     // Start with input from the users supplied file
     let input =
@@ -206,17 +206,20 @@ let runCompiler (configurationState: ConfigurationState)
     // No exception handler necessary here as processGSL never raises an exception.
     let compileResult =
         GslcProcess.processGSL configurationState input
-        |> GslResult.mapError GslProcessError.toAstMessage
 
     Continue(compileResult, input, configurationState)
 
 
-let handleCompileResult (result: AstResult<Assembly list * AstTreeHead>,
+let handleCompileResult (result: GslResult<Assembly list * AstTreeHead, GslProcessError>,
                          input: GslSourceCode,
                          configurationState: ConfigurationState)
                         : FlowControl<Assembly list * GslSourceCode * ConfigurationState> =
+    let resultAstMessage =
+        result
+        |> GslResult.mapError GslProcessError.toAstMessage
+        |> GslResult.GetValue
 
-    match result.Value with
+    match resultAstMessage with
     | Ok success ->
         let (assemblies, tree) = success.Result
         // print any warnings from compilation
