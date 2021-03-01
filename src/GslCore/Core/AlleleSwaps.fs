@@ -9,6 +9,7 @@ open System
 open GslCore.Constants
 open GslCore.DesignParams
 open GslCore.Ast.Types
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Legacy.Types
 open GslCore.Reference
@@ -45,9 +46,10 @@ let makeRevLookup (avoid: Set<Dna>) =
         else
             let aa = DnaOps.codon2aa codon
 
-            if aaMap.ContainsKey(aa)
-            then aaMap.Remove(aa).Add(aa, aaMap.[aa].Add(codon))
-            else aaMap.Add(aa, Set.ofList [ codon ])) Map.empty
+            if aaMap.ContainsKey(aa) then
+                aaMap.Remove(aa).Add(aa, aaMap.[aa].Add(codon))
+            else
+                aaMap.Add(aa, Set.ofList [ codon ])) Map.empty
 
 // Rare yeast codons we'd like to avoid at the 5' end
 // Yeast specific, we'll need to change this potentially
@@ -82,7 +84,11 @@ let diffRight (c1: Dna) (c2: Dna) =
 /// Count GC bases in sequence
 let gcCount (c: Dna) =
     c.arr
-    |> Array.sumBy (fun c -> if c = 'G' || c = 'C' || c = 'g' || c = 'c' then 1 else 0)
+    |> Array.sumBy (fun c ->
+        if c = 'G' || c = 'C' || c = 'g' || c = 'c' then
+            1
+        else
+            0)
 
 /// Pick a codon for an amino acid that is maximally different to a given codon
 /// given a comparison function cmp that gives a positive score for degree of difference
@@ -102,9 +108,10 @@ let selectMutCodonBase cmp (cl: CodonLookup) (minFreq: float) (origCodon: Dna) (
             || (d = bestDiff && (gcCount thisCodon > bestGC))
             || (thisFreq >= minFreq && bestFreq < minFreq)
 
-        if better
-        then (d, gcCount thisCodon, thisFreq, thisCodon)
-        else (bestDiff, bestGC, bestFreq, bestCodon)) (-1, -1, 0.0, Dna(""))
+        if better then
+            (d, gcCount thisCodon, thisFreq, thisCodon)
+        else
+            (bestDiff, bestGC, bestFreq, bestCodon)) (-1, -1, 0.0, Dna(""))
     |> fun (_, _, _, codon) -> codon
 
 /// Find codon that is maximally different given a function to calculate different
@@ -118,8 +125,8 @@ let selectMutCodonRight = selectMutCodonBase diffRight
 let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: LegacyPartId) (m: Mutation): GslSourceCode =
 
     // Get part sequence
-    if not (g.Id.StartsWith("R"))
-    then failwithf "ERROR: part %s should start with 'R'.  Non rabit part mutation not supported." g.Id
+    if not (g.Id.StartsWith("R")) then
+        failwithf "ERROR: part %s should start with 'R'.  Non rabit part mutation not supported." g.Id
 
     let hr = Ryse.getRabit (int (g.Id.[1..]))
 
@@ -130,8 +137,8 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: LegacyPartId) (m
     // Now split by type of mutation and check the original base/amino acid is legit
     match m.Type with
     | NT ->
-        if m.Location <= 0 || m.Location > dna.Length
-        then failwithf "ERROR: mutation position %d is outside range of rabit %s" m.Location g.Id
+        if m.Location <= 0 || m.Location > dna.Length then
+            failwithf "ERROR: mutation position %d is outside range of rabit %s" m.Location g.Id
 
         if dna.[m.Location - 1] <> m.From then
             failwithf
@@ -150,8 +157,8 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: LegacyPartId) (m
         sprintf "@%s[1:%d] {#dnasrc %s}; /%c/ {#inline }; @%s[%d:-1E] {#dnasrc %s} " id lhs id m.To id rhs id
         |> GslSourceCode
     | AA ->
-        if m.Location <= 0 || m.Location > dna.Length / 3
-        then failwithf "ERROR: mutation position %d outside range of rabit %s amino acids" m.Location g.Id
+        if m.Location <= 0 || m.Location > dna.Length / 3 then
+            failwithf "ERROR: mutation position %d outside range of rabit %s amino acids" m.Location g.Id
 
         let currentCodon =
             (dna.[(m.Location - 1) * 3..(m.Location - 1) * 3 + 2])
@@ -182,7 +189,12 @@ let expandSimpleMut (asAACheck: bool) (_: GenomeDefinition) (g: LegacyPartId) (m
 /// and use a heterology block downstream to prevent crossovers that eliminate the mutation
 /// a         b            a         b          b+2                 c
 /// promoterRep ; marker ; promoterRep(mutation)promoter ...ATG..... HB ....
-let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) (m: Mutation) =
+let private classicPromoterNT gene
+                              name
+                              (f: sgd.Feature)
+                              (rg: GenomeDefinition)
+                              (m: Mutation)
+                              : GslResult<GslSourceCode, string> =
     // TODO - this design isn't compatible with the thumper workflow, as it involves a 4 piece rabit
 
     // m.pos is the zero based version of the offset from the 'A' in the start codon
@@ -195,9 +207,10 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
     let b = (m.Location - 1) * 1<ZeroOffset>
 
     let genomicCoord =
-        (if f.fwd
-         then f.l - m.Location
-         else f.r - m.Location (* remember m.pos is negative *) )
+        (if f.fwd then
+            f.l - m.Location
+         else
+             f.r - m.Location (* remember m.pos is negative *) )
         * 1<ZeroOffset>
 
     let existing =
@@ -244,6 +257,7 @@ let private classicPromoterNT gene name (f: sgd.Feature) (rg: GenomeDefinition) 
         (ZeroOffset.toOne (c + 1<ZeroOffset>))
         (ZeroOffset.toOne (c + 1000<ZeroOffset>))
     |> GslSourceCode
+    |> GslResult.ok
 
 let private classicCodingNT _ (* verbose*) g (_: sgd.Feature) (_: GenomeDefinition) (m: Mutation) =
     // Not going to implement this completely just yet - i.e no heterology block.
@@ -259,7 +273,7 @@ let jobScorerClassicAAMut _ = Some 0.0<PluginScore>
 /// Decide which end of the gene the mutation is closer to,
 /// and pick design
 /// Gene is the actual gene name,  name is the #name entry or full gYNG2$C227Y entry
-let classicAAMut (dp: AlleleSwapDesignParams) =
+let classicAAMut (dp: AlleleSwapDesignParams): GslResult<GslSourceCode, string> =
     let minFreq = 0.05
     let x1 = ZeroOffset.toInt dp.MutOff
     let x2 = (ZeroOffset.toInt dp.MutOff) + 2
@@ -323,7 +337,10 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
         let a' = dp.MutOff - 700<ZeroOffset> // Pick 700 so we can still sequence through
 
         let a =
-            if (ZeroOffset.toOne a') = 0<OneOffset> then 1<OneOffset> else ZeroOffset.toOne a'
+            if (ZeroOffset.toOne a') = 0<OneOffset> then
+                1<OneOffset>
+            else
+                ZeroOffset.toOne a'
 
         let c = 200<OneOffset>
 
@@ -341,6 +358,7 @@ let classicAAMut (dp: AlleleSwapDesignParams) =
             (c + 600<OneOffset>)
             dp.Name
     |> GslSourceCode
+    |> GslResult.ok
 
 
 
@@ -361,10 +379,10 @@ let expandAS (providers: AlleleSwapProvider list)
              (capa: Capabilities)
              (pragmas: PragmaCollection)
              (longStyle: bool)
-             =
+             : GslResult<GslSourceCode, string> =
 
-    if verbose
-    then printf "Processing mutation gene:%s %A\n" g m
+    if verbose then
+        printf "Processing mutation gene:%s %A\n" g m
 
     // remove prefix of gene name and retrieve feature description
     let f =
@@ -377,7 +395,7 @@ let expandAS (providers: AlleleSwapProvider list)
         match m.Location with
         | x when x = 0 -> failwithf "ERROR: illegal mutation offset zero for %s:%A\n" g m
         | x when x < 0 -> classicPromoterNT g name f rg m // Point mutation in promoter
-        | x when x > 0 && x < f.r - f.l + 1 -> classicCodingNT verbose g f rg m // Point mutation in coding part of gene
+        | x when x > 0 && x < f.r - f.l + 1 -> classicCodingNT verbose g f rg m |> GslResult.ok // Point mutation in coding part of gene
         | _ -> failwithf "ERROR: unimplemented, 3' terminator mutations for %s:%A" g m
     | AA ->
         // General checks we should always make for a coding amino acid change
@@ -557,14 +575,17 @@ let private generateHBCore (cl: CodonLookup)
         |> DnaOps.revCompIf (not fwd)
         |> DnaOps.translate
 
-    if localVerbose
-    then printf "templat: %O\n" downTrans.[0..min 60 downTrans.Length]
+    if localVerbose then
+        printf "templat: %O\n" downTrans.[0..min 60 downTrans.Length]
 
-    if localVerbose then printf "    alt: %O\n" alt
-    if localVerbose then printf "Current:%O\n" current
+    if localVerbose then
+        printf "    alt: %O\n" alt
 
-    if localVerbose
-    then printf "Alt    :%s\n" (altRetranslated |> utils.arr2seq)
+    if localVerbose then
+        printf "Current:%O\n" current
+
+    if localVerbose then
+        printf "Alt    :%s\n" (altRetranslated |> utils.arr2seq)
 
     // ensure the sequence still reads the same amino acids out
     assert (DnaOps.translate downTrans = altRetranslated)
@@ -618,9 +639,10 @@ let private generateHBCore (cl: CodonLookup)
                     // HB primer designed, what's left for the C region?
 
                     let primer1 =
-                        if o1.oligo.Length % 3 = 0
-                        then Dna(o1.oligo)
-                        else AB.[0..((o1.oligo.Length / 3 + 1) * 3) - 1]
+                        if o1.oligo.Length % 3 = 0 then
+                            Dna(o1.oligo)
+                        else
+                            AB.[0..((o1.oligo.Length / 3 + 1) * 3) - 1]
 
                     let penC =
                         { dp.PrimerParams with
@@ -726,8 +748,8 @@ let private generateHBCore (cl: CodonLookup)
         let mid = maxOligoLen / 2
         let finalScore, finalPrimer = transitionOpt left right mid
 
-        if localVerbose
-        then printf "finalScore=%f finalPrimerLen=%d\n" finalScore finalPrimer
+        if localVerbose then
+            printf "finalScore=%f finalPrimerLen=%d\n" finalScore finalPrimer
         alt.[..finalPrimer - 1]
 
 /// Create a heterology block, removing part of the right hand (down) slice

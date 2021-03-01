@@ -26,7 +26,10 @@ let modIsMutation: Modifier -> Mutation option =
 
 /// Rewrite an individual part p in an assembly a.
 /// Assembly is passed in for context if needed
-let rewritePPP (parameters: Phase2Parameters) (assembly: Assembly) (partPlusPragma: PartPlusPragma) =
+let rewritePPP (parameters: Phase2Parameters)
+               (assembly: Assembly)
+               (partPlusPragma: PartPlusPragma)
+               : GslResult<PartPlusPragma, string> =
     let assemblyName =
         match assembly.Name with
         | Some name -> name
@@ -38,11 +41,11 @@ let rewritePPP (parameters: Phase2Parameters) (assembly: Assembly) (partPlusPrag
     | Part.InlineDna _
     | Part.InlineProtein _
     | Part.MarkerPart
-    | Part.SourceCode _ -> partPlusPragma
+    | Part.SourceCode _ -> partPlusPragma |> GslResult.ok
     | Part.PartId part ->
         // Does it contain a mutation modification
         match part.Modifiers |> List.choose modIsMutation with
-        | [] -> partPlusPragma
+        | [] -> partPlusPragma |> GslResult.ok
         | [ mutMod ] ->
             let rg' =
                 getReferenceGenome assembly parameters.References partPlusPragma.Pragma
@@ -59,6 +62,7 @@ let rewritePPP (parameters: Phase2Parameters) (assembly: Assembly) (partPlusPrag
             // Leave pragmas intact
             { partPlusPragma with
                   Part = Part.SourceCode(AlleleSwaps.expandSimpleMut asAACheck rg' part mutMod) }
+            |> GslResult.ok
         | tooManyMuts -> failwithf "Internal error, found more than one mutation mod: %A" tooManyMuts
 
     | Part.GenePart gp ->
@@ -66,7 +70,7 @@ let rewritePPP (parameters: Phase2Parameters) (assembly: Assembly) (partPlusPrag
         // Make sure we have only one if so.
         // TODO: this restriction may not be necessary
         match gp.Part.Modifiers |> List.choose modIsMutation with
-        | [] -> partPlusPragma
+        | [] -> partPlusPragma |> GslResult.ok
         | [ mutMod ] ->
             if (not (gp.Part.Gene.[0] = 'G' || gp.Part.Gene.[0] = 'g')) then
                 failwithf
@@ -122,27 +126,32 @@ let rewritePPP (parameters: Phase2Parameters) (assembly: Assembly) (partPlusPrag
                 | Some ("short") -> false // short style
                 | Some (x) -> failwithf "Undefined allele swap style '%s', options are long or short" x
 
-            let swapImpl =
-                AlleleSwaps.expandAS
-                    parameters.AlleleSwapProviders
-                    asAACheck
-                    assemblyName
-                    parameters.Verbose
-                    rg'
-                    codonUsage
-                    gp.Part.Gene
-                    mutMod
-                    endPref
-                    assembly.Capabilities
-                    (partPlusPragma.Pragma
-                     |> PragmaCollection.mergeInCollection assembly.Pragmas)  // combine the part and assembly pragmas to pass to the swap
-                    longStyle
 
-            { partPlusPragma with
-                  Part = Part.SourceCode(swapImpl) }
+            AlleleSwaps.expandAS
+                parameters.AlleleSwapProviders
+                asAACheck
+                assemblyName
+                parameters.Verbose
+                rg'
+                codonUsage
+                gp.Part.Gene
+                mutMod
+                endPref
+                assembly.Capabilities
+                (partPlusPragma.Pragma
+                 |> PragmaCollection.mergeInCollection assembly.Pragmas)  // combine the part and assembly pragmas to pass to the swap
+                longStyle
+            |> GslResult.map (fun swapImpl ->
+
+                { partPlusPragma with
+                      Part = Part.SourceCode(swapImpl) })
+
+
         | tooManyMuts -> failwithf "Internal error, found more than one mutation mod: %A" tooManyMuts
 
-type MutationExpansionError = MultiPartAssemblyError of parts: PartPlusPragma list
+type MutationExpansionError =
+    | MultiPartAssemblyError of parts: PartPlusPragma list
+    | ExternalProviderError of message: string
 
 /// Remove mutation definitions and replace with a lower level representation.
 /// Note that mutations can expand to more than a single line of GSL, so bootstrap these as a block.
@@ -156,8 +165,10 @@ let private expandMut (parameters: Phase2Parameters)
         match assembly.Parts with
         | [] -> GslResult.ok []
         | [ singlePart ] -> // we can handle this case
-            [ rewritePPP parameters assembly singlePart ]
-            |> GslResult.ok
+            rewritePPP parameters assembly singlePart
+            |> GslResult.mapError ExternalProviderError
+            |> GslResult.map (List.singleton)
+
         | x ->
             //            failwithf
 //                "Tried to perform a mutation expansion on an assembly with more than one part: %A.  This is currently not supported."

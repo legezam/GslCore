@@ -90,9 +90,7 @@ type AlleleSwapDesignParams =
 
 type AlleleSwapProvider =
     { JobScorer: AlleleSwapJobAccept
-      Provider: AlleleSwapDesignParams -> GslSourceCode }
-
-
+      Provider: AlleleSwapDesignParams -> GslResult<GslSourceCode, string> }
 
 // ==================================================
 // Marker handler for converting ### into sequence
@@ -313,8 +311,9 @@ type Plugin =
     member x.Configure(args, opts) =
         let configuredBehaviors =
             args
-            |> List.fold (fun behaviors arg ->  // each iteration of fold uses one arg and updates all behaviors
-                behaviors |> List.map (PluginBehaviorWrapper.configureBehavior arg)) x.Behaviors
+            |> List.fold (fun behaviors arg -> // each iteration of fold uses one arg and updates all behaviors
+                behaviors
+                |> List.map (PluginBehaviorWrapper.configureBehavior arg)) x.Behaviors
             |> List.map (PluginBehaviorWrapper.configureBehaviorFromOpts opts)
 
         { x with
