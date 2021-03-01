@@ -87,16 +87,15 @@ type AstResult<'a> = GslResult<'a, AstMessage>
 
 
 module AstResult =
-    let errStringMsg msgType msg node: AstMessage =
+    let errStringMsg (msgType: AstMessageType) (msg: string) (node: AstNode): AstMessage =
         AstMessage.createErrorWithStackTrace msgType msg node
-    
-    let errString msgType msg node: AstResult<'a> =
-        errStringMsg msgType msg node
-        |> GslResult.err
+
+    let errString (msgType: AstMessageType) (msg: string) (node: AstNode): AstResult<'a> =
+        errStringMsg msgType msg node |> GslResult.err
 
     let errStringFMsg msgType msgfmt fmtVal node: AstMessage =
-        AstMessage.createErrorWithStackTrace msgType (sprintf msgfmt fmtVal) node    
-    
+        AstMessage.createErrorWithStackTrace msgType (sprintf msgfmt fmtVal) node
+
     let errStringF msgType msgfmt fmtVal node: AstResult<'a> =
         errStringFMsg msgType msgfmt fmtVal node
         |> GslResult.err
@@ -115,7 +114,7 @@ module AstResult =
     let variableTypeMismatch (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstResult<'a> =
         variableTypeMismatchMsg variableName declaredType expectedType node
         |> GslResult.err
-    
+
 
     ///<summary>
     ///Create an internal error representing a type mismatch.
@@ -135,7 +134,7 @@ module AstResult =
     let internalTypeMismatch (maybeContext: string option) (expectedType: string) (actualNode: AstNode): AstResult<'a> =
         internalTypeMismatchMsg maybeContext expectedType actualNode
         |> GslResult.err
-    
+
     ///Create an internal error if we encounter a pragma that hasn't been built.
     let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): AstResult<'a> =
         let message =
@@ -175,7 +174,9 @@ module AstResult =
                 yield "================================================================="
 
                 yield! p |> SourcePosition.sourceContext sourceCode
-                if showStackTrace then yield this.StackTrace.ToString()
+
+                if showStackTrace then
+                    yield this.StackTrace.ToString()
             }
             |> String.concat "\n"
 

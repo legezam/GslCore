@@ -1,4 +1,4 @@
-module GslCore.Core.Expansion.HeterologyExpansion
+namespace GslCore.Core.Expansion.HeterologyExpansion
 
 open System
 open FsToolkit.ErrorHandling
@@ -26,28 +26,29 @@ open GslCore.Core.ResolveExtPart
 // expanding heterology blocks
 // ==========================
 
-type HeterologyExpansionError = | HeterologyExpansionBooom
+[<RequireQualifiedAccess>]
+type HeterologyExpansionError =
+    | NonGeneNeighbourPart of neighbourGene: string
+    | ExternalPartResolutionFailure of partId: LegacyPartId * externalError: string
+    | HeterologyBlockLeftInDesign of GslSourceCode
+    | InvalidLenPragma of value: string
 
-/// Expand heterology blocks.
-let private expandHB (parameters: Phase2Parameters)
-                     (assemblyIn: Assembly)
-                     : GslResult<GslSourceCode, HeterologyExpansionError> =
-
-    let modIsNotSlice m =
-        match m with
+module HeterologyExpansion =
+    let private modIsNotSlice: Modifier -> bool =
+        function
         | Modifier.Slice _ -> false
         | _ -> true
 
-    let getLenPragma (pr: PragmaCollection) =
+    let private getLenPragma (pr: PragmaCollection): GslResult<int option, HeterologyExpansionError> =
         match pr
               |> PragmaCollection.tryGetValue BuiltIn.lenPragmaDef with
-        | None -> None
-        | Some (v) ->
-            match Int32.TryParse(v) with
-            | true, i -> Some(i)
-            | _ -> failwithf "Expected integer in #len pragma, not '%s'" v
+        | None -> GslResult.ok None
+        | Some v ->
+            match Int32.TryParse v with
+            | true, i -> GslResult.ok (Some(i))
+            | _ -> GslResult.err (HeterologyExpansionError.InvalidLenPragma v)
 
-    let capUsing (a: Dna) (b: Dna) =
+    let private capUsing (a: Dna) (b: Dna): Dna =
         Seq.zip a b
         |> Seq.map (fun (a, b) ->
             if a = b then
@@ -61,10 +62,14 @@ let private expandHB (parameters: Phase2Parameters)
                 | x -> x)
         |> Dna
 
-    let rec scan (a: Assembly) (res: (Part * PragmaCollection * bool) list) (p: (Part * PragmaCollection * bool) list) =
+    let rec private scan (parameters: Phase2Parameters)
+                         (assembly: Assembly)
+                         (res: PartPlusPragma list)
+                         (input: PartPlusPragma list)
+                         : GslResult<PartPlusPragma list, HeterologyExpansionError> =
         // Need to select a codon usage table
         let referenceGenome =
-            GenomeDefinitions.chooseReferenceGenome a.Pragmas
+            GenomeDefinitions.chooseReferenceGenome assembly.Pragmas
 
         let references =
             parameters.References |> GenomeDefinitions.get
@@ -76,369 +81,434 @@ let private expandHB (parameters: Phase2Parameters)
         let codonUsage =
             parameters.CodonTableCache.GetCodonLookupTable(reference)
 
-        match p with
+        match input with
         // Lone heterology block with no inlined sequence adjacent
-        | (Part.GenePart (gpUp), pr1, fwd1) :: (Part.HeterologyBlock, pr2, fwd2) :: (Part.GenePart (gp), pr3, fwd3) :: tl ->
-            let rg' = getReferenceGenome a references pr3
-            let rg'' = getReferenceGenome a references pr1
+        | { Part = Part.GenePart gpUp
+            Pragma = pr1
+            IsForward = fwd1 } :: { Part = Part.HeterologyBlock
+                                    Pragma = pr2
+                                    IsForward = fwd2 } :: { Part = Part.GenePart gp
+                                                            Pragma = pr3
+                                                            IsForward = fwd3 } :: tl ->
+            let rg' =
+                getReferenceGenome assembly references pr3
+
+            let rg'' =
+                getReferenceGenome assembly references pr1
 
             let sliceSeq =
-                realizeSequence verbose a.Pragmas fwd3 rg' gp // Get DNA sequence for this slice
+                realizeSequence verbose assembly.Pragmas fwd3 rg' gp // Get DNA sequence for this slice
 
             let sliceSeqUp =
-                realizeSequence verbose a.Pragmas fwd1 rg'' gpUp // Get DNA sequence for upstream slice
+                realizeSequence verbose assembly.Pragmas fwd1 rg'' gpUp // Get DNA sequence for upstream slice
 
-            let targetAALen = getLenPragma pr2 // Get optional length spec for the HB
+            getLenPragma pr2 // Get optional length spec for the HB
+            >>= fun targetAALen ->
+                    // Generate an alternative prefix for the GENEPART on RHS
+                    let alt =
+                        generateRightHB
+                            codonUsage
+                            Default.MinHBCodonUsage
+                            targetAALen
+                            assembly.DesignParams
+                            sliceSeqUp
+                            (Dna(""))
+                            sliceSeq
+                    // tricky part - need to slightly adjust the slice range of gp,
+                    // but that's embedded down in the mod list
 
-            // Generate an alternative prefix for the GENEPART on RHS
-            let alt =
-                generateRightHB
-                    codonUsage
-                    Default.MinHBCodonUsage
-                    targetAALen
-                    a.DesignParams
-                    sliceSeqUp
-                    (Dna(""))
-                    sliceSeq
-            // tricky part - need to slightly adjust the slice range of gp,
-            // but that's embedded down in the mod list
+                    // Assume they must be using a gene part next to a het block.  Bad?
+                    if (not (gp.Part.Gene.StartsWith("g"))) then
+                        GslResult.err (HeterologyExpansionError.NonGeneNeighbourPart gp.Part.Gene)
+                    else
+                        let s =
+                            translateGenePrefix assembly.Pragmas rg' StandardSlice.Gene // Start with standard slice
 
-            // Assume they must be using a gene part next to a het block.  Bad?
-            if (not (gp.Part.Gene.StartsWith("g"))) then
-                failwithf "Heterology block must be adjacent to g part, %s not allowed" gp.Part.Gene
+                        let startSlice =
+                            ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
 
-            let s =
-                translateGenePrefix a.Pragmas rg' StandardSlice.Gene // Start with standard slice
+                        let newSlice =
+                            { startSlice with
+                                  Left =
+                                      { startSlice.Left with
+                                            Position =
+                                                startSlice.Left.Position
+                                                + (alt.Length * 1<OneOffset>) } }
 
-            let startSlice =
-                ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
+                        assert (alt <> sliceSeq.[0..alt.Length - 1])
+                        // Assemble new mod list by getting rid of existing slice mods and
+                        // putting in new consolidated slice.
+                        let newMods =
+                            Modifier.Slice(newSlice)
+                            :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
 
-            let newSlice =
-                { startSlice with
-                      Left =
-                          { startSlice.Left with
-                                Position =
-                                    startSlice.Left.Position
-                                    + (alt.Length * 1<OneOffset>) } }
+                        let result =
+                            { Part =
+                                  Part.GenePart
+                                      { gp with
+                                            Part = { gp.Part with Modifiers = newMods } }
+                              Pragma = pr3
+                              IsForward = fwd3 }
+                            :: { Part = Part.InlineDna alt
+                                 Pragma =
+                                     pr2
+                                     |> PragmaCollection.add
+                                         { Pragma.Definition = BuiltIn.inlinePragmaDef
+                                           Arguments = [] }
+                                 IsForward = fwd2 }
+                               :: { Part = Part.GenePart gpUp
+                                    Pragma = pr1
+                                    IsForward = fwd1 }
+                                  :: res
+                        // Prepend backwards as we will flip list at end - watch out, pragmas are reversed as well
+                        scan parameters assembly result tl
 
-            assert (alt <> sliceSeq.[0..alt.Length - 1])
-            // Assemble new mod list by getting rid of existing slice mods and
-            // putting in new consolidated slice.
-            let newMods =
-                Modifier.Slice(newSlice)
-                :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
+        | { Part = Part.GenePart gpUp
+            Pragma = pr1
+            IsForward = fwd1 } :: { Part = Part.InlineDna i
+                                    Pragma = pr2
+                                    IsForward = fwd2 } :: { Part = Part.HeterologyBlock
+                                                            Pragma = pr3
+                                                            IsForward = _ } :: { Part = Part.GenePart gp
+                                                                                 Pragma = pr4
+                                                                                 IsForward = fwd4 } :: tl ->
+            let rg' =
+                getReferenceGenome assembly references pr4
 
-            // Prepend backwards as we will flip list at end - watch out, pragmas are reversed as well
-            scan
-                a
-                ((Part.GenePart
-                    ({ gp with
-                           Part = { gp.Part with Modifiers = newMods } }),
-                  pr3,
-                  fwd3)
-                 :: (Part.InlineDna(alt),
-                     (pr2
-                      |> PragmaCollection.add
-                          { Pragma.Definition = BuiltIn.inlinePragmaDef
-                            Arguments = [] }),
-                     fwd2)
-                    :: (Part.GenePart(gpUp), pr1, fwd1) :: res)
-                tl
-
-        | (Part.GenePart (gpUp), pr1, fwd1) :: (Part.InlineDna (i), pr2, fwd2) :: (Part.HeterologyBlock,
-                                                                                   pr3,
-                                                                                   _ (*fwd3*) ) :: (Part.GenePart (gp),
-                                                                                                    pr4,
-                                                                                                    fwd4) :: tl ->
-            let rg' = getReferenceGenome a references pr4
-            let rg'' = getReferenceGenome a references pr1
+            let rg'' =
+                getReferenceGenome assembly references pr1
 
             // Get DNA sequence for this slice
             let sliceSeq =
-                realizeSequence verbose a.Pragmas fwd4 rg' gp
+                realizeSequence verbose assembly.Pragmas fwd4 rg' gp
             // Get DNA sequence for upstream slice
             let sliceSeqUp =
-                realizeSequence verbose a.Pragmas fwd1 rg'' gpUp
+                realizeSequence verbose assembly.Pragmas fwd1 rg'' gpUp
             // Get optional length spec for the HB
-            let targetAALen = getLenPragma pr3
+            getLenPragma pr3
             // Generate an alternative prefix for the GENEPART on RHS
-            let alt =
-                generateRightHB codonUsage Default.MinHBCodonUsage targetAALen a.DesignParams sliceSeqUp i sliceSeq
+            >>= fun targetAALen ->
+                    let alt =
+                        generateRightHB
+                            codonUsage
+                            Default.MinHBCodonUsage
+                            targetAALen
+                            assembly.DesignParams
+                            sliceSeqUp
+                            i
+                            sliceSeq
 
-            assert (alt <> sliceSeq.[0..alt.Length - 1])
+                    assert (alt <> sliceSeq.[0..alt.Length - 1])
 
-            if verbose then
-                printf "// %O -> %O\n" alt sliceSeq.[0..alt.Length - 1]
+                    if verbose then
+                        printf "// %O -> %O\n" alt sliceSeq.[0..alt.Length - 1]
 
-            // tricky part - need to slightly adjust the slice range of gp,
-            // but that's embedded down in the mod list
+                    // tricky part - need to slightly adjust the slice range of gp,
+                    // but that's embedded down in the mod list
 
-            // Assume they must be using a gene part next to a het block.  Bad?
-            if not (gp.Part.Gene.[0] = 'g') then
-                failwithf
-                    "Slices adjacent to het block elements ~ must be gene slices - %s has '%c' gene part"
-                    gp.Part.Gene
-                    gp.Part.Gene.[0]
+                    // Assume they must be using a gene part next to a het block.  Bad?
+                    if not (gp.Part.Gene.[0] = 'g') then
+                        GslResult.err (HeterologyExpansionError.NonGeneNeighbourPart gp.Part.Gene)
+                    else
 
-            let s =
-                translateGenePrefix a.Pragmas rg'' StandardSlice.Gene // Start with standard slice
+                        let s =
+                            translateGenePrefix assembly.Pragmas rg'' StandardSlice.Gene // Start with standard slice
 
-            let startSlice =
-                ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
+                        let startSlice =
+                            ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
 
-            let newSlice =
-                { startSlice with
-                      Left =
-                          { startSlice.Left with
-                                Position =
-                                    startSlice.Left.Position
-                                    + (alt.Length * 1<OneOffset>) } }
+                        let newSlice =
+                            { startSlice with
+                                  Left =
+                                      { startSlice.Left with
+                                            Position =
+                                                startSlice.Left.Position
+                                                + (alt.Length * 1<OneOffset>) } }
 
-            let newInline = DnaOps.append i alt
+                        let newInline = DnaOps.append i alt
 
-            // Assemble new mod list by getting rid of existing slice mods and putting in new consolidated slice.
-            let newMods =
-                Modifier.Slice(newSlice)
-                :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
-            // Prepend backwards as we will flip list at end
-            // Note - currently destroy any pragmas attached to the heterology block itself
-            scan
-                a
-                ((Part.GenePart
-                    ({ gp with
-                           Part = { gp.Part with Modifiers = newMods } }),
-                  pr4,
-                  fwd4)
-                 :: (Part.InlineDna(newInline),
-                     (pr2
-                      |> PragmaCollection.add
-                          { Pragma.Definition = BuiltIn.inlinePragmaDef
-                            Arguments = [] }),
-                     fwd2)
-                    :: (Part.GenePart(gpUp), pr1, fwd1) :: res)
-                tl
+                        // Assemble new mod list by getting rid of existing slice mods and putting in new consolidated slice.
+                        let newMods =
+                            Modifier.Slice(newSlice)
+                            :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
 
-        | (Part.GenePart (gp), pr1, fwd1) :: (Part.HeterologyBlock, pr2, _ (*fwd2*) ) :: (Part.InlineDna (ic), pr3, fwd3) :: (Part.GenePart (gpDown),
-                                                                                                                              pr4,
-                                                                                                                              fwd4) :: tl ->
+                        let result =
+                            { Part =
+                                  Part.GenePart
+                                      { gp with
+                                            Part = { gp.Part with Modifiers = newMods } }
+                              Pragma = pr4
+                              IsForward = fwd4 }
+                            :: { Part = Part.InlineDna newInline
+                                 Pragma =
+                                     (pr2
+                                      |> PragmaCollection.add
+                                          { Pragma.Definition = BuiltIn.inlinePragmaDef
+                                            Arguments = [] })
+                                 IsForward = fwd2 }
+                               :: { Part = Part.GenePart gpUp
+                                    Pragma = pr1
+                                    IsForward = fwd1 }
+                                  :: res
+
+                        // Prepend backwards as we will flip list at end
+                        // Note - currently destroy any pragmas attached to the heterology block itself
+                        scan parameters assembly result tl
+
+        | { Part = Part.GenePart gp
+            Pragma = pr1
+            IsForward = fwd1 } :: { Part = Part.HeterologyBlock
+                                    Pragma = pr2
+                                    IsForward = _ } :: { Part = Part.InlineDna ic
+                                                         Pragma = pr3
+                                                         IsForward = fwd3 } :: { Part = Part.GenePart gpDown
+                                                                                 Pragma = pr4
+                                                                                 IsForward = fwd4 } :: tl ->
 
             // get reference genomes warmed up
-            let rg' = getReferenceGenome a references pr1
-            let rg'' = getReferenceGenome a references pr4
+            let rg' =
+                getReferenceGenome assembly references pr1
+
+            let rg'' =
+                getReferenceGenome assembly references pr4
 
             // get actual sequence for slices (with mods applied)
             let sliceSeq =
-                realizeSequence verbose a.Pragmas fwd1 rg' gp // Get DNA sequence for this slice
+                realizeSequence verbose assembly.Pragmas fwd1 rg' gp // Get DNA sequence for this slice
 
             let sliceSeqDown =
-                realizeSequence verbose a.Pragmas fwd4 rg'' gpDown // Get DNA sequence for this slice
+                realizeSequence verbose assembly.Pragmas fwd4 rg'' gpDown // Get DNA sequence for this slice
 
-            let targetAALen = getLenPragma pr2 // Get optional length spec for the HB
+            getLenPragma pr2 // Get optional length spec for the HB
+            >>= fun targetAALen ->
+                    // generate hetblock section off upstream slice
+                    // Generate an alternative prefix for the GENEPART on LHS
+                    let alt =
+                        generateLeftHB
+                            codonUsage
+                            Default.MinHBCodonUsage
+                            targetAALen
+                            assembly.DesignParams
+                            sliceSeq
+                            ic
+                            sliceSeqDown
+                    // tricky part - need to slightly adjust the slice range of gp,
+                    // but that's embedded down in the mod list
 
-            // generate hetblock section off upstream slice
-            // Generate an alternative prefix for the GENEPART on LHS
-            let alt =
-                generateLeftHB codonUsage Default.MinHBCodonUsage targetAALen a.DesignParams sliceSeq ic sliceSeqDown
-            // tricky part - need to slightly adjust the slice range of gp,
-            // but that's embedded down in the mod list
+                    // Assume they must be using a gene part next to a het block.  Bad?
+                    if not (gp.Part.Gene.[0] = 'g') then
+                        GslResult.err (HeterologyExpansionError.NonGeneNeighbourPart gp.Part.Gene)
+                    else
+                        // now build up the slice again and apply from scratch to the gene
+                        let s =
+                            translateGenePrefix assembly.Pragmas rg' StandardSlice.Gene // Start with standard slice
 
-            // Assume they must be using a gene part next to a het block.  Bad?
-            assert (gp.Part.Gene.[0] = 'g')
+                        let startSlice =
+                            ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
 
-            // now build up the slice again and apply from scratch to the gene
-            let s =
-                translateGenePrefix a.Pragmas rg' StandardSlice.Gene // Start with standard slice
+                        // modify slice to take into account the bit we chopped off
+                        let newSlice =
+                            { startSlice with
+                                  Right =
+                                      { startSlice.Right with
+                                            Position =
+                                                startSlice.Right.Position
+                                                - (alt.Length * 1<OneOffset>) } }
 
-            let startSlice =
-                ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
+                        let newInline = DnaOps.append alt ic
+                        assert (alt <> sliceSeq.[sliceSeq.Length - alt.Length..])
 
-            // modify slice to take into account the bit we chopped off
-            let newSlice =
-                { startSlice with
-                      Right =
-                          { startSlice.Right with
-                                Position =
-                                    startSlice.Right.Position
-                                    - (alt.Length * 1<OneOffset>) } }
+                        if verbose then
+                            //let fr = alt
+                            let t =
+                                sliceSeq.[sliceSeq.Length - alt.Length..sliceSeq.Length - 1]
 
-            let newInline = DnaOps.append alt ic
-            assert (alt <> sliceSeq.[sliceSeq.Length - alt.Length..])
+                            let sim =
+                                Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr
 
-            if verbose then
-                //let fr = alt
-                let t =
-                    sliceSeq.[sliceSeq.Length - alt.Length..sliceSeq.Length - 1]
+                            let simProp =
+                                (seq { for x in sim -> if x = '.' then 1.0 else 0.0 }
+                                 |> Seq.sum)
+                                / float (alt.Length)
+                                * 100.0
 
-                let sim =
-                    Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr
+                            printf "// From: %O \n// To  : %O\n//     : %s %3.0f%%\n" alt (t |> capUsing alt)
+                                (arr2seq sim) simProp
+                        // Assemble new mod list by getting rid of existing slice mods and
+                        // putting in new consolidated slice.
+                        let newMods =
+                            Modifier.Slice(newSlice)
+                            :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
 
-                let simProp =
-                    (seq { for x in sim -> if x = '.' then 1.0 else 0.0 }
-                     |> Seq.sum)
-                    / float (alt.Length)
-                    * 100.0
+                        let result =
+                            { Part = Part.GenePart gpDown
+                              Pragma = pr4
+                              IsForward = fwd4 }
+                            :: { Part = Part.InlineDna newInline
+                                 Pragma =
+                                     pr3
+                                     |> PragmaCollection.add
+                                         { Pragma.Definition = BuiltIn.inlinePragmaDef
+                                           Arguments = [] }
+                                 IsForward = fwd3 }
+                               :: { Part =
+                                        Part.GenePart
+                                            { gp with
+                                                  Part = { gp.Part with Modifiers = newMods } }
+                                    Pragma = pr1
+                                    IsForward = fwd1 }
+                                  :: res
 
-                printf "// From: %O \n// To  : %O\n//     : %s %3.0f%%\n" alt (t |> capUsing alt) (arr2seq sim) simProp
-            // Assemble new mod list by getting rid of existing slice mods and
-            // putting in new consolidated slice.
-            let newMods =
-                Modifier.Slice(newSlice)
-                :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
-            // Prepend backwards as we will flip list at end
-            // Note - currently destroy pr2 pragmas associated with the hetblock
-            scan
-                a
-                ((Part.GenePart(gpDown), pr4, fwd4)
-                 :: (Part.InlineDna(newInline),
+                        // Prepend backwards as we will flip list at end
+                        // Note - currently destroy pr2 pragmas associated with the hetblock
+                        scan parameters assembly result tl
 
-                     (pr3
-                      |> PragmaCollection.add
-                          { Pragma.Definition = BuiltIn.inlinePragmaDef
-                            Arguments = [] }),
-                     fwd3)
-                    :: (Part.GenePart
-                            ({ gp with
-                                   Part = { gp.Part with Modifiers = newMods } }),
-                        pr1,
-                        fwd1)
-                       :: res)
-                tl
-
-        | (Part.PartId (pid1), pr1, fwd1) :: (Part.HeterologyBlock, pr2, _ (*fwd2*) ) :: (Part.InlineDna (ic), pr3, fwd3) :: (Part.PartId (pid4),
-                                                                                                                              pr4,
-                                                                                                                              fwd4) :: tl ->
+        | { Part = Part.PartId pid1
+            Pragma = pr1
+            IsForward = fwd1 } :: { Part = Part.HeterologyBlock
+                                    Pragma = pr2
+                                    IsForward = _ } :: { Part = Part.InlineDna ic
+                                                         Pragma = pr3
+                                                         IsForward = fwd3 } :: { Part = Part.PartId pid4
+                                                                                 Pragma = pr4
+                                                                                 IsForward = fwd4 } :: tl ->
             // External part variation
             // ===============================================
 
-            let part1 =
+
+            let part1Result =
                 ResolveExtPart.fetchFullPartSequence verbose Map.empty pid1
-                |> Result.mapError (sprintf "Fail fetching %s. %s" pid1.Id)
-                |> Result.valueOr failwith
+                |> GslResult.fromResult (fun message ->
+                    HeterologyExpansionError.ExternalPartResolutionFailure(pid1, message))
 
-            let part4 =
+
+            let part4Result =
                 ResolveExtPart.fetchFullPartSequence verbose Map.empty pid4
-                |> Result.mapError (sprintf "Fail fetching %s. %s" pid4.Id)
-                |> Result.valueOr failwith
+                |> GslResult.fromResult (fun message ->
+                    HeterologyExpansionError.ExternalPartResolutionFailure(pid4, message))
 
+            (part1Result, part4Result)
+            ||> GslResult.map2 (fun part1 part4 ->
+                    let s1 =
+                        ResolveExtPart.getExtPartSlice verbose pid1
 
-            let s1 =
-                ResolveExtPart.getExtPartSlice verbose pid1
+                    let s4 =
+                        ResolveExtPart.getExtPartSlice verbose pid4
 
-            let s4 =
-                ResolveExtPart.getExtPartSlice verbose pid4
+                    // Build up upstream and downstream DNA slice
+                    let sliceSeq1 =
+                        ResolveExtPart.applySliceToExtSequence verbose part1 pr1 fwd1 pid1 s1
 
-            // Build up upstream and downstream DNA slice
-            let sliceSeq1 =
-                ResolveExtPart.applySliceToExtSequence verbose part1 pr1 fwd1 pid1 s1
+                    let sliceSeq4 =
+                        ResolveExtPart.applySliceToExtSequence verbose part4 pr4 fwd4 pid4 s4
 
-            let sliceSeq4 =
-                ResolveExtPart.applySliceToExtSequence verbose part4 pr4 fwd4 pid4 s4
+                    getLenPragma pr2 // Get optional length spec for the HB
+                    >>= fun targetAALen ->
+                            // generate hetblock sequence by cutting into upstream sequence
+                            // Generate an alternative prefix for the GENEPART on LHS
+                            let alt =
+                                generateLeftHB
+                                    codonUsage
+                                    Default.MinHBCodonUsage
+                                    targetAALen
+                                    assembly.DesignParams
+                                    sliceSeq1.Dna
+                                    ic
+                                    sliceSeq4.Dna
 
-            let targetAALen = getLenPragma pr2 // Get optional length spec for the HB
+                            // Build up the slice mods for the upstream part from scratch
+                            // Modify upstream slice to account for the part we chopped off
+                            let newSlice: Slice =
+                                { s1 with
+                                      Right =
+                                          { s1.Right with
+                                                Position = s1.Right.Position - (alt.Length * 1<OneOffset>) } }
 
-            // generate hetblock sequence by cutting into upstream sequence
-            // Generate an alternative prefix for the GENEPART on LHS
-            let alt =
-                generateLeftHB
-                    codonUsage
-                    Default.MinHBCodonUsage
-                    targetAALen
-                    a.DesignParams
-                    sliceSeq1.Dna
-                    ic
-                    sliceSeq4.Dna
+                            let newInline = DnaOps.append alt ic
 
-            // Build up the slice mods for the upstream part from scratch
-            // Modify upstream slice to account for the part we chopped off
-            let newSlice: Slice =
-                { s1 with
-                      Right =
-                          { s1.Right with
-                                Position = s1.Right.Position - (alt.Length * 1<OneOffset>) } }
+                            assert (alt
+                                    <> sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..])
 
-            let newInline = DnaOps.append alt ic
+                            if verbose then
+                                let t =
+                                    sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..]
 
-            assert (alt
-                    <> sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..])
+                                let sim =
+                                    Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr
 
-            if verbose then
-                let t =
-                    sliceSeq1.Dna.[sliceSeq1.Dna.Length - alt.Length..]
+                                let simProp =
+                                    (seq { for x in sim -> if x = '.' then 1.0 else 0.0 }
+                                     |> Seq.sum)
+                                    / float (alt.Length)
+                                    * 100.0
 
-                let sim =
-                    Array.map2 (fun a b -> if a = b then '.' else ' ') alt.arr t.arr
+                                printf "// From: %O \n// To  : %O\n//     : %s %3.0f%%\n" alt (t |> capUsing alt)
+                                    (arr2seq sim) simProp
+                            // Assemble new mod list by getting rid of existing slice mods
+                            // and putting in new consolidated slice.
+                            let newMods =
+                                Modifier.Slice(newSlice)
+                                :: (pid1.Modifiers |> List.filter modIsNotSlice)
 
-                let simProp =
-                    (seq { for x in sim -> if x = '.' then 1.0 else 0.0 }
-                     |> Seq.sum)
-                    / float (alt.Length)
-                    * 100.0
+                            let result =
+                                { Part = Part.PartId pid4
+                                  Pragma = pr4
+                                  IsForward = fwd4 }
+                                :: { Part = Part.InlineDna newInline
+                                     Pragma =
+                                         pr3
+                                         |> PragmaCollection.add
+                                             { Pragma.Definition = BuiltIn.inlinePragmaDef
+                                               Arguments = [] }
+                                     IsForward = fwd3 }
+                                   :: { Part = Part.PartId { pid1 with Modifiers = newMods }
+                                        Pragma = pr1
+                                        IsForward = fwd1 }
+                                      :: res
+                            // Prepend backwards as we will flip list at end
+                            // Note - currently destroy pr2 pragmas associated with the hetblock
+                            scan parameters assembly result tl)
+            >>= id
+        | hd :: tl -> scan parameters assembly (hd :: res) tl // do nothing
+        | [] -> GslResult.ok (List.rev res)
 
-                printf "// From: %O \n// To  : %O\n//     : %s %3.0f%%\n" alt (t |> capUsing alt) (arr2seq sim) simProp
-            // Assemble new mod list by getting rid of existing slice mods
-            // and putting in new consolidated slice.
-            let newMods =
-                Modifier.Slice(newSlice)
-                :: (pid1.Modifiers |> List.filter modIsNotSlice)
-            // Prepend backwards as we will flip list at end
-            // Note - currently destroy pr2 pragmas associated with the hetblock
-            scan
-                a
-                ((Part.PartId(pid4), pr4, fwd4)
-                 :: (Part.InlineDna(newInline),
-                     (pr3
-                      |> PragmaCollection.add
-                          { Pragma.Definition = BuiltIn.inlinePragmaDef
-                            Arguments = [] }),
-                     fwd3)
-                    :: (Part.PartId({ pid1 with Modifiers = newMods }), pr1, fwd1)
-                       :: res)
-                tl
-        | hd :: tl -> scan a (hd :: res) tl // do nothing
-        | [] -> List.rev res
-    /// Easier to process part/pragma pairs if they are explicit tuples
-    let tuplePPP (ppp: PartPlusPragma list) =
-        ppp
-        |> List.map (fun p -> p.Part, p.Pragma, p.IsForward)
+    /// Expand heterology blocks.
+    let private expandHB (parameters: Phase2Parameters)
+                         (assemblyIn: Assembly)
+                         : GslResult<GslSourceCode, HeterologyExpansionError> =
 
-    let untuplePPP ab =
-        ab
-        |> List.map (fun (a, b, c) -> { Part = a; Pragma = b; IsForward = c })
+        scan parameters assemblyIn [] assemblyIn.Parts
+        >>= fun newParts ->
+                let assemblyOut = { assemblyIn with Parts = newParts }
 
-    let newParts =
-        scan assemblyIn [] (tuplePPP assemblyIn.Parts)
-        |> untuplePPP
+                let remainingHetblocks =
+                    assemblyOut.Parts
+                    |> List.exists (fun ppp ->
+                        match ppp.Part with
+                        | Part.HeterologyBlock -> true
+                        | _ -> false)
 
-    let res = { assemblyIn with Parts = newParts }
+                let newSource = LegacyPrettyPrint.assembly assemblyOut
 
-    let remainingHetblocks =
-        res.Parts
-        |> List.exists (fun ppp ->
-            match ppp.Part with
-            | Part.HeterologyBlock -> true
-            | _ -> false)
+                if remainingHetblocks then
+                    GslResult.err (HeterologyExpansionError.HeterologyBlockLeftInDesign newSource)
+                else
+                    newSource |> GslResult.ok
 
-    let newSource = LegacyPrettyPrint.assembly res
+    /// Expand all heterology blocks in an AST.
+    let expandHetBlocks (parameters: Phase2Parameters)
+                        (tree: AstTreeHead)
+                        : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>>> =
 
-    if remainingHetblocks then
-        failwithf "Attempt to expand heterology block in design %s left remaining hetblock" newSource.String
-    else
-        newSource |> GslResult.ok
+        let assemblyExpansion = expandHB parameters
 
-/// Expand all heterology blocks in an AST.
-let expandHetBlocks (parameters: Phase2Parameters)
-                    (tree: AstTreeHead)
-                    : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>>> =
+        let bootstrapOperation =
+            let phase1Params =
+                parameters |> Phase1Parameters.fromPhase2
 
-    let assemblyExpansion = expandHB parameters
+            Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
 
-    let bootstrapOperation =
-        let phase1Params =
-            parameters |> Phase1Parameters.fromPhase2
+        let expansionOnlyOnNodesWithHetBlocks =
+            BoostrapSelection.maybeBypassBootstrap ExpandHetBlock bootstrapOperation
 
-        Bootstrapping.bootstrapExpandLegacyAssembly assemblyExpansion (Bootstrapping.bootstrapPhase1 phase1Params)
-
-    let expansionOnlyOnNodesWithHetBlocks =
-        BoostrapSelection.maybeBypassBootstrap ExpandHetBlock bootstrapOperation
-
-    Bootstrapping.executeBootstrap expansionOnlyOnNodesWithHetBlocks Serial tree
+        Bootstrapping.executeBootstrap expansionOnlyOnNodesWithHetBlocks Serial tree

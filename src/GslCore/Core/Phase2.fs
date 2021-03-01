@@ -15,19 +15,26 @@ open GslCore.GslResult
 type Phase2Error =
     | MutationExpansionError of
         BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, MutationExpansionError>> *
-        pass: int
+        pass: int *
+        node: AstNode
     | ProteinExpansionError of
         BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>> *
-        pass: int
+        pass: int *
+        node: AstNode
     | HeterologyExpansionError of
         BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>> *
-        pass: int
+        pass: int *
+        node: AstNode
     | LimitExceeded of limit: int * node: AstNode
 
 module Phase2Error =
-    let makeMutationError pass error = MutationExpansionError(error, pass)
-    let makeProteinError pass error = ProteinExpansionError(error, pass)
-    let makeHeterologyError pass error = HeterologyExpansionError(error, pass)
+    let makeMutationError pass node error =
+        MutationExpansionError(error, pass, node)
+
+    let makeProteinError pass node error = ProteinExpansionError(error, pass, node)
+
+    let makeHeterologyError pass node error =
+        HeterologyExpansionError(error, pass, node)
 
     let toAstMessage: Phase2Error -> AstMessage =
         function
@@ -35,22 +42,24 @@ module Phase2Error =
         // the step being executed. This is now the opposite, we know from the error that where it came from so this would
         // be a good place to make the AstMessage be specific to the step being executed. Now skipping that as it doesn't
         // fit correctly here (i removed the exception catching completely as it is not supposed to be the way of handling errors here more on that soon.
-        | MutationExpansionError (err, _pass) ->
+        | MutationExpansionError (err, _pass, node) ->
             err
             |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage) (fun _ ->
-                     failwith "NOOOO"))
-        | HeterologyExpansionError (err, _pass) ->
+                (BootstrapExpandAssemblyError.toAstMessage
+                    (BootstrapError.toAstMessage Phase1Error.toAstMessage)
+                     (MutationExpansionError.toAstMessage node))
+        | HeterologyExpansionError (err, _pass, node) ->
             err
             |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage) (fun _ ->
-                     failwith "NOOOO"))
-        | ProteinExpansionError (err, _pass) ->
+                (BootstrapExpandAssemblyError.toAstMessage
+                    (BootstrapError.toAstMessage Phase1Error.toAstMessage)
+                     (HeterologyExpansionError.toAstMessage node))
+        | ProteinExpansionError (err, _pass, node) ->
             err
             |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage (BootstrapError.toAstMessage Phase1Error.toAstMessage) (fun _ ->
-                     failwith "NOOOO"))
-
+                (BootstrapExpandAssemblyError.toAstMessage
+                    (BootstrapError.toAstMessage Phase1Error.toAstMessage)
+                     (ProteinExpansionError.toAstMessage node))
 
         | LimitExceeded (limit, node) ->
             AstResult.errStringFMsg
@@ -77,13 +86,13 @@ module Phase2 =
             match mode with
             | ExpandMutation ->
                 MutationExpansion.expandMutations parameters tree
-                |> GslResult.mapError (Phase2Error.makeMutationError pass)
+                |> GslResult.mapError (Phase2Error.makeMutationError pass tree.wrappedNode)
             | ExpandProtein ->
                 ProteinExpansion.expandInlineProteins parameters tree
-                |> GslResult.mapError (Phase2Error.makeProteinError pass)
+                |> GslResult.mapError (Phase2Error.makeProteinError pass tree.wrappedNode)
             | ExpandHetBlock ->
                 HeterologyExpansion.expandHetBlocks parameters tree
-                |> GslResult.mapError (Phase2Error.makeHeterologyError pass)
+                |> GslResult.mapError (Phase2Error.makeHeterologyError pass tree.wrappedNode)
 
         let rec doPhase2 (passNumber: int) (tree: AstTreeHead) =
             match parameters.MaxPasses with
