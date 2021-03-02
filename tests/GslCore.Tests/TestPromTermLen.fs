@@ -1,7 +1,7 @@
 ﻿module GslCore.TestPromTermLen
 
-open System
 open GslCore.Core
+open GslCore.Core.DnaCreation
 open GslCore.Reference
 open NUnit.Framework
 open GslCore.Legacy.Types
@@ -20,11 +20,14 @@ type TestPromTermLen() =
     let emptyPragmas = PragmaCollection.empty
 
     let testLibDir =
-        if System.IO.Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
+        if System.IO.Directory.Exists testLibDir1 then
+            testLibDir1
+        else
+            testLibDir2
 
     let same context expected actual =
-        if expected <> actual
-        then failwithf "%s: expected= %d and actual=%d not equal" context expected actual
+        if expected <> actual then
+            failwithf "%s: expected= %d and actual=%d not equal" context expected actual
 
     let checkOneGenome pragmas name promLen termLen termLenMRNA =
         let gd =

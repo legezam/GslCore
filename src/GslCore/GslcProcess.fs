@@ -137,7 +137,7 @@ module GslcProcess =
         assem
         |> Seq.mapi (fun index dnaAssembly ->
             try
-                expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
+                DnaCreation.expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
                 |> GslResult.ok
             with ex -> GslResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
         |> Seq.toList

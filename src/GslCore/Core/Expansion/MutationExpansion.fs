@@ -59,7 +59,7 @@ module MutationExpansion =
             | [] -> partPlusPragma |> GslResult.ok
             | [ mutMod ] ->
                 let rg' =
-                    getReferenceGenome assembly parameters.References partPlusPragma.Pragma
+                    DnaCreation.getReferenceGenome assembly parameters.References partPlusPragma.Pragma
 
                 let asAACheck =
                     match assembly.Pragmas
@@ -96,7 +96,7 @@ module MutationExpansion =
                 >>= fun _ ->
 
                     let rg' =
-                        getReferenceGenome assembly parameters.References partPlusPragma.Pragma
+                        DnaCreation.getReferenceGenome assembly parameters.References partPlusPragma.Pragma
 
                     // TODO: unclear if this was the right behavior, as the rg is selected from both
                     // assembly and part pragmas yet the actual ref genome selected here was only using

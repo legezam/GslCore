@@ -91,16 +91,16 @@ module HeterologyExpansion =
                                                             Pragma = pr3
                                                             IsForward = fwd3 } :: tl ->
             let rg' =
-                getReferenceGenome assembly references pr3
+                DnaCreation.getReferenceGenome assembly references pr3
 
             let rg'' =
-                getReferenceGenome assembly references pr1
+                DnaCreation.getReferenceGenome assembly references pr1
 
             let sliceSeq =
-                realizeSequence verbose assembly.Pragmas fwd3 rg' gp // Get DNA sequence for this slice
+                DnaCreation.realizeSequence verbose assembly.Pragmas fwd3 rg' gp // Get DNA sequence for this slice
 
             let sliceSeqUp =
-                realizeSequence verbose assembly.Pragmas fwd1 rg'' gpUp // Get DNA sequence for upstream slice
+                DnaCreation.realizeSequence verbose assembly.Pragmas fwd1 rg'' gpUp // Get DNA sequence for upstream slice
 
             getLenPragma pr2 // Get optional length spec for the HB
             >>= fun targetAALen ->
@@ -122,7 +122,7 @@ module HeterologyExpansion =
                         GslResult.err (HeterologyExpansionError.NonGeneNeighbourPart gp.Part.Gene)
                     else
                         let s =
-                            translateGenePrefix assembly.Pragmas rg' StandardSlice.Gene // Start with standard slice
+                            DnaCreation.translateGenePrefix assembly.Pragmas rg' StandardSlice.Gene // Start with standard slice
 
                         let startSlice =
                             ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
@@ -173,17 +173,17 @@ module HeterologyExpansion =
                                                                                  Pragma = pr4
                                                                                  IsForward = fwd4 } :: tl ->
             let rg' =
-                getReferenceGenome assembly references pr4
+                DnaCreation.getReferenceGenome assembly references pr4
 
             let rg'' =
-                getReferenceGenome assembly references pr1
+                DnaCreation.getReferenceGenome assembly references pr1
 
             // Get DNA sequence for this slice
             let sliceSeq =
-                realizeSequence verbose assembly.Pragmas fwd4 rg' gp
+                DnaCreation.realizeSequence verbose assembly.Pragmas fwd4 rg' gp
             // Get DNA sequence for upstream slice
             let sliceSeqUp =
-                realizeSequence verbose assembly.Pragmas fwd1 rg'' gpUp
+                DnaCreation.realizeSequence verbose assembly.Pragmas fwd1 rg'' gpUp
             // Get optional length spec for the HB
             getLenPragma pr3
             // Generate an alternative prefix for the GENEPART on RHS
@@ -212,7 +212,7 @@ module HeterologyExpansion =
                     else
 
                         let s =
-                            translateGenePrefix assembly.Pragmas rg'' StandardSlice.Gene // Start with standard slice
+                            DnaCreation.translateGenePrefix assembly.Pragmas rg'' StandardSlice.Gene // Start with standard slice
 
                         let startSlice =
                             ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers
@@ -267,17 +267,17 @@ module HeterologyExpansion =
 
             // get reference genomes warmed up
             let rg' =
-                getReferenceGenome assembly references pr1
+                DnaCreation.getReferenceGenome assembly references pr1
 
             let rg'' =
-                getReferenceGenome assembly references pr4
+                DnaCreation.getReferenceGenome assembly references pr4
 
             // get actual sequence for slices (with mods applied)
             let sliceSeq =
-                realizeSequence verbose assembly.Pragmas fwd1 rg' gp // Get DNA sequence for this slice
+                DnaCreation.realizeSequence verbose assembly.Pragmas fwd1 rg' gp // Get DNA sequence for this slice
 
             let sliceSeqDown =
-                realizeSequence verbose assembly.Pragmas fwd4 rg'' gpDown // Get DNA sequence for this slice
+                DnaCreation.realizeSequence verbose assembly.Pragmas fwd4 rg'' gpDown // Get DNA sequence for this slice
 
             getLenPragma pr2 // Get optional length spec for the HB
             >>= fun targetAALen ->
@@ -301,7 +301,7 @@ module HeterologyExpansion =
                     else
                         // now build up the slice again and apply from scratch to the gene
                         let s =
-                            translateGenePrefix assembly.Pragmas rg' StandardSlice.Gene // Start with standard slice
+                            DnaCreation.translateGenePrefix assembly.Pragmas rg' StandardSlice.Gene // Start with standard slice
 
                         let startSlice =
                             ApplySlices.applySlices verbose gp.Part.Modifiers s // Apply modifiers

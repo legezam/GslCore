@@ -17,8 +17,8 @@ let expandMarkerPartIntoURA3 dnaSource (dna: Dna) (ppp: PartPlusPragma) =
 
     { Id = None
       ExternalId = None
-      SliceName = getSliceName ppp
-      Uri = getUri ppp // TODO: should this marker have a static URI we always assign here?
+      SliceName = DnaCreation.getSliceName ppp
+      Uri = DnaCreation.getUri ppp // TODO: should this marker have a static URI we always assign here?
       Dna = dna
       SourceChromosome = "library"
       SourceFrom = 0<ZeroOffset>

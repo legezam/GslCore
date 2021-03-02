@@ -3,6 +3,7 @@
 open System.IO
 open GslCore
 open GslCore.Core
+open GslCore.Core.DnaCreation
 open GslCore.Pragma
 open GslCore.Primer
 open GslCore.Reference
@@ -90,7 +91,7 @@ type DnaMaterialization() =
     let materializeOne gp ppp =
         DnaCreation.expandGenePart verbose rgs library a dnaSource ppp gp
 
-    /// get dna beetween sourceFr and sourceTo
+    /// get dna between sourceFr and sourceTo
     let liftDnaFromChrom (dna: DNASlice) =
         assert (dna.SourceFrom <= dna.SourceTo)
         let left = dna.SourceFrom
