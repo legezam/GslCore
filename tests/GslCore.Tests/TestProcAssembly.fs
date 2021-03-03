@@ -45,7 +45,7 @@ type TestProcAssembly() =
         let cleanedSlices =
             GslcProcess.cleanLongSlicesInPartsList PragmaCollection.empty slices
 
-        PrimerCreation.procAssembly
+        PrimerCreation.designPrimersForAssembly
             verbose  // debug
             designParams
             testName

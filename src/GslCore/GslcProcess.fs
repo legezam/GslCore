@@ -229,7 +229,7 @@ module GslcProcess =
             >>= assemblyGathering
 
     /// Convert all assemblies to DnaAssemblies.
-    let materializeDna (s: ConfigurationState) (assem: Assembly list) =
+    let materializeDna (s: ConfigurationState) (assemblies: Assembly list) =
         let opts, library, rgs =
             s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
 
@@ -238,9 +238,9 @@ module GslcProcess =
             |> Behavior.getAllProviders Behavior.getMarkerProviders
 
         if opts.Verbose then
-            printf "Processing %d assemblies\n" (List.length assem)
+            printf "Processing %d assemblies\n" (List.length assemblies)
 
-        assem
+        assemblies
         |> List.mapi (fun index dnaAssembly ->
             try
                 DnaCreation.expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
@@ -368,14 +368,14 @@ module GslcProcess =
         |> List.map transformAssembly
         |> GslResult.collectA
 
-    let doPrimerDesign opts assemblyOuts =
+    let doPrimerDesign (opts: ParsedOptions) (assemblyOuts: DnaAssembly list) =
         if opts.NoPrimers then
             None, assemblyOuts
         else
-            let p, t =
-                PrimerCreation.designPrimers opts assemblyOuts
+            let primers, assemblies =
+                PrimerCreation.designPrimersForAssemblies opts assemblyOuts
 
-            Some(p), t
+            Some(primers), assemblies
 
 
 

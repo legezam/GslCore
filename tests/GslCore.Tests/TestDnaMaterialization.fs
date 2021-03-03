@@ -129,7 +129,7 @@ type DnaMaterialization() =
             |> List.findIndex (fun part -> part = placeholder)
 
         let _primers, slices =
-            PrimerCreation.procAssembly false DesignParams.identity testName [] [] [] parts
+            PrimerCreation.designPrimersForAssembly false DesignParams.identity testName [] [] [] parts
 
         let dna = slices |> List.item placeholderIndex
         let fromDna = liftDnaFromChrom dna

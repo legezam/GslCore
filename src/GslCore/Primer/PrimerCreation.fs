@@ -39,8 +39,8 @@ let checkParallelOverlap (a: Dna) (b: Dna) =
 
 let checkAntiParallelOverlap (a: Dna) (b: Dna) =
     let rec maxOverlap i =
-        if i < 11
-        then failwithf "insufficient overlap in checkAntiparallelOvelap a=%O b=%O bRC=%O" a b (b.RevComp())
+        if i < 11 then
+            failwithf "insufficient overlap in checkAntiparallelOvelap a=%O b=%O bRC=%O" a b (b.RevComp())
 
         if a.[..i] = (b.[..i].RevComp()) then () else maxOverlap (i - 1)
 
@@ -180,15 +180,15 @@ let tuneTails (verbose: bool)
     let annealTarget =
         match maybeFirmMiddle with
         | Some x ->
-            if verbose
-            then printfn "procAssembly: tuneTails: setAnnealTarget to firmMiddle=%A" x
+            if verbose then
+                printfn "procAssembly: tuneTails: setAnnealTarget to firmMiddle=%A" x
 
             x
         | None ->
-            if verbose
-            then printfn
-                     "procAssembly: tuneTails: setAnnealTarget to seamlessOverlapTm=%A"
-                     designParams.SeamlessOverlapTemp
+            if verbose then
+                printfn
+                    "procAssembly: tuneTails: setAnnealTarget to seamlessOverlapTm=%A"
+                    designParams.SeamlessOverlapTemp
 
             designParams.SeamlessOverlapTemp
     //let annealTarget = dp.seamlessOverlapTm // Just use this,  rev/fwdTailLenFixed vars take care of constraining RYSE linkers
@@ -206,8 +206,8 @@ let tuneTails (verbose: bool)
     /// First base of inline region
     let Y = reversePrimer.Body.Length
 
-    if verbose
-    then printfn "procAssembly: tuneTails: tuneTailOpt: X=%d Y=%d\n template=%s" X Y fullTemplate.str
+    if verbose then
+        printfn "procAssembly: tuneTails: tuneTailOpt: X=%d Y=%d\n template=%s" X Y fullTemplate.str
 
     /// Maximum amount by which we can stray from ideal annealing term during tune tails search
     let maxAnnealSearchDeviation = 10.0<C>
@@ -222,8 +222,8 @@ let tuneTails (verbose: bool)
 
         // Calculate overlap oligo.  Tricky but it has to be a substring of the fwd oligo
         // from some point to the end
-        if itersRemaining = 0
-        then failwithf "tuneTailsOpt failed - hit iteration limit"
+        if itersRemaining = 0 then
+            failwithf "tuneTailsOpt failed - hit iteration limit"
 
         /// Matches when an oligo has hit its maximum length
         let (|OligoMax|_|) =
@@ -362,8 +362,8 @@ let tuneTails (verbose: bool)
             seq {
                 match fwdLen with
                 | OligoOver (_) -> // cut something off
-                    if state.ForwardBodyLength > designParams.PrimerParams.minLength
-                    then yield CHOP_F_AMP
+                    if state.ForwardBodyLength > designParams.PrimerParams.minLength then
+                        yield CHOP_F_AMP
                     // Put guard on this to stop best anneal data running away to zero kelvin ;(
                     if fwdTailLenFixed.IsNone
                        && state.ForwardTailLength > fwdTailLenMin
@@ -397,11 +397,25 @@ let tuneTails (verbose: bool)
                             yield EXT_F_AMP
 
 
+
+
+
+
+
+
+
                         if state.BestAnnealDelta < 0.0<C>
                            && state.ForwardTailLength > fwdTailLenMin then
                             yield CHOP_F_ANNEAL
                         elif state.ForwardTailLength < fwdTailLenMax then
                             yield EXT_F_ANNEAL
+
+
+
+
+
+
+
 
 
                         match sign state.BestAnnealDelta, sign state.BestFwdDelta with
@@ -413,6 +427,13 @@ let tuneTails (verbose: bool)
                                 elif (state.ReverseTailLength > revTailLenMin
                                       && state.ForwardTailLength < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
+
+
+
+
+
+
+
 
 
                         | 1, -1 -> // anneal too cold, fwd too hot
@@ -432,6 +453,13 @@ let tuneTails (verbose: bool)
                                          && state.ForwardTailLength < fwdTailLenMax) then
                                     yield SLIDE_F_LEFT
 
+
+
+
+
+
+
+
                         | 0, 1
                         | -1, 0 -> // anneal hot, amp perfect
                             if state.ForwardBodyLength < forwardPrimer.Body.Length
@@ -448,8 +476,8 @@ let tuneTails (verbose: bool)
 
                 match revLen with
                 | OligoOver (_) -> // cut something off reverse primer
-                    if state.ReverseBodyLength > designParams.PrimerParams.minLength
-                    then yield CHOP_R_AMP
+                    if state.ReverseBodyLength > designParams.PrimerParams.minLength then
+                        yield CHOP_R_AMP
 
                     if revTailLenFixed.IsNone
                        && state.ReverseTailLength > revTailLenMin then
@@ -470,6 +498,13 @@ let tuneTails (verbose: bool)
                         elif state.ReverseTailLength < revTailLenMax then
                             yield SLIDE_R_RIGHT
 
+
+
+
+
+
+
+
                 | _ ->
                     if state.BestRevDelta < 0.0<C>
                        && state.ReverseBodyLength > designParams.PrimerParams.minLength then
@@ -477,12 +512,26 @@ let tuneTails (verbose: bool)
                     elif state.ReverseBodyLength < reversePrimer.Body.Length then
                         yield EXT_R_AMP
 
+
+
+
+
+
+
+
                     if revTailLenFixed.IsNone then
                         if state.BestAnnealDelta < 0.0<C>
                            && state.ReverseTailLength > revTailLenMin then
                             yield CHOP_R_ANNEAL
                         elif state.ReverseTailLength < revTailLenMax then
                             yield EXT_R_ANNEAL
+
+
+
+
+
+
+
 
                         match sign state.BestAnnealDelta, sign state.BestRevDelta with
                         | 1, 1 -> // both anneal and rev amp are too cold, could cut either back and extend the other
@@ -493,9 +542,16 @@ let tuneTails (verbose: bool)
                                 elif state.ReverseTailLength < revTailLenMax then
                                     yield SLIDE_R_RIGHT
 
+
+
+
+
+
+
+
                         | 1, -1 -> // anneal too cold, rev too hot
-                            if state.ReverseTailLength < revTailLenMax
-                            then yield SLIDE_R_RIGHT
+                            if state.ReverseTailLength < revTailLenMax then
+                                yield SLIDE_R_RIGHT
                         | -1, 1 -> // anneal too hot, rev too cold
                             if state.ReverseBodyLength < reversePrimer.Body.Length - 1
                                && state.ReverseTailLength > revTailLenMin then
@@ -507,6 +563,13 @@ let tuneTails (verbose: bool)
                                     yield SLIDE_R_LEFT
                                 elif state.ReverseTailLength < revTailLenMax then
                                     yield SLIDE_R_RIGHT
+
+
+
+
+
+
+
 
                         | 0, 1
                         | -1, 0 -> // anneal hot, amp perfect
@@ -548,7 +611,9 @@ let tuneTails (verbose: bool)
             printf " moves: %s " (String.Join(",", moveStates))
 
         if newStates.Length = 0 then
-            if verbose then printfn " done"
+            if verbose then
+                printfn " done"
+
             state // use passed state
         else
             /// s1 is better than s2 if its length in excess of maxOligo is smaller or in case both
@@ -583,7 +648,8 @@ let tuneTails (verbose: bool)
                 |> Array.fold (fun (bestMove, bestS) (move, s) ->
                     if better s bestS then (move, s) else (bestMove, bestS)) (newStates.[0])
 
-            if verbose then printf "bestM=%A" bestMove
+            if verbose then
+                printf "bestM=%A" bestMove
 
             let primersOutOfSpec =
                 state.ForwardBodyLength + state.ForwardTailLength > designParams.PrimerParams.maxLength
@@ -595,8 +661,8 @@ let tuneTails (verbose: bool)
                 state.ReverseBodyLength + state.ReverseTailLength < designParams.PrimerParams.minLength // total reverse oligo too short
 
             if better lowestS state then
-                if verbose
-                then printfn " cont, better option bestS=[%A]  currS=[%A]" lowestS state
+                if verbose then
+                    printfn " cont, better option bestS=[%A]  currS=[%A]" lowestS state
 
                 tuneTailsOpt (itersRemaining - 1) lowestS seen
             else
@@ -605,7 +671,8 @@ let tuneTails (verbose: bool)
             if primersOutOfSpec then
                 // Still need to do something even though the lowest state isn't better than the one we're in now
                 // Need to make sure we don't get stuck in a loop though.  Find the best non sliding move
-                if verbose then printfn " primers still out of spec"
+                if verbose then
+                    printfn " primers still out of spec"
 
                 let _, lowestS =
                     newStates
@@ -615,7 +682,9 @@ let tuneTails (verbose: bool)
 
                 tuneTailsOpt (itersRemaining - 1) lowestS seen
             else
-                if verbose then printfn " best not better, done"
+                if verbose then
+                    printfn " best not better, done"
+
                 state
 
     // Calculate all the starting temperatures for the 3 pieces so we know where we stand
@@ -697,10 +766,16 @@ let tuneTails (verbose: bool)
         // No primer on one side, no joy in optimizing except we still need to ensure that
         // the starting primers we were handed observe the length requirements
         let fwd' =
-            if forwardPrimer.Primer.Length = 0 then forwardPrimer else trimIfNeeded forwardPrimer
+            if forwardPrimer.Primer.Length = 0 then
+                forwardPrimer
+            else
+                trimIfNeeded forwardPrimer
 
         let rev' =
-            if reversePrimer.Primer.Length = 0 then reversePrimer else trimIfNeeded reversePrimer
+            if reversePrimer.Primer.Length = 0 then
+                reversePrimer
+            else
+                trimIfNeeded reversePrimer
 
         fwd', rev'
     else
@@ -804,8 +879,8 @@ let tuneTails (verbose: bool)
 
         // Check that the antiparallel primers overlap in the middle except when they were clearly not intended to
         // e.g. linkerless cases we aren't actually briding
-        if fwdTailLenMin > 0 && revTailLenMin > 0
-        then checkAntiParallelOverlap forwardPrimer.Primer reversePrimer.Primer
+        if fwdTailLenMin > 0 && revTailLenMin > 0 then
+            checkAntiParallelOverlap forwardPrimer.Primer reversePrimer.Primer
 
         // Ensure that after we chop everything up, the final primer is contained within the
         // original primer, otherwise bad things happen to the amplified sequence.
@@ -993,9 +1068,10 @@ let seamless verbose (dp: DesignParams) (prev: DNASlice) (next: DNASlice) =
                     let bestF', bestR', bestDelta' =
                         if delta < bestDelta then fLen, rLen, delta else bestF, bestR, bestDelta
 
-                    if rLen < fLen
-                    then optOverlapTm fLen (rLen + 1) bestF' bestR' bestDelta'
-                    else optOverlapTm (fLen + 1) rLen bestF' bestR' bestDelta'
+                    if rLen < fLen then
+                        optOverlapTm fLen (rLen + 1) bestF' bestR' bestDelta'
+                    else
+                        optOverlapTm (fLen + 1) rLen bestF' bestR' bestDelta'
         // ------------ End optOverlapTm --------------------------
 
         // Get optimal tail lengths ( ~~~s below) to get the right internal seamlessoverlaptm
@@ -1090,16 +1166,17 @@ let linkerFwd2 verbose (dp: DesignParams) errorName (next: DNASlice) =
                       targetTemp = dp.TargetTemp
                       sequencePenalties = None }
 
-                if pen.maxLength < pen.minLength
-                then failwithf "oMax=%d<oMin=%d  in linkerFwd2" pen.maxLength pen.minLength
+                if pen.maxLength < pen.minLength then
+                    failwithf "oMax=%d<oMin=%d  in linkerFwd2" pen.maxLength pen.minLength
 
                 primercore.oligoDesignWithCompromise false pen task
 
         match x with
         | None ->
-            if margin < 3 * Default.ApproxMargin
-            then linkerFwd2Iterative pen (margin + 10)
-            else failwithf "failed primer design for design %s in linkerFwd2" errorName
+            if margin < 3 * Default.ApproxMargin then
+                linkerFwd2Iterative pen (margin + 10)
+            else
+                failwithf "failed primer design for design %s in linkerFwd2" errorName
         | Some (oligo) ->
             // Oligo design might have chopped off DNA , so cut accordingly
             primerCheck oligo.oligo (next.Dna.[oligo.offset..].arr)
@@ -1123,8 +1200,8 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
     let rec linkerRev2Iterative pen margin =
         match last with
         | None ->
-            if verbose
-            then printfn "procAssembly: linkerFwd2: entering with margin=%d last=None" margin
+            if verbose then
+                printfn "procAssembly: linkerFwd2: entering with margin=%d last=None" margin
 
             { Body = Dna("")
               Tail = Dna("")
@@ -1174,9 +1251,10 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
 
             match x with
             | None ->
-                if margin < 3 * Default.ApproxMargin
-                then linkerRev2Iterative pen (margin + 10)
-                else failwithf "failed primer design in linkerRev2 for design %s\nlast task was =%A" errorName task
+                if margin < 3 * Default.ApproxMargin then
+                    linkerRev2Iterative pen (margin + 10)
+                else
+                    failwithf "failed primer design in linkerRev2 for design %s\nlast task was =%A" errorName task
             | Some (oligo) ->
                 primerCheck oligo.oligo (ds.Dna.RevComp().[oligo.offset..].arr)
 
@@ -1191,9 +1269,10 @@ let linkerRev2 verbose (dp: DesignParams) errorName (last: DNASlice option) =
 /// Chop bases off a primer whose tail is a linker until it meets the length requirement
 let trimLinkerTailBody (dp: DesignParams) (p: Primer) =
     let tailTargetTM =
-        if p.Tail.Length = 0
-        then 0.0<C>
-        else temp dp.PrimerParams p.Tail.arr p.Tail.Length
+        if p.Tail.Length = 0 then
+            0.0<C>
+        else
+            temp dp.PrimerParams p.Tail.arr p.Tail.Length
 
     let bodyTargetTm = dp.TargetTemp
 
@@ -1228,13 +1307,14 @@ let trimLinkerTailBody (dp: DesignParams) (p: Primer) =
     find p.Body.Length p.Tail.Length
 
 let nameFromSlice (s: DNASlice) =
-    if s.Description.Length > 25
-    then sprintf "%s..[%d]" (s.Description.[..24]) s.Description.Length
-    else s.Description
+    if s.Description.Length > 25 then
+        sprintf "%s..[%d]" (s.Description.[..24]) s.Description.Length
+    else
+        s.Description
 
 let checkSliceCoods (slice: DNASlice) n =
-    if slice.Dna.Length - 1 - n < 0
-    then failwithf "in cutX dna slice %s length is %d, cut is %d" slice.Description slice.Dna.Length n
+    if slice.Dna.Length - 1 - n < 0 then
+        failwithf "in cutX dna slice %s length is %d, cut is %d" slice.Description slice.Dna.Length n
 
     if slice.SourceFrom > slice.SourceTo then
         failwithf
@@ -1294,21 +1374,35 @@ let cutLeft verbose (slice: DNASlice) n =
               SourceTo = slice.SourceTo - (n * 1<ZeroOffset>)
               Dna = slice.Dna.[n..slice.Dna.Length - 1] }
 
+/// Include head of prev in slicesOut if prev isn't None (we delayed emission at time of processing but now
+/// need to send it out).
+let includePrev (verbose: bool) (prev: DNASlice list) (slices: DNASlice list): DNASlice list =
+    if verbose then
+        printfn "Called incPrev"
+
+    match prev with
+    | [] -> slices
+    | p :: _ -> // There is a head of the prev
+        if verbose then
+            printfn "Adding %s" p.Dna.str
+
+        p :: slices // add it to the out slices passed in (on front - we are pushing LIFO)
+
 /// Recursively process an assembly, tracking the previous and remaining DNA slices
 /// emitting an output set of DNA slices and a diverged primer pair list
-let rec procAssembly verbose
-                     /// Needed for primer design
-                     (designParams: DesignParams)
-                     /// Name to use in any things that blow up (passed in from parent)
-                     (errorName: string)
-                     (previousSlices: DNASlice list)
-                     /// Emitted slices
-                     (emittedSlices: DNASlice list)
-                     /// Primer sets we have emitted.  They come in fwd/rev pairs (both of which can be None at ends)
-                     (emittedPrimers: DivergedPrimerPair list)
-                     /// Remaining slices to process
-                     (remainingSlices: DNASlice list)
-                     : DivergedPrimerPair list * DNASlice list =
+let rec designPrimersForAssembly verbose
+                                 /// Needed for primer design
+                                 (designParams: DesignParams)
+                                 /// Name to use in any things that blow up (passed in from parent)
+                                 (errorName: string)
+                                 (previousSlices: DNASlice list)
+                                 /// Emitted slices
+                                 (emittedSlices: DNASlice list)
+                                 /// Primer sets we have emitted.  They come in fwd/rev pairs (both of which can be None at ends)
+                                 (emittedPrimers: DivergedPrimerPair list)
+                                 /// Remaining slices to process
+                                 (remainingSlices: DNASlice list)
+                                 : DivergedPrimerPair list * DNASlice list =
 
     (*
 What is the difference between prev and sliceOut?
@@ -1336,45 +1430,36 @@ can design (say) a primer against might be further back in the stack and it's ju
 
         printfn ""
 
-    /// Include head of prev in slicesOut if prev isn't None (we delayed emission at time of processing but now
-    /// need to send it out).
-    let incPrev (prev: DNASlice list) (slices: DNASlice list) =
-        if verbose then printfn "Called incPrev"
 
-        match prev with
-        | [] -> slices
-        | p :: _ -> // There is a head of the prev
-            if verbose then printfn "Adding %s" p.Dna.str
-            p :: slices // add it to the out slices passed in (on front - we are pushing LIFO)
 
     // Main match for remaining cases
     match remainingSlices with // look at previous slices to consider sliceOut update
     | [] ->
         // No remaining slices - everything processed.
-        let sliceOut' = emittedSlices // daz  (I think this is now reincluding a slice)  //    incPrev prev sliceOut |> List.rev
+        let sliceOut = emittedSlices // daz  (I think this is now reincluding a slice)  //    incPrev prev sliceOut |> List.rev
 
-        if verbose
-        then printfn "procAssembly: PACASE 0 - done with slices"
+        if verbose then
+            printfn "procAssembly: PACASE 0 - done with slices"
         // since we made primers and sliceOut with LIFO model, need to reverse them now
-        List.rev emittedPrimers, List.rev sliceOut' // reverse the primers and the slices since we pushed as we built
+        List.rev emittedPrimers, List.rev sliceOut // reverse the primers and the slices since we pushed as we built
     | hd :: next :: tl when hd.Type = SliceType.Fusion
                             && next.Type = SliceType.Inline ->
         // Fusing a slice to a following inline sequence is redundant as that's the
         // strategy we employ by default, but it will mess things up to try to put a seamless stitch here into a possibly
         // small DNA sequence, so just ignore FUSION directive
-        if verbose
-        then printfn "procAssembly: PACASE 1 - skipping redudant FUSIONST/INLINEST (skip)"
+        if verbose then
+            printfn "procAssembly: PACASE 1 - skipping redudant FUSIONST/INLINEST (skip)"
         // hd was a vitual part (no sequence), so we skip adding it to the sliceOut and add next instead
         // also doesnt change prev - last real slice is still head of prev (since hd is virtual)
-        procAssembly verbose designParams errorName previousSlices emittedSlices emittedPrimers (next :: tl)
+        designPrimersForAssembly verbose designParams errorName previousSlices emittedSlices emittedPrimers (next :: tl)
     | hd :: next :: tl when hd.Type = SliceType.Fusion ->
         // Slice hd is a fusion slice, which is virtual, it exists only to mark
         // the intention to fuse prev and next together
-        if verbose
-        then printfn "procAssembly: PACASE 2 - FUSIONST - generating primers (DPP)"
+        if verbose then
+            printfn "procAssembly: PACASE 2 - FUSIONST - generating primers (DPP)"
 
-        if previousSlices = []
-        then failwith "INTERNAL ERROR: unexpected prev = [] in procAssembly\n"
+        if previousSlices = [] then
+            failwith "INTERNAL ERROR: unexpected prev = [] in procAssembly\n"
         // make a seamless junction with head of prev (last slice we can design into) and next (next real
         // slice after the virtual fusion marker
         let primerF, offsetF, primerR, offsetR =
@@ -1382,8 +1467,8 @@ can design (say) a primer against might be further back in the stack and it's ju
 
         // If we stitched fwd/rev off of linker hd then the previous and next elements (prev) and next
         // might need to be modified (chopped) if the ends were flexible
-        if verbose
-        then printfn "procAssembly: fusion slice, cutting offsetF=%d offsetR=%d" offsetF offsetR
+        if verbose then
+            printfn "procAssembly: fusion slice, cutting offsetF=%d offsetR=%d" offsetF offsetR
 
         //            (empty/virtual)
         //  prev .... hd(fusionst) .. next .. tl...
@@ -1394,23 +1479,29 @@ can design (say) a primer against might be further back in the stack and it's ju
         // so now we can actually emit the head of prev into the sliceOut (chopped potentially)
         // sliceOut' is the updated version with chopped prev on the head
 
-        let sliceOut' =
+        let sliceOut =
             match previousSlices with
             | [] -> emittedSlices
             | p :: _ -> (cutRight verbose p offsetR) :: emittedSlices
 
-        procAssembly
+        let newDivergedPrimers =
+            DivergedPrimerPair
+                { Forward = primerF
+                  Reverse = primerR
+                  Name = next.SliceName }
+
+        let primersOut = newDivergedPrimers :: emittedPrimers
+        let previousSlices = hd :: previousSlices // hd becomes the next prev.  DP: Not sure how helpful this is since it's virtual..
+        let remainingSlices = (cutLeft verbose next offsetF) :: tl // Remove bases from the next slice if we moved the primer
+
+        designPrimersForAssembly
             verbose
             designParams
             errorName
-            (hd :: previousSlices)  // hd becomes the next prev.  DP: Not sure how helpful this is since it's virtual..
-            sliceOut'  // updated sliceOut with prev emitted
-            (DivergedPrimerPair
-                ({ Forward = primerF
-                   Reverse = primerR
-                   Name = next.SliceName })
-             :: emittedPrimers)
-            ((cutLeft verbose next offsetF) :: tl) // Remove bases from the next slice if we moved the primer
+            previousSlices
+            sliceOut  // updated sliceOut with prev emitted
+            primersOut
+            remainingSlices
 
     // linker::next
     // or /inline/ (but not rabit start/end) :: next
@@ -1428,13 +1519,13 @@ can design (say) a primer against might be further back in the stack and it's ju
                                         |> PragmaCollection.contains BuiltIn.ampPragmaDef)) // if directed to amplify, don't do as an inline
                                && previousSlices <> [] -> // must be a previous slice to do an inline
 
-        if verbose
-        then printfn "procAssembly: PACASE 3 - LINKER or inline not rabitstart/end"
+        if verbose then
+            printfn "procAssembly: PACASE 3 - LINKER or inline not rabitstart/end"
 
         // If the inline is short enough (should probably check also for #inline pragma that forces inline)
         if hd.Type = SliceType.Inline && hd.Dna.Length < 12 then
-            if verbose
-            then printfn "procAssembly: ... PCASE 3.1 shortcase (DPP)"
+            if verbose then
+                printfn "procAssembly: ... PCASE 3.1 shortcase (DPP)"
             // SHORTINLINE Case
             //
             // Special case for short inline sequences.  We can sort of do a seamless design
@@ -1477,8 +1568,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                     999999, x
                 | NONE -> 999999, 999999 // no primerpos
 
-            if verbose
-            then printf "primerpos directive: fwdTailLenMax = %A revTailLenMax = %A\n" fwdTailLenMax revTailLenMax
+            if verbose then
+                printf "primerpos directive: fwdTailLenMax = %A revTailLenMax = %A\n" fwdTailLenMax revTailLenMax
 
             // Tail consists of internal sequence and reverse oligo concatenated.
             // This is messed up - note - double recomp :)
@@ -1551,8 +1642,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                   Tail = revRunway.[revRunway.Length - revTailLen..revRunway.Length - 1]
                   Annotation = [ a2R; a1R ] }
 
-            if verbose
-            then printfn "short inline case, cutting offsetR=%d" offsetR
+            if verbose then
+                printfn "short inline case, cutting offsetR=%d" offsetR
 
             // chop the head of prev (last slice that we can design into) now we have potentially shortened it (if
             // it had an approximate end),  then move it over to the slicesOut  generating sliceOut'
@@ -1578,7 +1669,7 @@ can design (say) a primer against might be further back in the stack and it's ju
             assert (primerR'.lenLE (designParams.PrimerParams.maxLength))
 
 
-            procAssembly
+            designPrimersForAssembly
                 verbose
                 designParams
                 errorName
@@ -1603,8 +1694,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             // OR.....
             // hd(linker)::next::tail..
 
-            if verbose
-            then printfn "procAssembly: ... PACASE 3.2 longcase (DPP)"
+            if verbose then
+                printfn "procAssembly: ... PACASE 3.2 longcase (DPP)"
             // LONGINLINE Case
             //
             // Regular inline case or linker case - just design fwd and reverse then prepend
@@ -1629,8 +1720,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             //    --------------------->
             let sandwichF, d, e =
                 if next.Type = SliceType.Inline then
-                    if verbose
-                    then printfn "procAssembly: ... next slice is INLINEST, so sandwich case" // hd is linker, next is short inline..
+                    if verbose then
+                        printfn "procAssembly: ... next slice is INLINEST, so sandwich case" // hd is linker, next is short inline..
 
                     match tl with
                     | [] -> failwithf "expected next dnaslice preparing for linkerFwd design\n"
@@ -1966,8 +2057,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                     // finally we include the remainder of the slice out
                     p1 :: (cutRight verbose p2 offsetR) :: tl
                 | p :: _ -> // simple prev case, cut to any offset we generated
-                    if verbose
-                    then printfn "cutRight p=%s offsetR=%d" p.Description offsetR
+                    if verbose then
+                        printfn "cutRight p=%s offsetR=%d" p.Description offsetR
                     //(cutRight p offsetR)::sliceOut
                     (cutRight verbose p offsetR)
                     :: (List.tail emittedSlices)
@@ -1975,8 +2066,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             let choppedD = // The next slice might have a flexible end in which case we need to respect where the primer chopped it
                 let chopped = cutLeft verbose d offsetF
 
-                if verbose
-                then printfn "chop d %s to %d\ndpre=%s\ndPost=%s" d.Description offsetF d.Dna.str chopped.Dna.str
+                if verbose then
+                    printfn "chop d %s to %d\ndpre=%s\ndPost=%s" d.Description offsetF d.Dna.str chopped.Dna.str
 
                 chopped
 
@@ -1991,7 +2082,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                     printfn "procAssembly:  choppedD=%s" choppedD.Description
                     printfn "procAssembly:  sliceOut'=%s" (String.Join(";", [ for x in sliceOut' -> x.Description ]))
 
-                procAssembly
+                designPrimersForAssembly
                     verbose
                     designParams
                     errorName
@@ -2005,10 +2096,10 @@ can design (say) a primer against might be further back in the stack and it's ju
                         :: emittedPrimers)  // primers out - GAP for the D slice and DPP for the primers on the hd/linker piece
                     e // remaining unprocessed slices
             | Some x ->
-                if verbose
-                then printfn "procAssembly:  taking Some x=%s arm of long inline hd=%s" x.Description hd.Description
+                if verbose then
+                    printfn "procAssembly:  taking Some x=%s arm of long inline hd=%s" x.Description hd.Description
 
-                procAssembly
+                designPrimersForAssembly
                     verbose
                     designParams
                     errorName
@@ -2026,8 +2117,8 @@ can design (say) a primer against might be further back in the stack and it's ju
     // technically shouldn't end on a non linker (unless non ryse design) but..
     | [ last ] when (last.Type = SliceType.Linker
                      || last.Type = SliceType.Inline) ->
-        if verbose
-        then printfn "procAssembly: PACASE 4 - ... last LINKER or INLINEST last=%A name=%s" last.Type last.Description
+        if verbose then
+            printfn "procAssembly: PACASE 4 - ... last LINKER or INLINEST last=%A name=%s" last.Type last.Description
         // We are about to design a primer back into the previous sequence if it exists.
         // There is a catch if the previous sequence was a short inline sequence.
         // We should treat that as a sandwich sequence, build it into the primer but not
@@ -2146,8 +2237,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                    :: (List.tail emittedSlices)
                 |> List.rev // Finally reverse the slice out list since we pushed it as we created it  ( we are done - not recursing any more and this is the result)
 
-        if verbose
-        then printfn "sliceOut'=%s" (String.Join(";", [ for s in sliceOut' -> s.Description ]))
+        if verbose then
+            printfn "sliceOut'=%s" (String.Join(";", [ for s in sliceOut' -> s.Description ]))
 
         // This is going back to caller.  Collect the primer arrangment and slices as a tuple (this deserves at least an anonymous record)
         let finalOutput =
@@ -2210,8 +2301,8 @@ can design (say) a primer against might be further back in the stack and it's ju
             printfn "procAssembly: finalOutput(slices n=%d): %s" (finalSlices.Length) x
             printfn "procAssembly: finalOutput(primer n=%d): %s" (finalDPPs.Length) y
 
-            if not outputParity
-            then failwithf "These lists should have same length :( - error in procAssembly"
+            if not outputParity then
+                failwithf "These lists should have same length :( - error in procAssembly"
 
         finalOutput // RETURN POINT *****
     // /inline/ (not amp or rabitend) ::.....
@@ -2223,8 +2314,8 @@ can design (say) a primer against might be further back in the stack and it's ju
                              |> PragmaCollection.contains BuiltIn.rabitEndPragmaDef
                              || hd.Pragmas
                                 |> PragmaCollection.contains BuiltIn.ampPragmaDef)) ->
-        if verbose
-        then printfn "procAssembly: PACASE 5 -... (GAP) INLINEST"
+        if verbose then
+            printfn "procAssembly: PACASE 5 -... (GAP) INLINEST"
         // For now we don't know what is going to happen with this slice.  It will get created
         // as part of the next slice that gets processed (e.g. a slice or a linker).  For now
         // just put the slice onto the prev stack
@@ -2237,12 +2328,12 @@ can design (say) a primer against might be further back in the stack and it's ju
         // noting if/how it had been emitted and we could do a sanity check at end of the run to
         // make sure everything went out just once
 
-        procAssembly
+        designPrimersForAssembly
             verbose
             designParams
             errorName
             prevNew
-            (incPrev previousSlices emittedSlices)
+            (includePrev verbose previousSlices emittedSlices)
             (Gap :: emittedPrimers)
             tl
     // This cases catches inline sequences just before a linker marked rabitend
@@ -2260,7 +2351,14 @@ can design (say) a primer against might be further back in the stack and it's ju
         // push the slice onto the prev stack (it's going to get implemented by next slice primer gen)
         let prevNew = hd :: previousSlices
         // push hd onto slices out.  It will be of type sandwich on primer side
-        procAssembly verbose designParams errorName prevNew (hd :: emittedSlices) (SandwichGap :: emittedPrimers) tl
+        designPrimersForAssembly
+            verbose
+            designParams
+            errorName
+            prevNew
+            (hd :: emittedSlices)
+            (SandwichGap :: emittedPrimers)
+            tl
     // procAssembly verbose dp errorName prevNew (incPrev prev sliceOut) (GAP::primersOut) tl
     // Finally catch all case
     // -----------------------------------------------
@@ -2421,7 +2519,7 @@ can design (say) a primer against might be further back in the stack and it's ju
                     MaterializedFrom = None
                     Annotations = [] }
 
-              procAssembly
+              designPrimersForAssembly
                   verbose
                   designParams
                   errorName
@@ -2438,10 +2536,10 @@ can design (say) a primer against might be further back in the stack and it's ju
         //((cutLeft hd offsetF)::tl) // Remove bases from the next slice if we moved the primer
         // This is another monster match inside a match case.  Badly needs some gentle dissection into more managable pieces.  I'd probably start with test coverage though before we break too much
         | _ -> // Catch all case for prev when prev was just one item.  todo: should be [hd] with an error case for anything else?
-            if verbose
-            then printfn "procAssembly: ... PACASE 7.2 regular branch of catch all"
+            if verbose then
+                printfn "procAssembly: ... PACASE 7.2 regular branch of catch all"
             // hd just moves to prev and slices out (any primers will come from processing adjacent slices)
-            procAssembly
+            designPrimersForAssembly
                 verbose
                 designParams
                 errorName
@@ -2452,80 +2550,85 @@ can design (say) a primer against might be further back in the stack and it's ju
 
 // --- end procAssembly ------------------------------------------------------------------------
 
+let prepareAndDesignPrimersForAssembly (verbose: bool) (assembly: DnaAssembly): DivergedPrimerPair list * DNASlice list =
+    let errorName = assembly.Name
+
+    let primerMaxLen =
+        assembly.Pragmas
+        |> PragmaCollection.tryGetValue BuiltIn.primerMaxPragmaDef
+        |> Option.map int
+        |> Option.defaultValue Default.PrimerMaxLength
+
+    let primerMinLen =
+        assembly.Pragmas
+        |> PragmaCollection.tryGetValue BuiltIn.primerMinPragmaDef
+        |> Option.map int
+        |> Option.defaultValue Default.PrimerMinLength
+
+    let designParams =
+        { assembly.DesignParams with
+              PrimerParams =
+                  { assembly.DesignParams.PrimerParams with
+                        maxLength = primerMaxLen
+                        minLength = primerMinLen } }
+
+    designPrimersForAssembly verbose designParams errorName [] [] [] assembly.DnaParts
+
+let filterAnneal (primer: Primer): Primer =
+    { primer with
+          Annotation =
+              primer.Annotation
+              |> List.filter (fun annotation ->
+                  annotation.Type <> Anneal
+                  && annotation.Type <> Sandwich) }
+
+/// Slightly ugly hack.  If we are doing linkerless designs, there is no anneal region between
+/// the divergent primers, so the primer annotation for the anneal region is an empty interval.
+/// To avoid download validation and display mess, we filter those primer annotation intervals out
+let cleanAnnealIntervals (primerParis: DivergedPrimerPair list): DivergedPrimerPair list =
+    primerParis
+    |> List.map (fun divergedPrimerPair ->
+        match divergedPrimerPair with
+        | Gap -> divergedPrimerPair
+        | SandwichGap -> divergedPrimerPair
+        | DivergedPrimerPair primerPair ->
+            if primerPair.Forward.Tail.Length = 0
+               || primerPair.Reverse.Tail.Length = 0 then
+                DivergedPrimerPair
+                    { primerPair with
+                          Forward = filterAnneal primerPair.Forward
+                          Reverse = filterAnneal primerPair.Reverse }
+            else
+                DivergedPrimerPair primerPair) // leave it alone
+
 /// Time to design some primers given a list of assemblyout structures
-let designPrimers (opts: ParsedOptions) (linkedTree: DnaAssembly list) =
+let designPrimersForAssemblies (opts: ParsedOptions)
+                               (assemblies: DnaAssembly list)
+                               : DivergedPrimerPair list list * DnaAssembly list =
     let verbose = opts.Verbose
 
     let map =
         if opts.DoParallel then Array.Parallel.map else Array.map
 
-    let primers', newSlices' =
-        linkedTree
-        |> Array.ofList
-        |> map (fun assembly ->
-            let errorName = assembly.Name
-
-            let primerMaxLen =
-                assembly.Pragmas
-                |> PragmaCollection.tryGetValue BuiltIn.primerMaxPragmaDef
-                |> Option.map int
-                |> Option.defaultValue Default.PrimerMaxLength
-
-            let primerMinLen =
-                assembly.Pragmas
-                |> PragmaCollection.tryGetValue BuiltIn.primerMinPragmaDef
-                |> Option.map int
-                |> Option.defaultValue Default.PrimerMinLength
-
-            let designParams =
-                { assembly.DesignParams with
-                      PrimerParams =
-                          { assembly.DesignParams.PrimerParams with
-                                maxLength = primerMaxLen
-                                minLength = primerMinLen } }
-
-            procAssembly verbose designParams errorName [] [] [] assembly.DnaParts)
+    let createdPrimers, updatedSlices =
+        assemblies
+        |> List.toArray
+        |> map (prepareAndDesignPrimersForAssembly verbose)
         |> Array.unzip
 
-    /// Slightly ugly hack.  If we are doing linkerless designs, there is no anneal region between
-    /// the divergent primers, so the primer annotation for the anneal region is an empty interval.
-    /// To avoid download validation and display mess, we filter those primer annotation intervals out
-    let cleanAnnealIntervals (primerParis: DivergedPrimerPair list) =
-        let filterAnneal (primer: Primer) =
-            { primer with
-                  Annotation =
-                      primer.Annotation
-                      |> List.filter (fun x -> x.Type <> Anneal && x.Type <> Sandwich) }
-
-        primerParis
-        |> List.map (fun x ->
-            match x with
-            | Gap -> x
-            | SandwichGap -> x
-            | DivergedPrimerPair (y) ->
-                if y.Forward.Tail.Length = 0
-                   || y.Reverse.Tail.Length = 0 then
-                    DivergedPrimerPair
-                        ({ y with
-                               Forward = filterAnneal y.Forward
-                               Reverse = filterAnneal y.Reverse })
-                else
-                    DivergedPrimerPair(y)) // leave it alone
-
-    let primers =
-        List.ofArray primers'
+    let cleanedPrimers =
+        Array.toList createdPrimers
         |> List.map cleanAnnealIntervals
 
-    let newSlices = List.ofArray newSlices'
-
-    let newTree =
-        List.zip linkedTree newSlices
-        |> List.map (fun (a, b) ->
-            { a with
-                  DnaParts = DNASlice.recalculatOffset b })
+    let updatedAssemblies =
+        Seq.zip assemblies updatedSlices
+        |> Seq.map (fun (assembly, slices) ->
+            { assembly with
+                  DnaParts = DNASlice.recalculatOffset slices })
+        |> Seq.toList
     //let oldTree = linkedTree |> List.map (fun a -> a.dnaParts)
 
     // Validate primer annotation and primers are legit
-    PrimerValidation.checkPrimers primers
-    PrimerValidation.checkPrimersVAssembly (List.zip primers newTree)
-    primers, newTree
+    PrimerValidation.checkPrimers cleanedPrimers
+    PrimerValidation.checkPrimersVAssembly (List.zip cleanedPrimers updatedAssemblies)
+    cleanedPrimers, updatedAssemblies
