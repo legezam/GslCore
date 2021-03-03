@@ -40,16 +40,18 @@ module Inlining =
     /// Capture a function definition.
     /// Also keep track of whether or not we are inside a function declaration, as we don't inline
     /// function calls inside other declarations, only at the final expanded call sites.
-    let private collectFunctionDef (mode: StateUpdateMode)
-                                   (state: FunctionInliningState)
-                                   (node: AstNode)
-                                   : FunctionInliningState =
+    let internal collectFunctionDefinition (mode: StateUpdateMode)
+                                           (state: FunctionInliningState)
+                                           (node: AstNode)
+                                           : FunctionInliningState =
         match node with
         | AstNode.FunctionDef functionWrapper ->
             match mode with
             | PreTransform ->
                 { state with
-                      Definitions = state.Definitions.Add(functionWrapper.Value.Name, functionWrapper.Value)
+                      Definitions =
+                          state.Definitions
+                          |> Map.add functionWrapper.Value.Name functionWrapper.Value
                       Depth = state.Depth + 1 }
             | PostTransform -> { state with Depth = state.Depth - 1 }
         | _ -> state
@@ -58,25 +60,27 @@ module Inlining =
                                             (state: FunctionInliningState)
                                             (node: AstNode)
                                             : FunctionInliningState =
-        let sWithNewDefs = collectFunctionDef mode state node
+        let stateWithNewDefinitions =
+            collectFunctionDefinition mode state node
 
         let updatedVars =
             VariableCapturing.captureVariableBindings mode state.Variables node
 
-        { sWithNewDefs with
+        { stateWithNewDefinitions with
               Variables = updatedVars }
 
     /// Check that a function call passed the right number of arguments.
-    let private checkArgs (parseFunction: ParseFunction)
-                          (functionCall: FunctionCall)
-                          (functionCallNode: AstNode)
-                          : GslResult<ParseFunction * FunctionCall, FunctionInliningError> =
+    let private checkArguments (parseFunction: ParseFunction)
+                               (functionCall: FunctionCall)
+                               (functionCallNode: AstNode)
+                               : GslResult<ParseFunction * FunctionCall, FunctionInliningError> =
         let neededArgs, passedArgs =
             parseFunction.ArgumentNames.Length, functionCall.Arguments.Length
         // make sure we have the right number of arguments
-        if passedArgs <> neededArgs
-        then GslResult.err (ParameterNumberMismatchError(functionCallNode, functionCall, neededArgs, passedArgs))
-        else GslResult.ok (parseFunction, functionCall)
+        if passedArgs <> neededArgs then
+            GslResult.err (ParameterNumberMismatchError(functionCallNode, functionCall, neededArgs, passedArgs))
+        else
+            GslResult.ok (parseFunction, functionCall)
 
     /// Create a local variable from a typed value.
     let private localVarFromTypedValueAndName (variableBindings: CapturedVariableBindings)
@@ -144,7 +148,7 @@ module Inlining =
 
                 // inline the args into the function call block
                 // this new block replaces the function call
-                checkArgs functionDefinition functionCall node
+                checkArguments functionDefinition functionCall node
                 >>= inlinePassedArgs state.Variables
                 |> GslResult.map AstTreeHead // needed to adapt to the map function
                 >>= FoldMap.map Serial TopDown addPositions

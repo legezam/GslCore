@@ -1,7 +1,6 @@
 namespace GslCore.Ast.Process.VariableResolution
 
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
 

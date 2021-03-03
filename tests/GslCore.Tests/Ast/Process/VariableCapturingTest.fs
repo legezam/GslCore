@@ -1,6 +1,5 @@
 module GslCore.Tests.Ast.Process.VariableCapturingTest
 
-open GslCore.Ast.Process
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Types
 open NUnit.Framework
