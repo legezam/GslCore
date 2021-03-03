@@ -4,6 +4,8 @@ namespace GslCore.GslcProcess
 open Amyris.Bio
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Process.Naming
+open GslCore.Ast.Types
+open GslCore.Core.ResolveExtPart
 open GslCore.Legacy
 open GslCore.Ast.Phase1
 open GslCore.Constants
@@ -43,6 +45,110 @@ module GslProcessError =
         | GslProcessError.PostPhase1Error inner -> inner |> NameCheckError.toAstMessage
         | GslProcessError.Phase2Error inner -> inner |> Phase2Error.toAstMessage
 
+module ExternalPartResolutionError =
+    let toAssemblyTransformationMessage (assembly: Assembly)
+                                        : ExternalPartResolutionError -> AssemblyTransformationMessage<Assembly> =
+        function
+        | ExternalPartResolutionError.UnresolvableReference pid ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf "partId reference %s isn't a defined alias and doesn't start with r for rabit" pid)
+        | ExternalPartResolutionError.UnprocessableRabitModifiers legacyPartId ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf "could not process mods for rabit %s %A" legacyPartId.Id legacyPartId.Modifiers)
+        | ExternalPartResolutionError.UnimplementedExternalPartSpace partSpace ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf "unimplemented external partSpace %s" partSpace)
+
+module MarkerPartExpansionError =
+    let toAssemblyTransformationMessage (assembly: Assembly)
+                                        : MarkerPartExpansionError -> AssemblyTransformationMessage<Assembly> =
+        function
+        | MarkerPartExpansionError.NoProvidersProvided ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                "Marker part substitution, no marker providers available"
+        | MarkerPartExpansionError.UnknownMarkerSet (provided, markers) ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf "unknown marker set %s, expected one of %s" provided (String.concat ", " markers))
+
+module ModifierValidationError =
+    let toAssemblyTransformationMessage (assembly: Assembly)
+                                        : ModifierValidationError -> AssemblyTransformationMessage<Assembly> =
+        function
+        | ModifierValidationError.SliceCoordinateCollision (slice, positions) ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf
+                    "slice left %A greater than right %A %O"
+                     slice.Left.Position
+                     slice.Right.Position
+                     (SourcePosition.formatSourcePositionList positions))
+
+module GenePartExpansionError =
+    let toAssemblyTransformationMessage (assembly: Assembly)
+                                        : GenePartExpansionError -> AssemblyTransformationMessage<Assembly> =
+        function
+        | GenePartExpansionError.ModifierValidation inner ->
+            inner
+            |> ModifierValidationError.toAssemblyTransformationMessage assembly
+        | GenePartExpansionError.UnknownGene (gene, positions) ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf "undefined gene '%s' %O" gene positions)
+        | GenePartExpansionError.UnsupportedApproximateSlices ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf
+                    "sorry, approximate slices of library genes not supported yet in %A"
+                     (LegacyPrettyPrint.assembly assembly))
+        | GenePartExpansionError.UnsupportedDotModifier modifier ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf "Unimplemented dot modifier: %s" modifier)
+        | GenePartExpansionError.SliceWithNegativeLength (slice, genePart) ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                (sprintf
+                    "slice results in negatively lengthed DNA piece for %s -> %s"
+                     genePart.Gene
+                     (slice |> LegacyPrettyPrint.slice))
+
+
+module PartExpansionError =
+    let toAssemblyTransformationMessage (assembly: Assembly)
+                                        : PartExpansionError -> AssemblyTransformationMessage<Assembly> =
+        function
+        | PartExpansionError.UnexpandedHeterologyBlock ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                "unexpanded heterology block encountered during DNA generation"
+
+        | PartExpansionError.UnexpandedInlineProteinSequence ->
+            AssemblyTransformationMessage.messageToAssemblyMessage
+                assembly
+                "unexpanded protein inline encountered during DNA generation"
+
+        | PartExpansionError.ExternalPartResolution innerError ->
+            innerError
+            |> ExternalPartResolutionError.toAssemblyTransformationMessage assembly
+
+        | PartExpansionError.MarkerPart innerError ->
+            innerError
+            |> MarkerPartExpansionError.toAssemblyTransformationMessage assembly
+        | PartExpansionError.GenePart innerError ->
+            innerError
+            |> GenePartExpansionError.toAssemblyTransformationMessage assembly
+
+module AssemblyExpansionError =
+    let toAssemblyTransformationMessage: AssemblyExpansionError -> AssemblyTransformationMessage<Assembly> =
+        function
+        | AssemblyExpansionError.PartExpansion (assembly, innerError) ->
+            innerError
+            |> PartExpansionError.toAssemblyTransformationMessage assembly
 
 module GslcProcess =
     let private lexAndParse verbose gslText =
@@ -123,7 +229,7 @@ module GslcProcess =
             >>= assemblyGathering
 
     /// Convert all assemblies to DnaAssemblies.
-    let materializeDna (s: ConfigurationState) (assem: seq<Assembly>) =
+    let materializeDna (s: ConfigurationState) (assem: Assembly list) =
         let opts, library, rgs =
             s.Options, s.GlobalAssets.SequenceLibrary, s.GlobalAssets.ReferenceGenomes
 
@@ -132,15 +238,14 @@ module GslcProcess =
             |> Behavior.getAllProviders Behavior.getMarkerProviders
 
         if opts.Verbose then
-            printf "Processing %d assemblies\n" (Seq.length assem)
+            printf "Processing %d assemblies\n" (List.length assem)
 
         assem
-        |> Seq.mapi (fun index dnaAssembly ->
+        |> List.mapi (fun index dnaAssembly ->
             try
                 DnaCreation.expandAssembly opts.Verbose markerProviders rgs library index dnaAssembly
-                |> GslResult.ok
+                |> GslResult.mapError AssemblyExpansionError.toAssemblyTransformationMessage
             with ex -> GslResult.err (AssemblyTransformationMessage.exceptionToAssemblyMessage dnaAssembly ex))
-        |> Seq.toList
         |> GslResult.collectA
         >>= (fun assemblies ->
 

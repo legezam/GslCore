@@ -187,6 +187,7 @@ type AssemblyTransformationMessage<'A when 'A :> ISourcePosition> =
         |> String.concat "\n"
 
 module AssemblyTransformationMessage =
+
     /// Convert an exception during assembly transformation into a message.
     let exceptionToAssemblyMessage assembly (exc: System.Exception) =
         { AssemblyTransformationMessage.Message = exc.Message
@@ -194,6 +195,13 @@ module AssemblyTransformationMessage =
           Assembly = assembly
           StackTrace = Some(System.Diagnostics.StackTrace(exc))
           FromException = Some exc }
+
+    let messageToAssemblyMessage assembly message =
+        { AssemblyTransformationMessage.Assembly = assembly
+          Message = message
+          Kind = ATError
+          StackTrace = None
+          FromException = None }
 
 /// Interface specification for output assembly transformations.
 type IAssemblyTransform =

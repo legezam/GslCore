@@ -241,7 +241,7 @@ let handleCompileResult (result: GslResult<Assembly list * AstTreeHead, GslProce
 
         Exit(1, Some(messages |> String.concat "\n\n"))
 
-let doDnaMaterialization (assemblies: Assembly seq, input: GslSourceCode, configurationState: ConfigurationState) =
+let doDnaMaterialization (assemblies: Assembly list, input: GslSourceCode, configurationState: ConfigurationState) =
     Continue(GslcProcess.materializeDna configurationState assemblies, input, configurationState)
 
 let doAssemblyTransform (assemblies: DnaAssembly list, input: GslSourceCode, configurationState: ConfigurationState) =

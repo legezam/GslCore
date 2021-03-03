@@ -2,6 +2,7 @@
 
 open System.IO
 open GslCore
+open GslCore.AstAssertions
 open GslCore.Core
 open GslCore.Core.DnaCreation
 open GslCore.Pragma
@@ -100,7 +101,10 @@ type DnaMaterialization() =
 
     /// retrieve one part and check the coordinates match the DNA returned independently
     let checkOne (test: PartTest) =
-        let dna = materializeOne test.gp test.ppp
+        let dna =
+            materializeOne test.gp test.ppp
+            |> GslResult.assertOk
+
         let fromDna = liftDnaFromChrom dna
 
         Assert.AreEqual
@@ -109,7 +113,9 @@ type DnaMaterialization() =
                  .str)
 
     let checkOneWithProcAssembly testName (template: DNASlice list) (test: PartTest) =
-        let dna = materializeOne test.gp test.ppp
+        let dna =
+            materializeOne test.gp test.ppp
+            |> GslResult.assertOk
 
         // drop test part into template where marker is located
         let parts =
@@ -162,25 +168,37 @@ type DnaMaterialization() =
     [<Test>]
     /// Check basic sequence
     member __.ChecktADH1StartsWith() =
-        let dna = materializeOne test1.gp test1.ppp
+        let dna =
+            materializeOne test1.gp test1.ppp
+            |> GslResult.assertOk
+
         Assert.AreEqual(tADH1Prefix, dna.Dna.[0..tADH1Prefix.Length - 1].str)
 
     [<Test>]
     /// Check basic sequence
     member __.CheckRevtADH1EndsWith() =
-        let dna = materializeOne test3.gp test3.ppp
+        let dna =
+            materializeOne test3.gp test3.ppp
+            |> GslResult.assertOk
+
         Assert.IsTrue(dna.Dna.RevComp().str.StartsWith(tADH1Prefix))
 
     [<Test>]
     /// Check basic sequence
     member __.ChecktABC1StartsWith() =
-        let dna = materializeOne test2.gp test2.ppp
+        let dna =
+            materializeOne test2.gp test2.ppp
+            |> GslResult.assertOk
+
         Assert.AreEqual(tABC1Prefix, dna.Dna.[0..tABC1Prefix.Length - 1].str)
 
     [<Test>]
     /// Check basic sequence
     member __.CheckRevtABC1EndsWith() =
-        let dna = materializeOne test4.gp test4.ppp
+        let dna =
+            materializeOne test4.gp test4.ppp
+            |> GslResult.assertOk
+
         Assert.IsTrue(dna.Dna.RevComp().str.StartsWith(tABC1Prefix))
 
     [<Test>]

@@ -1,7 +1,9 @@
 ﻿namespace GslCore.Core.ResolveExtPart
 
 open FsToolkit.ErrorHandling
+open GslCore.Ast.ErrorHandling
 open GslCore.Core.Types
+open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Legacy.Types
 open GslCore.Legacy
@@ -15,6 +17,12 @@ type ExtFetchSeq =
       Dna: Dna
       Source: string
       Name: string }
+
+[<RequireQualifiedAccess>]
+type ExternalPartResolutionError =    
+    | UnresolvableReference of partId: string
+    | UnprocessableRabitModifiers of partId: LegacyPartId
+    | UnimplementedExternalPartSpace of partSpace: string
 
 module ResolveExtPart =
     let legalPrefixes = [ ("r", "rabit"); ("b", "biobrick") ]
@@ -31,7 +39,11 @@ module ResolveExtPart =
 
         checkPrefix legalPrefixes
 
-    let fetchSequence (verbose: bool) (library: SequenceLibrary) (ppp: PartPlusPragma) (partId: LegacyPartId) =
+    let fetchSequence (verbose: bool)
+                      (library: SequenceLibrary)
+                      (ppp: PartPlusPragma)
+                      (partId: LegacyPartId)
+                      : GslResult<DNASlice, ExternalPartResolutionError> =
         // Sequence can come either from the libary or preferably from the hutch directly
         let pid = partId.Id
 
@@ -46,7 +58,7 @@ module ResolveExtPart =
             |> PragmaCollection.tryGetValue BuiltIn.uriPragmaDef
 
         match legalPartPrefix pid with
-        | None -> failwithf "ERROR: partId reference %s isn't a defined alias and doesn't start with r for rabit\n" pid
+        | None -> GslResult.err (ExternalPartResolutionError.UnresolvableReference pid)
         | Some (partSpace, _) ->
             match partSpace with
             | "rabit" ->
@@ -69,15 +81,15 @@ module ResolveExtPart =
                            match m with
                            | Modifier.Slice _ -> false
                            | _ -> true) then
-                        failwithf "ERROR:  could not process mods for rabit %s %A\n" partId.Id partId.Modifiers
+                        GslResult.err (ExternalPartResolutionError.UnprocessableRabitModifiers partId)
 
                     // Look for simple case.  If we are just using the part from the hutch unadulterated, then
                     // we specify things differently, referring to the external id
-                    if partId.Modifiers.Length = 0 then
+                    else if partId.Modifiers.Length = 0 then
                         let dna =
                             if ppp.IsForward then dna else dna.RevComp()
 
-                        { Id = None
+                        { DNASlice.Id = None
                           ExternalId = Some(pid.[1..])
                           SliceName = sliceName
                           Uri = uri // TODO: use the URI of rabit from hutch here instead?
@@ -106,6 +118,7 @@ module ResolveExtPart =
                           Breed = Breed.X // will be replaced at final submission
                           MaterializedFrom = Some(ppp)
                           Annotations = [] }
+                        |> GslResult.ok
                     else
                         // Otherwise, they are taking a hutch part and doing something to it,
                         // so the hutch is just another DNA source and they are effectively
@@ -136,9 +149,10 @@ module ResolveExtPart =
                             |> DnaOps.revCompIf (not ppp.IsForward)
 
                         let name1 =
-                            if partId.Modifiers.Length = 0
-                            then rabit.Name
-                            else (rabit.Name + (LegacyPrettyPrint.slice finalSlice))
+                            if partId.Modifiers.Length = 0 then
+                                rabit.Name
+                            else
+                                (rabit.Name + (LegacyPrettyPrint.slice finalSlice))
 
                         let name2 =
                             if ppp.IsForward then name1 else "!" + name1
@@ -175,6 +189,7 @@ module ResolveExtPart =
                           Breed = Breed.X // they are hacking rabit, all bets are off
                           MaterializedFrom = Some(ppp)
                           Annotations = [] }
+                        |> GslResult.ok
                 else
                     // Part is in the library
                     let dna = library.[libName]
@@ -204,8 +219,9 @@ module ResolveExtPart =
                       Breed = Breed.X
                       MaterializedFrom = Some(ppp)
                       Annotations = [] }
+                    |> GslResult.ok
 
-            | x -> failwithf "ERROR: unimplemented external partSpace %s\n" x
+            | x -> GslResult.err (ExternalPartResolutionError.UnimplementedExternalPartSpace x)
 
 
     /// Get the full part sequence for this external reference, don't apply any slice mods to it
@@ -325,9 +341,11 @@ module ResolveExtPart =
                 |> DnaOps.revCompIf (not fwd)
 
             let name1 =
-                if partId.Modifiers.Length = 0
-                then extPart.Name
-                else (extPart.Name + (LegacyPrettyPrint.slice finalSlice))
+                if partId.Modifiers.Length = 0 then
+                    extPart.Name
+                else
+                    (extPart.Name
+                     + (LegacyPrettyPrint.slice finalSlice))
 
             let name2 = if fwd then name1 else "!" + name1
 
