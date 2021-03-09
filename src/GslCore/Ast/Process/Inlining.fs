@@ -34,7 +34,7 @@ type FunctionInliningError =
     | MissingFunctionLocalsError of parseFunction: ParseFunction
     | InternalFunctionCallTypeMismatch of node: AstNode
     | InternalFunctionBodyTypeMismatch of node: AstNode
-    | MissingFunctionBody of node: ParseFunction
+    | MissingFunctionBody of parseFunc: ParseFunction * node: AstNode
     | UnresolvedFunction of functionCall: FunctionCall * node: AstNode
 
 module Inlining =
@@ -111,7 +111,7 @@ module Inlining =
                                  (parseFunction: ParseFunction, functionCall: FunctionCall)
                                  : GslResult<AstNode, FunctionInliningError> =
         match parseFunction.Body with
-        | AstNode.Block blockWrapper ->
+        | AstNode.Block blockWrapper as block ->
             match blockWrapper.Value with
             // We require a block whose head is a FunctionLocal or something is fishy.
             | head :: tail ->
@@ -128,7 +128,7 @@ module Inlining =
                             { blockWrapper with
                                   Value = variableBindings @ tail })
                 | _ -> GslResult.err (MissingFunctionLocalsError parseFunction)
-            | [] -> GslResult.err (MissingFunctionBody parseFunction)
+            | [] -> GslResult.err (MissingFunctionBody (parseFunction, block))
         | x -> GslResult.err (InternalFunctionBodyTypeMismatch x)
 
     /// Replace a function call with the contents of a function definition.

@@ -71,6 +71,11 @@ module private FunctionInliningError =
         | InternalFunctionBodyTypeMismatch node -> AstResult.internalTypeMismatchMsg (Some "function body") "Block" node
         | UnresolvedFunction (functionCall, node) ->
             AstResult.errStringMsg AstMessageType.UnresolvedFunction functionCall.Name node
+        | MissingFunctionBody (parseFunction, node) ->
+            AstResult.errStringMsg
+                AstMessageType.GeneralError
+                (sprintf "function '%s' has missing body" parseFunction.Name)
+                node
 
 module private ExpressionReductionMessage =
     open GslCore.Ast.Process.ExpressionReduction
