@@ -17,8 +17,8 @@ module AssemblyGathering =
 
     let private convertAndGatherAssembly (accum: ResizeArray<Assembly>) conversionContext node =
         match node with
-        | AssemblyPart (pieces) ->
-            LegacyConversion.convertAssembly conversionContext pieces
+        | AssemblyPart members ->
+            LegacyConversion.convertAssembly conversionContext members
             |> GslResult.map (fun convertedAssembly ->
                 accum.Add(convertedAssembly)
                 node) // pass the node through unchanged
@@ -26,16 +26,17 @@ module AssemblyGathering =
 
     /// Convert all assembly parts to legacy Assemblies, and gather them in a mutable accumulator.
     /// Return the accumulation if all conversions were successful.
-    let convertAndGatherAssemblies tree =
+    let convertAndGatherAssemblies (astTreeHead: AstTreeHead)
+                                   : GslResult<Assembly list * AstTreeHead, LegacyAssemblyCreationError> =
         let accum = ResizeArray<Assembly>()
 
-        let foldmapParameters =
+        let parameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
               StateUpdate = LegacyConversion.updateConversionContext
               Map = convertAndGatherAssembly accum }
 
-        FoldMap.foldMap AssemblyConversionContext.empty foldmapParameters tree
-        |> GslResult.map (fun treeOut ->
+        FoldMap.foldMap AssemblyConversionContext.empty parameters astTreeHead
+        |> GslResult.map (fun result ->
             // if successful, return the accumulated assemblies and the tree itself
-            (accum |> List.ofSeq), treeOut)
+            (accum |> List.ofSeq), result)

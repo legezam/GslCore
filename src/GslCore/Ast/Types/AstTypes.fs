@@ -29,13 +29,13 @@ type Linker =
     { Linker1: string
       Linker2: string
       Orient: string }
-with
     override this.ToString() =
         sprintf "[Linker O=%s; %s-%s]" this.Orient this.Linker1 this.Linker2
 
-type ParseGene = { Gene: string; Linker: Linker option }
-with
-    override this.ToString () =
+type ParseGene =
+    { Gene: string
+      Linker: Linker option }
+    override this.ToString() =
         match this.Linker with
         | None -> sprintf "[Gene=%s]" this.Gene
         | Some linker -> sprintf "[Gene=%s;Linker=%O]" this.Gene linker
@@ -74,9 +74,9 @@ type GslVariableType =
 /// </summary>
 type AstTreeHead =
     | AstTreeHead of AstNode
-    member this.wrappedNode =
-        match this with
-        | AstTreeHead node -> node
+    member this.wrappedNode = AstTreeHead.WrappedNode this
+
+    static member WrappedNode(AstTreeHead head) = head
 
 
 /// AST for GSL.
@@ -222,12 +222,18 @@ and ParsePart =
       Modifiers: AstNode list
       Pragmas: AstNode list
       IsForward: bool }
-    
-    with
-    
+
     override this.ToString() =
-        let modifiers = this.Modifiers |> List.map (sprintf "%O") |> String.concat ","
-        let pragmas = this.Pragmas |> List.map (sprintf "%O") |> String.concat ","
+        let modifiers =
+            this.Modifiers
+            |> List.map (sprintf "%O")
+            |> String.concat ","
+
+        let pragmas =
+            this.Pragmas
+            |> List.map (sprintf "%O")
+            |> String.concat ","
+
         sprintf "[Base: %O; Mod: %s; Prag: %s]" this.BasePart modifiers pragmas
 
 /// Qualifiers on relative positioning specifications.
@@ -249,22 +255,19 @@ and RelPosQualifier =
 and RelPosPosition =
     | Left
     | Right
-    with
-        override this.ToString() =
-            match this with
-            | Left -> "L"
-            | Right -> "R"
+    override this.ToString() =
+        match this with
+        | Left -> "L"
+        | Right -> "R"
 
 /// Raw Relative Position from parsing. Becomes `RelativePosition`
 and ParseRelativePosition =
     { Item: AstNode
       Qualifier: RelPosQualifier option
       Position: RelPosPosition }
-    
-    with
-        override this.ToString() =
-            
-            sprintf "[RelPos P:%O Q:%A %O]" this.Position this.Qualifier this.Item
+    override this.ToString() =
+
+        sprintf "[RelPos P:%O Q:%A %O]" this.Position this.Qualifier this.Item
 
 /// Slicing.
 and ParseSlice =
@@ -272,12 +275,10 @@ and ParseSlice =
       LeftApprox: bool
       Right: AstNode
       RightApprox: bool }
-    
-    with
-        override this.ToString() =
-            let leftApprox = if this.LeftApprox then "~" else ""
-            let rightApprox = if this.RightApprox then "~" else ""
-            sprintf "[Slice {%s%O-%s%O}]" leftApprox this.Left rightApprox this.Right
+    override this.ToString() =
+        let leftApprox = if this.LeftApprox then "~" else ""
+        let rightApprox = if this.RightApprox then "~" else ""
+        sprintf "[Slice {%s%O-%s%O}]" leftApprox this.Left rightApprox this.Right
 
 // ------ GSL level 2 syntax ------
 
@@ -339,4 +340,3 @@ and Roughage =
             | None -> None // No marker attached to a part either
             | Some (mw) -> Some(mw.Value)
         | Some (mw) -> Some(mw.Value) // Yes there is a marker attached to the locus knockout
-

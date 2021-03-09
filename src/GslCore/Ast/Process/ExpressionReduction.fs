@@ -36,12 +36,6 @@ module ExpressionReduction =
                     (AstNode.Int
                         ({ Value = result
                            Positions = positions }))
-            // If we don't have two ints (because one or both are still variables), we can't reduce but
-            // this is an OK state of affairs.
-            | AllowedInMathExpression _, AllowedInMathExpression _ -> GslResult.ok node
-            // One node is disallowed in a math expression, oh my.
-            | AllowedInMathExpression _, illegal
-            | illegal, AllowedInMathExpression _ -> GslResult.err (TypeIsNotAllowedInBinaryExpression illegal)
             // Neither node is allowed here.  Wow, we sure screwed up somewhere.
             | illegalLeft, illegalRight ->
                 GslResult.err (TypeIsNotAllowedInBinaryExpression illegalLeft)

@@ -34,6 +34,7 @@ type FunctionInliningError =
     | MissingFunctionLocalsError of parseFunction: ParseFunction
     | InternalFunctionCallTypeMismatch of node: AstNode
     | InternalFunctionBodyTypeMismatch of node: AstNode
+    | MissingFunctionBody of node: ParseFunction
     | UnresolvedFunction of functionCall: FunctionCall * node: AstNode
 
 module Inlining =
@@ -42,9 +43,8 @@ module Inlining =
     /// function calls inside other declarations, only at the final expanded call sites.
     let internal collectFunctionDefinition (mode: StateUpdateMode)
                                            (state: FunctionInliningState)
-                                           (node: AstNode)
-                                           : FunctionInliningState =
-        match node with
+                                           : AstNode -> FunctionInliningState =
+        function
         | AstNode.FunctionDef functionWrapper ->
             match mode with
             | PreTransform ->
@@ -84,9 +84,9 @@ module Inlining =
 
     /// Create a local variable from a typed value.
     let private localVarFromTypedValueAndName (variableBindings: CapturedVariableBindings)
-                                              (name: string, node: AstNode)
+                                              (argumentName: string, argumentNode: AstNode)
                                               : GslResult<AstNode, FunctionInliningError> =
-        match node with
+        match argumentNode with
         | AstNode.TypedValue typedValueWrapper ->
             let (varType, typedValue) = typedValueWrapper.Value
             // using the existing variable bindings, resolve any variables contained in this value
@@ -96,8 +96,8 @@ module Inlining =
             |> GslResult.mapError VariableResolution
             |> GslResult.map (fun (AstTreeHead newVal) ->
                 AstNode.VariableBinding
-                    { Value =
-                          { Name = name
+                    { Node.Value =
+                          { VariableBinding.Name = argumentName
                             Type = varType
                             Value = newVal }
                       Positions = typedValueWrapper.Positions })
@@ -114,22 +114,21 @@ module Inlining =
         | AstNode.Block blockWrapper ->
             match blockWrapper.Value with
             // We require a block whose head is a FunctionLocal or something is fishy.
-            | head :: tail when (match head with
-                                 // We require a block whose head is a FunctionLocal or something is fishy.
-                                 | AstNode.FunctionLocals _ -> true
-                                 // We require a block whose head is a FunctionLocal or something is fishy.
-                                 | _ -> false) ->
-                Seq.zip parseFunction.ArgumentNames functionCall.Arguments // zip up the args with the arg names
-                |> Seq.map (localVarFromTypedValueAndName variableBindings) // map them to local variables
-                |> Seq.toList
-                |> GslResult.collectA
-                // if unpacking and conversion succeeded, make a new block with the
-                // variable declarations followed by the rest of the block
-                |> GslResult.map (fun variableBindings ->
-                    AstNode.Block
-                        { blockWrapper with
-                              Value = variableBindings @ tail })
-            | _ -> GslResult.err (MissingFunctionLocalsError parseFunction)
+            | head :: tail ->
+                match head with
+                | AstNode.FunctionLocals _ ->
+                    Seq.zip parseFunction.ArgumentNames functionCall.Arguments // zip up the args with the arg names
+                    |> Seq.map (localVarFromTypedValueAndName variableBindings) // map them to local variables
+                    |> Seq.toList
+                    |> GslResult.collectA
+                    // if unpacking and conversion succeeded, make a new block with the
+                    // variable declarations followed by the rest of the block
+                    |> GslResult.map (fun variableBindings ->
+                        AstNode.Block
+                            { blockWrapper with
+                                  Value = variableBindings @ tail })
+                | _ -> GslResult.err (MissingFunctionLocalsError parseFunction)
+            | [] -> GslResult.err (MissingFunctionBody parseFunction)
         | x -> GslResult.err (InternalFunctionBodyTypeMismatch x)
 
     /// Replace a function call with the contents of a function definition.
@@ -152,7 +151,7 @@ module Inlining =
                 >>= inlinePassedArgs state.Variables
                 |> GslResult.map AstTreeHead // needed to adapt to the map function
                 >>= FoldMap.map Serial TopDown addPositions
-                |> GslResult.map (fun treeHead -> treeHead.wrappedNode)
+                |> GslResult.map AstTreeHead.WrappedNode
 
             | None -> GslResult.err (FunctionInliningError.UnresolvedFunction(functionCall, node))
         | _ -> GslResult.ok node
