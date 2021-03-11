@@ -119,9 +119,7 @@ InlinePragmas:
 // A complete let expression, deriving type from the context.
 TypedVariableDeclaration:
 	| LET ID EQUALS VARIABLE NEWLINE		  { Create.variableBinding $2 NotYetTyped (Utils.tokenToVariable $4 NotYetTyped) }
-    | LET ID EQUALS IntExp NEWLINE            { Create.variableBinding $2 IntType $4 }
-    | LET ID EQUALS StringLiteral NEWLINE     { Create.variableBinding $2 StringType $4 }
-    | LET ID EQUALS FloatLiteral NEWLINE      { Create.variableBinding $2 FloatType $4 }
+    | LET ID EQUALS Exp NEWLINE               { Create.variableBinding $2 NotYetTyped $4 }
     | LET ID EQUALS CompletePart NEWLINE      { Create.variableBinding $2 PartType $4 }
     | LET ID EQUALS AssemblyPart NEWLINE      { Create.variableBinding $2 PartType $4 }
 
@@ -145,9 +143,7 @@ FunctionDeclaration:
 // Things that can be passed as args to functions.
 TypedValue:
 	| VARIABLE      { Create.typedValue NotYetTyped (Utils.tokenToVariable $1 NotYetTyped) } // passing variables to functions
-    | IntExp        { Create.typedValue IntType $1 } // integer expressions
-    | StringLiteral { Create.typedValue StringType $1 }
-    | FloatLiteral  { Create.typedValue FloatType $1 } // no support yet for floating point math
+    | Exp        { Create.typedValue IntType $1 } // integer expressions
     | CompletePart  { Create.typedValue PartType $1 }
     | AssemblyPart  { Create.typedValue PartType $1 }
 
@@ -178,15 +174,17 @@ StringLiteral:
 // integer expressions
 // ==================
 
-IntExp:
-    | IntLiteral                    { $1 }
-    | VARIABLE                      { (Utils.tokenToVariable $1 IntType) }
-    | LPAREN IntExp RPAREN          { $2 }
-    | HYPHEN IntExp %prec UMINUS    { (Create.negation $2) }
-    | IntExp STAR IntExp          { (Create.binaryOperation Multiply $1 $3) }
-    | IntExp SLASH IntExp           { (Create.binaryOperation Divide $1 $3) }
-    | IntExp PLUS IntExp          { (Create.binaryOperation Add $1 $3) }
-    | IntExp HYPHEN IntExp       { (Create.binaryOperation Subtract $1 $3) }
+Exp:
+    | IntLiteral                 { $1 }
+    | StringLiteral              { $1 }
+    | FloatLiteral               { $1 }
+    | VARIABLE                   { (Utils.tokenToVariable $1 NotYetTyped) }
+    | LPAREN Exp RPAREN          { $2 }
+    | HYPHEN Exp %prec UMINUS    { (Create.negation $2) }
+    | Exp STAR Exp               { (Create.binaryOperation Multiply $1 $3) }
+    | Exp SLASH Exp              { (Create.binaryOperation Divide $1 $3) }
+    | Exp PLUS Exp               { (Create.binaryOperation Add $1 $3) }
+    | Exp HYPHEN Exp             { (Create.binaryOperation Subtract $1 $3) }
 
 // ==================
 // parts
@@ -244,8 +242,8 @@ CompletePart:
 // ==================
 
 RelPos:
-    | IntExp      { ($1, None) } // rather than creating these as AST nodes here, we pass them on to Slice so it can apply context
-    | IntExp ID   { ($1, (Some $2)) }
+    | Exp      { ($1, None) } // rather than creating these as AST nodes here, we pass them on to Slice so it can apply context
+    | Exp ID   { ($1, (Some $2)) }
 
 Slice: // Slice ranges of form  [ a : b] where a or b may be qualified with ~ to be approximate
     | OPENSQBRACKET RelPos COLON RelPos CLOSESQBRACKET                { Parts.createParseSlice $2 $4 false false }

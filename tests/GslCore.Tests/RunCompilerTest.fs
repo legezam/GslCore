@@ -12,8 +12,8 @@ let main() =
     
     let argv: string[] =
         [|
-            "--lib"; "/home/legezam/dev/gitlab/demetrixbio/demgslc/src/Demetrix.GslcService/gslc_lib"
-            "/home/legezam/dev/github/demetrixbio/GslCore/foo.gsl"
+            "--lib"; "/home/legezam/dev/gitlab/demetrixbio/demgslc/src/Dmx.GslcService/gslc_lib"
+            "//home/legezam/tmp/demetrix/testing/gsl-string-expression/input.gsl"
         |]
     
     try

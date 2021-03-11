@@ -13,6 +13,7 @@ type ExpressionReductionError =
     | ExpectedNumericVariable of node: AstNode * foundType: GslVariableType
     | TypeIsNotAllowedInBinaryExpression of node: AstNode
     | TypeIsNotAllowedInNegationExpression of node: AstNode
+    | UnsupportedStringOperation of providedOperator: BinaryOperator * node: AstNode
 
 module ExpressionReduction =
 
@@ -24,7 +25,6 @@ module ExpressionReduction =
                                      Positions = positions }) ->
             match binaryOperation.Left, binaryOperation.Right with
             | AstNode.Int left, AstNode.Int right ->
-                // two concrete integers, we can operate on them
                 let result =
                     match binaryOperation.Operator with
                     | Add -> left.Value + right.Value
@@ -36,6 +36,60 @@ module ExpressionReduction =
                     (AstNode.Int
                         ({ Value = result
                            Positions = positions }))
+            | AstNode.Float left, AstNode.Float right ->
+                let result =
+                    match binaryOperation.Operator with
+                    | Add -> left.Value + right.Value
+                    | Subtract -> left.Value - right.Value
+                    | Multiply -> left.Value * right.Value
+                    | Divide -> left.Value / right.Value
+
+                GslResult.ok
+                    (AstNode.Float
+                        ({ Value = result
+                           Positions = positions }))
+            | AstNode.Float leftFloat, AstNode.Int rightInt ->
+                let result =
+                    let right = float rightInt.Value
+                    let left = leftFloat.Value
+
+                    match binaryOperation.Operator with
+                    | Add -> left + right
+                    | Subtract -> left - right
+                    | Multiply -> left * right
+                    | Divide -> left / right
+
+                GslResult.ok
+                    (AstNode.Float
+                        ({ Value = result
+                           Positions = positions }))
+            | AstNode.Int leftInt, AstNode.Float rightFloat ->
+                let result =
+                    let right = rightFloat.Value
+                    let left = float leftInt.Value
+
+                    match binaryOperation.Operator with
+                    | Add -> left + right
+                    | Subtract -> left - right
+                    | Multiply -> left * right
+                    | Divide -> left / right
+
+                GslResult.ok
+                    (AstNode.Float
+                        ({ Value = result
+                           Positions = positions }))
+
+            | AstNode.String left, AstNode.String right ->
+                match binaryOperation.Operator with
+                | Add ->
+                    let result = left.Value + right.Value
+
+                    GslResult.ok
+                        (AstNode.String
+                            { Node.Value = result
+                              Positions = positions })
+                | unsupportedOperator -> GslResult.err (UnsupportedStringOperation(unsupportedOperator, node))
+
             // Neither node is allowed here.  Wow, we sure screwed up somewhere.
             | illegalLeft, illegalRight ->
                 GslResult.err (TypeIsNotAllowedInBinaryExpression illegalLeft)
