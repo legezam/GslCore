@@ -433,12 +433,6 @@ testFunc(&fooPart, &fooInt)
             match errors.[0] with
             | Choice2Of2 msg ->
                 Assert.AreEqual(TypeError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("The variable int has been inferred to have the type Part"))
-            | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
-
-            match errors.[1] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(TypeError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("The variable part has been inferred to have the type Int"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
