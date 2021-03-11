@@ -122,7 +122,7 @@ end
 
     [<Test>]
     member x.TestFunctionCall() =
-        let arg = typedValue IntType (wrapInt 1)
+        let arg = typedValue NotYetTyped (wrapInt 1)
 
         let fCall =
             AstNode.FunctionCall(Node.wrapNode { Name = "foo"; Arguments = [ arg ] })
@@ -135,9 +135,9 @@ end
             "foo(1, 1.000000, \"hello\", gFOO, (gFOO))"
 
         let args =
-            [ typedValue IntType (wrapInt 1)
-              typedValue FloatType (wrapFloat 1.0)
-              typedValue StringType (wrapString "hello")
+            [ typedValue NotYetTyped (wrapInt 1)
+              typedValue NotYetTyped (wrapFloat 1.0)
+              typedValue NotYetTyped (wrapString "hello")
               typedValue PartType (fooGenePart)
               typedValue PartType (assemble [ fooGenePart ]) ]
 

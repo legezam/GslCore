@@ -42,10 +42,10 @@ let addPragsToPart prags a =
 let variableize name v =
     let t =
         match v with
-        | AstNode.BinaryOperation _ -> IntType // right now we only support integer math so this is OK
-        | AstNode.Int _ -> IntType
-        | AstNode.Float _ -> FloatType
-        | AstNode.String _ -> StringType
+        | AstNode.BinaryOperation _ -> NotYetTyped // right now we only support integer math so this is OK
+        | AstNode.Int _ -> NotYetTyped
+        | AstNode.Float _ -> NotYetTyped
+        | AstNode.String _ -> NotYetTyped
         | AstNode.Part _ -> PartType
         | x -> failwithf "Illegal: %A" x
 

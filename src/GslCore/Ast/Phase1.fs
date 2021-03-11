@@ -102,15 +102,10 @@ module Phase1 =
         >=> recursiveCallCheck
         >=> variableResolution
         >=> functionInlining
-     
         >=> stripFunctions
         >=> variableResolutionStrict
-        >=> stripVariables
-        >=> (fun treeHead ->
-            printfn "%s" (treeHead.wrappedNode |> AstNode.decompile)
-            GslResult.ok treeHead)           
+        >=> stripVariables   
         >=> expressionReduction
-
         >=> pragmaBuilding parameters
         >=> pragmaWarningCollection
         >=> relativePositionTranslation

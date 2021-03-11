@@ -935,7 +935,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 146 "./Ast/GslParser.fsy"
-                                        Create.typedValue IntType _1 
+                                           Create.typedValue NotYetTyped _1 
                    )
 # 146 "./Ast/GslParser.fsy"
                  : 'gentype_TypedValue));

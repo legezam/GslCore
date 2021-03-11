@@ -143,7 +143,7 @@ FunctionDeclaration:
 // Things that can be passed as args to functions.
 TypedValue:
 	| VARIABLE      { Create.typedValue NotYetTyped (Utils.tokenToVariable $1 NotYetTyped) } // passing variables to functions
-    | Exp        { Create.typedValue IntType $1 } // integer expressions
+    | Exp           { Create.typedValue NotYetTyped $1 }
     | CompletePart  { Create.typedValue PartType $1 }
     | AssemblyPart  { Create.typedValue PartType $1 }
 
