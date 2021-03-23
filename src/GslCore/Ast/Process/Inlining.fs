@@ -70,12 +70,12 @@ module Inlining =
               Variables = updatedVars }
 
     /// Check that a function call passed the right number of arguments.
-    let private checkArguments (parseFunction: ParseFunction)
-                               (functionCall: FunctionCall)
-                               (functionCallNode: AstNode)
-                               : GslResult<ParseFunction * FunctionCall, FunctionInliningError> =
-        let neededArgs, passedArgs =
-            parseFunction.ArgumentNames.Length, functionCall.Arguments.Length
+    let internal checkArguments (parseFunction: ParseFunction)
+                                (functionCall: FunctionCall)
+                                (functionCallNode: AstNode)
+                                : GslResult<ParseFunction * FunctionCall, FunctionInliningError> =
+        let neededArgs = parseFunction.ArgumentNames.Length
+        let passedArgs = functionCall.Arguments.Length
         // make sure we have the right number of arguments
         if passedArgs <> neededArgs then
             GslResult.err (ParameterNumberMismatchError(functionCallNode, functionCall, neededArgs, passedArgs))
@@ -83,10 +83,10 @@ module Inlining =
             GslResult.ok (parseFunction, functionCall)
 
     /// Create a local variable from a typed value.
-    let private localVarFromTypedValueAndName (variableBindings: CapturedVariableBindings)
-                                              (argumentName: string, argumentNode: AstNode)
-                                              : GslResult<AstNode, FunctionInliningError> =
-        match argumentNode with
+    let internal variableBindingFromTypedValueAndName (variableBindings: CapturedVariableBindings)
+                                                     (name: string, maybeTypedValue: AstNode)
+                                                     : GslResult<AstNode, FunctionInliningError> =
+        match maybeTypedValue with
         | AstNode.TypedValue typedValueWrapper ->
             let (varType, typedValue) = typedValueWrapper.Value
             // using the existing variable bindings, resolve any variables contained in this value
@@ -97,7 +97,7 @@ module Inlining =
             |> GslResult.map (fun (AstTreeHead newVal) ->
                 AstNode.VariableBinding
                     { Node.Value =
-                          { VariableBinding.Name = argumentName
+                          { VariableBinding.Name = name
                             Type = varType
                             Value = newVal }
                       Positions = typedValueWrapper.Positions })
@@ -118,7 +118,7 @@ module Inlining =
                 match head with
                 | AstNode.FunctionLocals _ ->
                     Seq.zip parseFunction.ArgumentNames functionCall.Arguments // zip up the args with the arg names
-                    |> Seq.map (localVarFromTypedValueAndName variableBindings) // map them to local variables
+                    |> Seq.map (variableBindingFromTypedValueAndName variableBindings) // map them to local variables
                     |> Seq.toList
                     |> GslResult.collectA
                     // if unpacking and conversion succeeded, make a new block with the
@@ -128,7 +128,7 @@ module Inlining =
                             { blockWrapper with
                                   Value = variableBindings @ tail })
                 | _ -> GslResult.err (MissingFunctionLocalsError parseFunction)
-            | [] -> GslResult.err (MissingFunctionBody (parseFunction, block))
+            | [] -> GslResult.err (MissingFunctionBody(parseFunction, block))
         | x -> GslResult.err (InternalFunctionBodyTypeMismatch x)
 
     /// Replace a function call with the contents of a function definition.

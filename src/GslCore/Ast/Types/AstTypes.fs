@@ -1,5 +1,5 @@
 ﻿/// Types and functions for AST creation.
-namespace GslCore.Ast.Types
+namespace rec GslCore.Ast.Types
 
 open GslCore.Constants
 open GslCore
@@ -15,7 +15,7 @@ open GslCore
 type DocstringLine = PString
 
 /// Amino acid vs. dna base mutation
-and MutationType =
+type MutationType =
     | AA
     | NT
 
@@ -80,7 +80,7 @@ type AstTreeHead =
 
 
 /// AST for GSL.
-and [<RequireQualifiedAccess>] AstNode =
+type [<RequireQualifiedAccess>] AstNode =
     // leaf nodes that hold values
     | Int of Node<int>
     | Float of Node<float>
@@ -182,14 +182,14 @@ and [<RequireQualifiedAccess>] AstNode =
 
 // ----- general programming nodes ------
 /// A binding from a name to a type and value.
-and VariableBinding =
+type VariableBinding =
     { Name: string
       Type: GslVariableType
       Value: AstNode }
 
 /// A parsed function.
 /// Body should be a Block, and the first line of the block should be FunctionLocals.
-and ParseFunction =
+type ParseFunction =
     { Name: string
       ArgumentNames: string list
       Body: AstNode }
@@ -198,15 +198,15 @@ and ParseFunction =
 /// This is used as a placeholder inside the block to allow for easy block-scoped fold operations.
 /// This is a record type to allow for easy later extension, to add support for advanced features
 /// like functions with default arguments.
-and FunctionLocals = { Names: string list }
+type FunctionLocals = { Names: string list }
 
 /// A function invocation.
-and FunctionCall =
+type FunctionCall =
     { Name: string
       Arguments: AstNode list }
 
 /// Binary operation on two nodes.
-and BinaryOperation =
+type BinaryOperation =
     { Operator: BinaryOperator
       Left: AstNode
       Right: AstNode }
@@ -214,10 +214,10 @@ and BinaryOperation =
 // ----- domain-specific nodes ------
 
 /// Parse type for pragmas.  Values may be variables.
-and ParsePragma = { Name: string; Values: AstNode list }
+type ParsePragma = { Name: string; Values: AstNode list }
 
 /// Enclosing node for recursively-defined parts.
-and ParsePart =
+type ParsePart =
     { BasePart: AstNode
       Modifiers: AstNode list
       Pragmas: AstNode list
@@ -242,7 +242,7 @@ and ParsePart =
 /// A = Amino acid (coordinates are considered in Amino Acid coordinate space)
 /// AS = SA = A
 /// ES = SE
-and RelPosQualifier =
+type RelPosQualifier =
     | S
     | E
     | A
@@ -252,7 +252,7 @@ and RelPosQualifier =
     | EA
 
 /// Which side of the slice expression does this appear?
-and RelPosPosition =
+type RelPosPosition =
     | Left
     | Right
     override this.ToString() =
@@ -261,7 +261,7 @@ and RelPosPosition =
         | Right -> "R"
 
 /// Raw Relative Position from parsing. Becomes `RelativePosition`
-and ParseRelativePosition =
+type ParseRelativePosition =
     { Item: AstNode
       Qualifier: RelPosQualifier option
       Position: RelPosPosition }
@@ -270,7 +270,7 @@ and ParseRelativePosition =
         sprintf "[RelPos P:%O Q:%A %O]" this.Position this.Qualifier this.Item
 
 /// Slicing.
-and ParseSlice =
+type ParseSlice =
     { Left: AstNode
       LeftApprox: bool
       Right: AstNode
@@ -286,7 +286,7 @@ and ParseSlice =
 // the constituent parts as AST nodes for future flexibility.
 
 /// Level 2 identifier.
-and L2Id =
+type L2Id =
     { Prefix: Node<string> option
       Id: Node<string> }
     member this.String =
@@ -296,10 +296,10 @@ and L2Id =
 
 /// Level 2 element, eg pABC1>gDEF2.
 /// Both subnodes should resolve to L2Id.
-and L2Element = { Promoter: AstNode; Target: AstNode }
+type L2Element = { Promoter: AstNode; Target: AstNode }
 
 /// A level 2 expression, eg z^ ; a>b ; c > d
-and L2Expression =
+type L2Expression =
     { Locus: AstNode option
       Parts: AstNode list }
 
@@ -309,7 +309,7 @@ and L2Expression =
 // Because we end up doing a fairly transparent conversion step, we parse a lot of roughage directly
 // into the L2 datatypes.
 
-and RoughagePTPair =
+type RoughagePTPair =
     { Promoter: Node<L2Id>
       Target: Node<L2Id> }
     member this.ToString(dir) =
@@ -317,18 +317,18 @@ and RoughagePTPair =
         | RoughageFwd -> sprintf "%s>%s" this.Promoter.Value.String this.Target.Value.String
         | RoughageRev -> sprintf "%s<%s" this.Target.Value.String this.Promoter.Value.String
 
-and RoughagePartDirection =
+type RoughagePartDirection =
     | RoughageFwd
     | RoughageRev
 
 /// Single part in a roughage expression.
-and RoughageElement =
+type RoughageElement =
     { PromoterAndTarget1: Node<RoughagePTPair>
       PromoterAndTarget2: Node<RoughagePTPair> option
       Marker: Node<string> option }
 
 /// One classic roughage construct.
-and Roughage =
+type Roughage =
     { Locus: Node<L2Id> option
       Marker: Node<string> option
       Parts: Node<RoughageElement> list }

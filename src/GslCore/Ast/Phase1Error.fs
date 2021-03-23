@@ -91,6 +91,8 @@ module private ExpressionReductionMessage =
                 node
         | TypeIsNotAllowedInNegationExpression node ->
             AstResult.errStringMsg TypeError (sprintf "'%s' is not allowed to appear in a negation." node.TypeName) node
+        | UnsupportedStringOperation (operator, node) ->
+            AstResult.errStringMsg TypeError (sprintf "String doesn't support operator %A" operator) node
 
 module private PragmaBuildingError =
     open GslCore.Ast.Process.PragmaBuilding

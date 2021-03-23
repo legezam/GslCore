@@ -59,7 +59,9 @@ module AstNode =
                 elements
                 |> List.iteri (fun i p ->
                     _print p state
-                    if i < nElem - 1 then append " ; ")
+
+                    if i < nElem - 1 then
+                        append " ; ")
 
             match node with
             // print nothing for internal-only nodes
@@ -122,10 +124,16 @@ module AstNode =
                      | ThreePrime -> "E")
             | AstNode.Slice ({ Value = s; Positions = _ }) ->
                 append "["
-                if s.LeftApprox then append "~"
+
+                if s.LeftApprox then
+                    append "~"
+
                 _print s.Left state
                 append ":"
-                if s.RightApprox then append "~"
+
+                if s.RightApprox then
+                    append "~"
+
                 _print s.Right state
                 append "]"
             | AstNode.Mutation ({ Value = mut; Positions = _ }) ->
@@ -184,11 +192,16 @@ module AstNode =
                 // Inner parts should also emit pragmas.
                 let revisedState = { state with IsInsideAssembly = true }
 
-                if not p.IsForward then append "!"
+                if not p.IsForward then
+                    append "!"
 
-                if enclose then append "("
+                if enclose then
+                    append "("
+
                 _print p.BasePart revisedState
-                if enclose then append ")"
+
+                if enclose then
+                    append ")"
 
                 // print the mods
                 for m in p.Modifiers do
@@ -201,7 +214,9 @@ module AstNode =
                     p.Pragmas
                     |> List.iteri (fun i prag ->
                         _print prag revisedState
-                        if i < nPragmas - 1 then append " ")
+
+                        if i < nPragmas - 1 then
+                            append " ")
 
                     append "}"
             | AstNode.Assembly ({ Value = parts; Positions = _ }) ->
@@ -219,7 +234,9 @@ module AstNode =
                 | Some (l) ->
                     _print l state
                     append "^"
-                    if nParts > 0 then append " ; "
+
+                    if nParts > 0 then
+                        append " ; "
                 | None -> ()
 
                 printSemicolonSeparatedList lw.Value.Parts
@@ -407,7 +424,7 @@ type FoldMapParameters<'State, 'Msg> =
       StateUpdate: StateUpdateMode -> 'State -> AstNode -> 'State
       Map: 'State -> AstNode -> NodeTransformResult<'Msg> }
 
-module FoldMap =
+module rec FoldMap =
 
     /// Inner recursive call.
     let rec internal loop (state: 'State)
@@ -441,7 +458,7 @@ module FoldMap =
         postTransformedState, transformedTree
 
     /// Recursive into the children of a node.
-    and internal transformChildren (state: 'State)
+    let internal transformChildren (state: 'State)
                                    (parameters: FoldMapParameters<'State, 'Msg>)
                                    (node: AstNode)
                                    : GslResult<AstNode, 'Msg> =
@@ -477,13 +494,13 @@ module FoldMap =
     /// The only recursive call which should not use this variant is that made
     /// in processBlock, to ensure that state only accumulates over top-level nodes inside
     /// blocks.
-    and internal foldAndDropState (state: 'State)
+    let internal foldAndDropState (state: 'State)
                                   (parameters: FoldMapParameters<'State, 'Msg>)
                                   (node: AstNode)
                                   : GslResult<AstNode, 'Msg> =
         snd (loop state node parameters)
 
-    and internal processRelativePosition (state: 'State)
+    let internal processRelativePosition (state: 'State)
                                          (parameters: FoldMapParameters<'State, 'Msg>)
                                          (node: Node<ParseRelativePosition>)
                                          : GslResult<AstNode, 'Msg> =
@@ -493,7 +510,7 @@ module FoldMap =
 
             AstNode.ParseRelPos { node with Value = updatedWrapper })
 
-    and internal processSlice (state: 'State)
+    let internal processSlice (state: 'State)
                               (parameters: FoldMapParameters<'State, 'Msg>)
                               (node: Node<ParseSlice>)
                               : GslResult<AstNode, 'Msg> =
@@ -512,7 +529,7 @@ module FoldMap =
 
                 AstNode.Slice { node with Value = updatedWrapper })
 
-    and internal processL2Element (state: 'State)
+    let internal processL2Element (state: 'State)
                                   (parameters: FoldMapParameters<'State, 'Msg>)
                                   (node: Node<L2Element>)
                                   : GslResult<AstNode, 'Msg> =
@@ -533,7 +550,7 @@ module FoldMap =
                     ({ node with
                            Value = updatedWrapperValue }))
 
-    and internal processPragma (state: 'State)
+    let internal processPragma (state: 'State)
                                (parameters: FoldMapParameters<'State, 'Msg>)
                                (node: Node<ParsePragma>)
                                : GslResult<AstNode, 'Msg> =
@@ -545,7 +562,7 @@ module FoldMap =
 
             AstNode.ParsePragma { node with Value = updatedValue })
 
-    and internal processFunctionDefinition (state: 'State)
+    let internal processFunctionDefinition (state: 'State)
                                            (parameters: FoldMapParameters<'State, 'Msg>)
                                            (node: Node<ParseFunction>)
                                            : GslResult<AstNode, 'Msg> =
@@ -555,7 +572,7 @@ module FoldMap =
 
             AstNode.FunctionDef { node with Value = updatedValue })
 
-    and internal processFunctionCall (state: 'State)
+    let internal processFunctionCall (state: 'State)
                                      (parameters: FoldMapParameters<'State, 'Msg>)
                                      (node: Node<FunctionCall>)
                                      : GslResult<AstNode, 'Msg> =
@@ -565,7 +582,7 @@ module FoldMap =
 
             AstNode.FunctionCall { node with Value = updatedValue })
 
-    and internal processAssembly (state: 'State)
+    let internal processAssembly (state: 'State)
                                  (parameters: FoldMapParameters<'State, 'Msg>)
                                  (node: Node<AstNode list>)
                                  : GslResult<AstNode, 'Msg> =
@@ -573,7 +590,7 @@ module FoldMap =
         |> GslResult.map (fun newParts -> AstNode.Assembly { node with Value = newParts })
 
     // Parts have quite a few children, so break this out as a function for cleanliness.
-    and internal processPart (state: 'State)
+    let internal processPart (state: 'State)
                              (parameters: FoldMapParameters<'State, 'Msg>)
                              (partWrapper: Node<ParsePart>)
                              : GslResult<AstNode, 'Msg> =
@@ -605,7 +622,7 @@ module FoldMap =
                            Value = updatedParsePart })
 
     // L2 expressions are a bit complicated, so break this out for cleanliness.
-    and internal processL2Expression (state: 'State)
+    let internal processL2Expression (state: 'State)
                                      (parameters: FoldMapParameters<'State, 'Msg>)
                                      (level2Wrapper: Node<L2Expression>)
                                      : GslResult<AstNode, 'Msg> =
@@ -636,7 +653,7 @@ module FoldMap =
     /// this level, we only cascade the state after processing the node one level below this
     /// and no further.  So, simple rule: anything that needs to involve block-scoped state update
     /// needs to be a rule that operates on an immediate child of a block.</summary>
-    and internal processBlock (state: 'State)
+    let internal processBlock (state: 'State)
                               (parameters: FoldMapParameters<'State, 'Msg>)
                               (blockWrapper: Node<AstNode list>)
                               : GslResult<AstNode, 'Msg> =
@@ -657,7 +674,7 @@ module FoldMap =
 
 
     /// Performs processing of each node in a block in parallel, with the same semantics as serial.
-    and internal processBlockParallel (state: 'State)
+    let internal processBlockParallel (state: 'State)
                                       (parameters: FoldMapParameters<'State, 'Msg>)
                                       (blockWrapper: Node<AstNode list>)
                                       : GslResult<AstNode, 'Msg> =
@@ -694,7 +711,7 @@ module FoldMap =
         |> GslResult.collectA
         |> GslResult.map (fun newLines -> AstNode.Block({ blockWrapper with Value = newLines }))
 
-    and internal processVariableBinding (state: 'State)
+    let internal processVariableBinding (state: 'State)
                                         (parameters: FoldMapParameters<'State, 'Msg>)
                                         (node: Node<VariableBinding>)
                                         : GslResult<AstNode, 'Msg> =
@@ -704,7 +721,7 @@ module FoldMap =
 
             AstNode.VariableBinding { node with Value = updatedNodeValue })
 
-    and internal processTypedValue (state: 'State)
+    let internal processTypedValue (state: 'State)
                                    (parameters: FoldMapParameters<'State, 'Msg>)
                                    (node: Node<GslVariableType * AstNode>)
                                    : GslResult<AstNode, 'Msg> =
@@ -713,7 +730,7 @@ module FoldMap =
         (foldAndDropState state parameters typedValue)
         |> GslResult.map (fun newInner -> AstNode.TypedValue { node with Value = gslType, newInner })
 
-    and internal processBinaryOperation (state: 'State)
+    let internal processBinaryOperation (state: 'State)
                                         (parameters: FoldMapParameters<'State, 'Msg>)
                                         (node: Node<BinaryOperation>)
                                         : GslResult<AstNode, 'Msg> =
@@ -732,7 +749,7 @@ module FoldMap =
 
                 AstNode.BinaryOperation { node with Value = updatedWrapper })
 
-    and internal processNegation (state: 'State)
+    let internal processNegation (state: 'State)
                                  (parameters: FoldMapParameters<'State, 'Msg>)
                                  (node: Node<AstNode>)
                                  : GslResult<AstNode, 'Msg> =
