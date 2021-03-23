@@ -157,7 +157,4 @@ let testVariableBindingFromTypedValueAndName (input: {| Bindings: CapturedVariab
                                                         Name: string
                                                         Value: AstNode |})
                                              : GslResult<AstNode, FunctionInliningError> =
-    let result =
-        Inlining.variableBindingFromTypedValueAndName input.Bindings (input.Name, input.Value)
-
-    result
+    Inlining.variableBindingFromTypedValueAndName input.Bindings (input.Name, input.Value)
