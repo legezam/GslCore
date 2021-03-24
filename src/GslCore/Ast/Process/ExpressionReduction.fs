@@ -21,8 +21,8 @@ module ExpressionReduction =
     /// Also collapse negations while we're at it.  If we find something we can't negate, return an error.
     let internal reduceMathExpression (node: AstNode): GslResult<AstNode, ExpressionReductionError> =
         match node with
-        | AstNode.BinaryOperation ({ Node.Value = binaryOperation
-                                     Positions = positions }) ->
+        | AstNode.BinaryOperation { Node.Value = binaryOperation
+                                    Positions = positions } ->
             match binaryOperation.Left, binaryOperation.Right with
             | AstNode.Int left, AstNode.Int right ->
                 let result =

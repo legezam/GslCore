@@ -200,9 +200,17 @@ type TestCasesForReduceExpressions() =
                 .Returns(GslResult.ok (AstNode.Int(createTestNode -2)): GslResult<AstNode, ExpressionReductionError>)
                 .SetName("neg 2 = -2")
 
+            TestCaseData(AstNode.Negation(createTestNode (AstNode.Int(createTestNode -2))))
+                .Returns(GslResult.ok (AstNode.Int(createTestNode 2)): GslResult<AstNode, ExpressionReductionError>)
+                .SetName("neg (-2) = 2")
+
             TestCaseData(AstNode.Negation(createTestNode (AstNode.Float(createTestNode 2.0))))
                 .Returns(GslResult.ok (AstNode.Float(createTestNode -2.0)): GslResult<AstNode, ExpressionReductionError>)
-                .SetName("neg 2.0 = -2.0")        
+                .SetName("neg 2.0 = -2.0")
+
+            TestCaseData(AstNode.Negation(createTestNode (AstNode.Float(createTestNode -2.0))))
+                .Returns(GslResult.ok (AstNode.Float(createTestNode 2.0)): GslResult<AstNode, ExpressionReductionError>)
+                .SetName("neg (-2.0) = 2.0")
 
         } :> IEnumerable
 
