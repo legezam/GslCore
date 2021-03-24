@@ -34,44 +34,51 @@ module private VariableResolutionError =
 
     let toAstMessage: VariableResolutionError -> AstMessage =
         function
-        | TypeCheckError (typeCheckResult, node, variableName) ->
+        | VariableResolutionError.TypeCheck (typeCheckResult, node, variableName) ->
             match typeCheckResult with
-            | ElisionFailure (boundValue, targetType) ->
+            | TypeCheckError.CannotElide (boundValue, targetType) ->
                 AstResult.internalTypeMismatchMsg (Some("variable type checking")) (targetType.ToString()) boundValue
-            | ElisionResolvesToDifferentTypeError (elidedType, targetType) ->
+            | TypeCheckError.ElisionConflict (elidedType, targetType) ->
                 AstResult.variableTypeMismatchMsg variableName elidedType targetType node
 
-        | IllegalFunctionLocal (variableName, node) ->
+        | VariableResolutionError.IllegalFunctionLocal (variableName, node) ->
             AstResult.errStringFMsg
                 (InternalError(AstMessageType.UnresolvedVariable))
                 "A variable resolved to a function local during strict variable resolution: %s"
                 variableName
                 node
-        | UnresolvedVariable (variableName, node) ->
+        | VariableResolutionError.UnresolvedVariable (variableName, node) ->
             AstResult.errStringMsg AstMessageType.UnresolvedVariable variableName node
 
 module private FunctionInliningError =
     open GslCore.Ast.Process.Inlining
 
-    let toAstMessage: FunctionInliningError -> AstMessage =
+    let toAstMessage: InliningError -> AstMessage =
         function
-        | VariableResolution err -> err |> VariableResolutionError.toAstMessage
-        | ParameterNumberMismatchError (functionCallNode, functionCall, neededArgs, passedArgs) ->
-            AstResult.errStringMsg
-                TypeError
-                (sprintf "Function '%s' expects %d arguments but received %d." functionCall.Name neededArgs passedArgs)
-                functionCallNode
-        | MissingFunctionLocalsError parseFunction ->
+        | InliningError.VariableResolution err -> err |> VariableResolutionError.toAstMessage
+        | InliningError.Validation (functionCallNode, innerError) ->
+            match innerError with
+            | FunctionValidationError.ParameterNumberMismatch (functionCall, neededArgs, passedArgs) ->
+                AstResult.errStringMsg
+                    TypeError
+                    (sprintf
+                        "Function '%s' expects %d arguments but received %d."
+                         functionCall.Name
+                         neededArgs
+                         passedArgs)
+                    functionCallNode
+        | InliningError.MissingFunctionLocals parseFunction ->
             AstResult.errStringMsg
                 (InternalError(TypeError))
                 "No function locals node found in function definition block."
                 parseFunction.Body
-        | InternalFunctionCallTypeMismatch node ->
+        | InliningError.FunctionCallTypeMismatch node ->
             AstResult.internalTypeMismatchMsg (Some "function call") "typed value" node
-        | InternalFunctionBodyTypeMismatch node -> AstResult.internalTypeMismatchMsg (Some "function body") "Block" node
-        | UnresolvedFunction (functionCall, node) ->
+        | InliningError.FunctionBodyTypeMismatch node ->
+            AstResult.internalTypeMismatchMsg (Some "function body") "Block" node
+        | InliningError.UnresolvedFunction (functionCall, node) ->
             AstResult.errStringMsg AstMessageType.UnresolvedFunction functionCall.Name node
-        | MissingFunctionBody (parseFunction, node) ->
+        | InliningError.MissingFunctionBody (parseFunction, node) ->
             AstResult.errStringMsg
                 AstMessageType.GeneralError
                 (sprintf "function '%s' has missing body" parseFunction.Name)
@@ -252,7 +259,7 @@ open GslCore.Ast.Linting
 type Phase1Error =
     | RelativePositionTranslationMessage of RelativePositionTranslationMessage
     | VariableResolutionError of VariableResolutionError
-    | FunctionInliningError of FunctionInliningError
+    | FunctionInliningError of InliningError
     | ExpressionReductionError of ExpressionReductionError
     | PragmaBuildingError of PragmaBuildingError
     | AssemblyFlatteningError of AssemblyFlatteningError

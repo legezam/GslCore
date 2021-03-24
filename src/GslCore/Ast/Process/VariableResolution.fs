@@ -58,15 +58,17 @@ module VariableCapturing =
     let internal captureVariableBindings =
         StateUpdateMode.pretransformOnly captureVariableBindingsInner
 
-type TypeCheckResult =
+[<RequireQualifiedAccess>]
+type TypeCheckError =
     /// Value that is passed is not possible to elide
-    | ElisionFailure of boundValue: AstNode * targetType: GslVariableType
+    | CannotElide of boundValue: AstNode * targetType: GslVariableType
     /// Elision resolves to a different type than the target type
-    | ElisionResolvesToDifferentTypeError of elidedType: GslVariableType * targetType: GslVariableType
+    | ElisionConflict of elidedType: GslVariableType * targetType: GslVariableType
 
+[<RequireQualifiedAccess>]
 type VariableResolutionError =
     /// Variable resolution failed during type check
-    | TypeCheckError of result: TypeCheckResult * node: AstNode * variableName: string
+    | TypeCheck of result: TypeCheckError * node: AstNode * variableName: string
     /// Found a FunctionLocal while it is disallowed
     | IllegalFunctionLocal of variableName: string * node: AstNode
     /// Couldn't resolve the variable after all attempts
@@ -89,7 +91,7 @@ module VariableResolution =
     let internal typeCheck (targetType: GslVariableType)
                            (boundValueType: GslVariableType)
                            (boundValue: AstNode)
-                           : GslResult<AstNode, TypeCheckResult> =
+                           : GslResult<AstNode, TypeCheckError> =
         if targetType = NotYetTyped
            || targetType = boundValueType then
             // exact type check or destination is not strongly typed
@@ -100,17 +102,17 @@ module VariableResolution =
             | Some elidedType when elidedType = targetType -> // elides to correct type
                 GslResult.ok boundValue
             | Some elidedType -> // elides to incorrect type
-                GslResult.err (ElisionResolvesToDifferentTypeError(elidedType, targetType))
+                GslResult.err (TypeCheckError.ElisionConflict(elidedType, targetType))
             | None -> // whatever this thing is, it shouldn't be inside a variable
-                GslResult.err (ElisionFailure(boundValue, targetType))
+                GslResult.err (TypeCheckError.CannotElide(boundValue, targetType))
         else
             // type mismatch
-            GslResult.err (ElisionResolvesToDifferentTypeError(boundValueType, targetType))
+            GslResult.err (TypeCheckError.ElisionConflict(boundValueType, targetType))
 
 
     module VariableResolutionError =
         let makeTypeCheckError node variableName tcResult =
-            TypeCheckError(tcResult, node, variableName)
+            VariableResolutionError.TypeCheck(tcResult, node, variableName)
 
     /// Resolve a typed variable to a variable declaration.
     /// If that declaration itself was a variable aliasing (let foo = &bar), recurse
@@ -140,8 +142,8 @@ module VariableResolution =
         | Some VariableResolutionWrapper.FunctionLocal -> // This name resolves to a function local variable.  If we're allowing them, continue.
             match mode with
             | AllowUnresolvedFunctionLocals -> GslResult.ok topNode
-            | Strict -> GslResult.err (IllegalFunctionLocal(variableName, topNode))
-        | None -> GslResult.err (UnresolvedVariable(variableName, topNode))
+            | Strict -> GslResult.err (VariableResolutionError.IllegalFunctionLocal(variableName, topNode))
+        | None -> GslResult.err (VariableResolutionError.UnresolvedVariable(variableName, topNode))
 
     ///Given resolution state and an AST node, possibly resolve a reference.
     let internal resolveVariable (mode: VariableResolutionMode)
