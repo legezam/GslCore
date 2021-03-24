@@ -31,6 +31,7 @@
     <Compile Include="Ast\Process\VariableResolutionTest.fs" />
     <Compile Include="Ast\Process\FunctionCapturingTest.fs" />
     <Compile Include="Ast\Process\FunctionInliningTest.fs" />
+    <Compile Include="Ast\Process\ExpressionReductionTest.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\GslCore\GslCore.fsproj" />

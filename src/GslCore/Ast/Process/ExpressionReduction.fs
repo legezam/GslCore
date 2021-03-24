@@ -19,7 +19,7 @@ module ExpressionReduction =
 
     /// Reduce a fully specified binary expression into a single node.
     /// Also collapse negations while we're at it.  If we find something we can't negate, return an error.
-    let private reduceMathExpression (node: AstNode): GslResult<AstNode, ExpressionReductionError> =
+    let internal reduceMathExpression (node: AstNode): GslResult<AstNode, ExpressionReductionError> =
         match node with
         | AstNode.BinaryOperation ({ Node.Value = binaryOperation
                                      Positions = positions }) ->

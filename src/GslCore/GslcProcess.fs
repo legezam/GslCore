@@ -280,38 +280,46 @@ module GslcProcess =
 
     /// Promote long slices to regular rabits to avoid trying to build
     /// impossibly long things with oligos.
-    let cleanLongSlicesInPartsList (p: PragmaCollection) (l: DNASlice list) =
-        l
-        |> List.map (fun s ->
-            if (s.Type = SliceType.Inline
-                && s.Dna.Length > 30
-                && not
-                    (s.Pragmas
-                     |> PragmaCollection.contains BuiltIn.inlinePragmaDef)) then
-                { s with
+    let cleanLongSlicesInPartsList (pragmas: PragmaCollection) (slices: DNASlice list) =
+        slices
+        |> List.map (fun slice ->
+            let isInline = slice.Type = SliceType.Inline
+            let isLong = slice.Dna.Length > 30
+
+            let mustBeInline =
+                slice.Pragmas
+                |> PragmaCollection.contains BuiltIn.inlinePragmaDef
+
+            if isInline && isLong && not mustBeInline then
+                let source =
+                    match slice.Pragmas
+                          |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
+                    | Some x -> x
+                    | None ->
+                        match pragmas
+                              |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
+                        | None -> "synthetic"
+                        | Some x -> x
+
+                let pragmas =
+                    // add in an amp tag on this guy too, since we are now comitting to
+                    // not placing it inline using primers
+                    match slice.Pragmas
+                          |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
+                    | Some _ -> slice.Pragmas // already there
+                    | None ->
+                        slice.Pragmas
+                        |> PragmaCollection.add
+                            { Pragma.Definition = BuiltIn.ampPragmaDef
+                              Arguments = [] }
+
+                { slice with
                       Type = SliceType.Regular
-                      DnaSource =
-                          match s.Pragmas
-                                |> PragmaCollection.tryGetValue BuiltIn.dnaSrcPragmaDef with
-                          | Some (x) -> x
-                          | None ->
-                              match p
-                                    |> PragmaCollection.tryGetValue BuiltIn.refGenomePragmaDef with
-                              | None -> "synthetic"
-                              | Some (x) -> x
-                      // add in an amp tag on this guy too, since we are now comitting to
-                      // not placing it inline using primers
-                      Pragmas =
-                          match s.Pragmas
-                                |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
-                          | Some _ -> s.Pragmas // already there
-                          | None ->
-                              s.Pragmas
-                              |> PragmaCollection.add
-                                  { Pragma.Definition = BuiltIn.ampPragmaDef
-                                    Arguments = [] } }
+                      DnaSource = source
+                      Pragmas = pragmas }
+
             else
-                s)
+                slice)
 
     /// Promote long slices to regular rabits to avoid trying to build
     /// impossibly long things with oligos.
