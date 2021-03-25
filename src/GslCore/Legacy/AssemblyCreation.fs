@@ -95,7 +95,7 @@ module LegacyConversion =
                                 (node: AstNode)
                                 : AssemblyConversionContext =
         let newPragmaEnv =
-            AssemblyStuffing.updatePragmaEnvironment mode state.PragmaEnvironment node
+            UpdatePragmaEnvironment.update mode state.PragmaEnvironment node
 
         let newDocsEnv =
             Docstrings.updateDocstringEnvironment mode state.Docs node

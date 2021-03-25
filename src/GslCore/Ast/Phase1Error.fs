@@ -156,17 +156,19 @@ module internal AssemblyStuffingError =
 
     let toAstMessage: AssemblyStuffingError -> AstMessage =
         function
-        | CollidingPragmas (incoming, existing, node) ->
-            let formatPragma (pragma: Pragma) = pragma.Arguments |> String.concat " "
+        | AssemblyStuffingError.PragmaMerge (node, inner) ->
+            match inner with
+            | PragmaMergeError.PragmaConflict (incoming, existing) ->
+                let formatPragma (pragma: Pragma) = pragma.Arguments |> String.concat " "
 
-            let msg =
-                sprintf
-                    "The pragma #%s is set in this assembly as well as in the enclosing environment with conflicting values.  Incoming: '%s'.  Existing: '%s'."
-                    existing.Name
-                    (formatPragma incoming)
-                    (formatPragma existing)
+                let msg =
+                    sprintf
+                        "The pragma #%s is set in this assembly as well as in the enclosing environment with conflicting values.  Incoming: '%s'.  Existing: '%s'."
+                        existing.Name
+                        (formatPragma incoming)
+                        (formatPragma existing)
 
-            AstResult.errStringMsg PragmaError msg node
+                AstResult.errStringMsg PragmaError msg node
 
 module private PragmaWarningError =
     open GslCore.Ast.Process.PragmaWarning

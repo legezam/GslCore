@@ -65,9 +65,10 @@ module AssemblyFlattening =
                                               : GslResult<Node<ParsePart> list, AssemblyFlatteningError> =
         let shiftedParts, trailingFuse = parts |> List.fold shiftOne ([], false)
 
-        if trailingFuse
-        then GslResult.err (FlippingTrailingFuse(List.head shiftedParts))
-        else GslResult.ok shiftedParts
+        if trailingFuse then
+            GslResult.err (FlippingTrailingFuse(List.head shiftedParts))
+        else
+            GslResult.ok shiftedParts
 
     /// Replace any pragmas that invert upon reversal with their inverted version.
     let private invertPragma (pragmaBuilder: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
@@ -149,29 +150,30 @@ module AssemblyFlattening =
     // should use an active pattern to match.
     // TODO: we should probably check for pragma collisions and complain about them, though this is
     // before stuffing pragmas into assemblies so it may be an edge case.
-    let private flattenAssembly (parameters: Phase1Parameters) (node: AstNode): GslResult<AstNode, AssemblyFlatteningError> =
+    let private flattenAssembly (parameters: Phase1Parameters)
+                                (node: AstNode)
+                                : GslResult<AstNode, AssemblyFlatteningError> =
         match node with
-        | AssemblyPart (assemblyPart, assemblyBasePart) ->
+        | AssemblyPart (assemblyPart, assemblyMemberParts) ->
             // iterate over the parts in the assembly, accumulating lists of parts we will concatenate
-            assemblyBasePart.Value
-            |> Seq.map (fun part ->
+            assemblyMemberParts.Value
+            |> List.map (fun part ->
                 match part with
                 | AssemblyPart (assemblyPart, assemblyBasePart) ->
                     explodeAssembly parameters.PragmaBuilder assemblyPart assemblyBasePart
                 | x -> GslResult.ok [ x ])
-            |> Seq.toList
             |> GslResult.collectA
             |> GslResult.map (fun partLists ->
                 let newBasePart =
                     AstNode.Assembly
-                        ({ assemblyBasePart with
-                               Value = List.concat partLists })
+                        { assemblyMemberParts with
+                              Value = List.concat partLists }
 
                 AstNode.Part
-                    ({ assemblyPart with
-                           Value =
-                               { assemblyPart.Value with
-                                     BasePart = newBasePart } }))
+                    { assemblyPart with
+                          Value =
+                              { assemblyPart.Value with
+                                    BasePart = newBasePart } })
         | RecursivePart (outer, inner) ->
             // flatten parts that have another part as their base part due to using a single-part variable in an assembly
             collapseRecursivePart outer inner

@@ -4,6 +4,7 @@
 open FsToolkit.ErrorHandling
 open GslCore.Ast
 open GslCore.Ast.Process
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.PcrParamParse
@@ -75,8 +76,6 @@ type TestPragmasAST() =
     let phase1Params =
         { Phase1Parameters.PragmaBuilder = pragmaBuilder
           LegalCapabilities = [ "capa1"; "capa2" ] |> Set.ofList }
-
-
 
     let pragmaBuildPipeline =
         Phase1.variableResolution
@@ -326,9 +325,11 @@ gBAZ"""
         |> stuffPragmasPipeline
         |> GslResult.assertError
         |> function
-        | Phase1Error.AssemblyStuffingError (GslCore.Ast.Process.AssemblyStuffing.CollidingPragmas (incoming,
-                                                                                                    existing,
-                                                                                                    _node)) ->
+        | Phase1Error.AssemblyStuffingError (AssemblyStuffingError.PragmaMerge (_node,
+                                                                                     PragmaMergeError.PragmaConflict (incoming,
+                                                                                                                      existing))) ->
+
             Assert.AreEqual("name", incoming.Name)
+
             Assert.AreEqual("name", existing.Name)
         | x -> Assert.Fail(sprintf "Expecting CollidingPragmas. Got something else instead: %A" x)

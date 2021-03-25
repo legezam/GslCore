@@ -45,8 +45,8 @@ type PragmaScope =
     | BlockOrPart of PragmaPersistence
     member this.ToString =
         match this with
-        | BlockOrPart (b) -> sprintf "Block (%s); Part" (Utils.getUnionCaseName b)
-        | BlockOnly (b) -> sprintf "Block (%s)" (Utils.getUnionCaseName b)
+        | BlockOrPart persistence -> sprintf "Block (%s); Part" (Utils.getUnionCaseName persistence)
+        | BlockOnly persistence -> sprintf "Block (%s)" (Utils.getUnionCaseName persistence)
         | PartOnly -> "Part"
 
 

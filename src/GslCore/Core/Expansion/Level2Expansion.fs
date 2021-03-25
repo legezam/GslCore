@@ -162,7 +162,7 @@ module Level2Expansion =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = AssemblyStuffing.updatePragmaEnvironment
+              StateUpdate = UpdatePragmaEnvironment.update
               Map = bootstrapExpandL2Expression }
 
         FoldMap.foldMap  // run the bootstrapped expand operation

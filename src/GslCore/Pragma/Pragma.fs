@@ -36,11 +36,15 @@ module Pragma =
 
     let isTransient (this: Pragma): bool =
         match this.Definition.Scope with
-        | BlockOnly (Persistent)
-        | BlockOrPart (Persistent)
-        | BlockOnly (PersistentCumulative)
-        | BlockOrPart (PersistentCumulative) -> false
-        | _ -> true
+        | BlockOnly Persistent
+        | BlockOnly PersistentCumulative
+        | BlockOrPart Persistent        
+        | BlockOrPart PersistentCumulative -> false
+        | BlockOnly Transient
+        | BlockOnly TransientCumulative
+        | BlockOrPart Transient
+        | BlockOrPart TransientCumulative
+        | PartOnly -> true
     /// Does this pragma announce the availability of an extension capability?
     let setsCapability (this: Pragma): string option =
         if this.Definition = BuiltIn.capaPragmaDef then Some(this.Arguments.[0].ToLower()) else None

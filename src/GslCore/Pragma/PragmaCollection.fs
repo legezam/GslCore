@@ -16,7 +16,7 @@ open GslCore.Pragma
 /// It should be impossible to add invalid pragmas to this structure without
 /// doing it manually through the underlying map.</summary>
 type PragmaCollection =
-    { Pragmas: Map<string, Pragma>  }
+    { Pragmas: Map<string, Pragma> }
 
     /// Pretty-print a collection of pragmas.
     override x.ToString() =
@@ -37,20 +37,26 @@ module PragmaCollection =
         let pragmas =
             match pragma.Definition.Scope with
             | BlockOnly PersistentCumulative
-            | BlockOrPart PersistentCumulative
             | BlockOnly TransientCumulative
+            | BlockOrPart PersistentCumulative
             | BlockOrPart TransientCumulative ->
                 match this.Pragmas |> Map.tryFind pragma.Name with
                 | None -> this.Pragmas |> Map.add pragma.Name pragma
                 | Some existing ->
                     let newPragma =
                         let newArgs = existing.Arguments @ pragma.Arguments
+
                         existing.Definition
                         |> Pragma.fromDefinition newArgs
                         |> GslResult.valueOr (fun messages -> failwithf "%s" (String.Join(";", messages)))
-                    this.Pragmas |> Map.add pragma.Name newPragma                                              
-                    
-            | _ -> this.Pragmas |> Map.add pragma.Name pragma
+
+                    this.Pragmas |> Map.add pragma.Name newPragma
+
+            | BlockOnly Persistent
+            | BlockOnly Transient
+            | BlockOrPart Persistent
+            | BlockOrPart Transient
+            | PartOnly -> this.Pragmas |> Map.add pragma.Name pragma
 
         { this with Pragmas = pragmas }
 
@@ -129,18 +135,15 @@ module PragmaCollection =
         { Pragmas = pragmas }
 
 
-    let empty =
-        { PragmaCollection.Pragmas = Map.empty }
+    let empty = { PragmaCollection.Pragmas = Map.empty }
 
     /// Determine the current assembly mode from pragma collection.
     let assemblyMode (collection: PragmaCollection): Platform =
         let maybePlatformDefinition =
-            collection
-            |> tryFind BuiltIn.platformPragmaDef
+            collection |> tryFind BuiltIn.platformPragmaDef
 
         match maybePlatformDefinition with
         | Some platformPragma ->
             Platform.parsePlatform platformPragma.Arguments
             |> GslResult.valueOr (fun messages -> messages |> String.concat ";" |> failwith)
         | None -> Megastitch
-
