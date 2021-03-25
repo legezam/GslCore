@@ -5,6 +5,7 @@ open NUnit.Framework
 open GslCore.Uri
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestUri() =
 
     [<Test>]

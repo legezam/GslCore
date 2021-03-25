@@ -6,6 +6,7 @@ open NUnit.Framework
 open Gslc
 
 [<Test>]
+[<Category("Manual")>]
 let main() =
     let bareMinimumPlugins =
         [ BasicCodonProvider.basicCodonProviderPlugin ]

@@ -8,6 +8,7 @@ open Amyris.Dna
 open GslCore.Core
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestSbolProvider() =
 
     [<Test>]

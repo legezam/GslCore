@@ -11,6 +11,7 @@ open GslCore.AstAssertions
 open GslCore.Constants
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestLineNumbers() =
     let rec extractAssemblies (n: AstNode): AstNode list =
         [ match n with

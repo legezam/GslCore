@@ -34,6 +34,7 @@ module SharedSliceTesting =
             | _ -> Assert.IsTrue(e.Dna.Contains(a.Dna), sprintf "expect %s to contain %s" e.SliceName a.SliceName)
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestProcAssembly() =
 
     // enable for detailed (very detailed) output from procAssembly. Useful for debugging test cases

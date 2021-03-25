@@ -63,6 +63,7 @@ module fixtures =
         | x -> failwithf "Illegal: %A" x
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestPluginSystem() =
 
     [<Test>]

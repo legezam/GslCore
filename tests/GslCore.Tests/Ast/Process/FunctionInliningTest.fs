@@ -1,6 +1,7 @@
 module GslCore.Tests.Ast.Process.FunctionInliningTest
 
 open System.Collections
+open System.Diagnostics
 open GslCore.Ast.Algorithms
 open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.VariableResolution
@@ -12,6 +13,7 @@ open NUnit.Framework
 let createTestNode (value: 'a): Node<'a> = { Node.Value = value; Positions = [] }
 
 [<Test>]
+[<Category("Phase1")>]
 let ``checkArguments results in ok if same number of parameters are provided`` () =
     let parseFunction =
         { ParseFunction.Name = "foo"
@@ -26,6 +28,7 @@ let ``checkArguments results in ok if same number of parameters are provided`` (
     |> GslResult.assertOk
 
 [<Test>]
+[<Category("Phase1")>]
 let ``checkArguments results in error if different number of parameters are provided`` () =
     let parseFunction =
         { ParseFunction.Name = "foo"
@@ -150,7 +153,6 @@ type TestCasesForVariableBindingFromTypedValueAndName() =
 
                       .Returns(GslResult.err (InliningError.VariableResolution resolutionError): GslResult<AstNode, InliningError>)
                       .SetName(sprintf "Variable resolution error is respected: %A" resolutionError) ]
-
         [ yield defaultCase
           yield! typingCases
           yield inputFormatCase
@@ -158,6 +160,7 @@ type TestCasesForVariableBindingFromTypedValueAndName() =
 
 [<TestCaseSource(typeof<TestCasesForVariableBindingFromTypedValueAndName>,
                  "TestCasesForVariableBindingFromTypedValueAndName")>]
+[<Category("Phase1")>]
 let createVariableBindingFromTypedValueAndName (input: {| ResolveVariable: AstNode -> NodeTransformResult<VariableResolutionError>
                                                           Name: string
                                                           Value: AstNode |})
@@ -367,7 +370,7 @@ type TestCasesForInlinePassedArguments() =
                             FunctionCall = functionCall |})
                 .Returns(result)
                 .SetName("Inlining does inline multiple arguments using variable binding creation")
-                
+
         let argumentInliningError =
             let functionBody =
                 [ AstNode.FunctionLocals(createTestNode { FunctionLocals.Names = List.empty }) ]
@@ -381,7 +384,9 @@ type TestCasesForInlinePassedArguments() =
                            createTestNode (sprintf "argumentNode%d" index)
                            |> AstNode.String
                        ResolvedError =
-                           InliningError.FunctionCallTypeMismatch (createTestNode (sprintf "ErrorNode%d" index) |> AstNode.String) |} ]
+                           InliningError.FunctionCallTypeMismatch
+                               (createTestNode (sprintf "ErrorNode%d" index)
+                                |> AstNode.String) |} ]
 
             let parseFunction =
                 { ParseFunction.Body = functionBody
@@ -416,8 +421,7 @@ type TestCasesForInlinePassedArguments() =
                             ParseFunction = parseFunction
                             FunctionCall = functionCall |})
                 .Returns(result)
-                .SetName("Inlining respects errors in binding creation in an applicative manner")                
-
+                .SetName("Inlining respects errors in binding creation in an applicative manner")
         [ functionBodyIsNotBlock
           functionBodyIsEmptyBlock
           functionBodyMustStartWithFunctionLocals
@@ -427,8 +431,96 @@ type TestCasesForInlinePassedArguments() =
           argumentInliningError ] :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForInlinePassedArguments>, "TestCasesForInlinePassedArguments")>]
+[<Category("Phase1")>]
 let inlinePassedArguments (input: {| CreateVariableBinding: string -> AstNode -> GslResult<AstNode, InliningError>
                                      ParseFunction: ParseFunction
                                      FunctionCall: FunctionCall |})
                           : GslResult<AstNode, InliningError> =
     Inlining.inlinePassedArguments input.CreateVariableBinding input.ParseFunction input.FunctionCall
+
+/// Tests this simple scenario:
+/// let myFunc(myArg) =
+///     /GCAT/
+/// end
+/// let myVariable = "hello"
+/// myFunc(&myVariable)
+/// Should resolve to:
+/// DO
+/// let myArg = "hello"
+/// /GCAT/
+/// END
+[<Test>]
+[<Category("Phase1")>]
+[<Category("Integration")>]
+let testIntegration () =
+    let someBodyContent = AstNode.InlineDna(createTestNode "GCAT")
+
+    let myFuncDefinition =
+        /// let myFunc(myArg) =
+        ///     /GCAT/
+        /// end
+        { ParseFunction.Name = "myFunc"
+          ArgumentNames = [ "myArg" ]
+          Body =
+              AstNode.Block
+                  (createTestNode [ AstNode.FunctionLocals(createTestNode { FunctionLocals.Names = [ "myArg" ] })
+                                    someBodyContent ]) }
+
+    let myVariableBinding =
+        /// let myVariable = "hello"
+        { VariableBinding.Name = "myVariable"
+          Type = GslVariableType.StringType
+          Value = createTestNode "hello" |> AstNode.String }
+
+    let myVariableDefinition =
+        /// let myVariable = "hello"
+        (createTestNode myVariableBinding)
+
+    let myVariableDefinitionNode =
+        /// let myVariable = "hello"
+        AstNode.VariableBinding myVariableDefinition
+
+    let inliningState =
+        { FunctionInliningState.Definitions = [ "myFunc", myFuncDefinition ] |> Map.ofList
+          Variables =
+              [ "myVariable", VariableResolutionWrapper.VariableBinding myVariableDefinition ]
+              |> Map.ofList
+          Depth = 0 }
+
+    let inputNode =
+        // myFunc(&myVariable)
+        AstNode.FunctionCall
+            (createTestNode
+                { FunctionCall.Name = "myFunc"
+                  Arguments =
+                      [ AstNode.TypedValue
+                          (createTestNode
+                              (GslVariableType.StringType,
+                               AstNode.TypedVariable(createTestNode ("myVariable", GslVariableType.StringType)))) ] })
+
+    let actualResult =
+        Inlining.inlineFunctionCall
+            Inlining.checkArguments
+            Inlining.inlineArgumentsUsingVariableResolution
+            inliningState
+            inputNode
+            
+
+    let inlinedState = actualResult |> GslResult.assertOk
+    printfn "%s" (inlinedState |> AstNode.decompile)    
+
+    let expectedResult: GslResult<AstNode, InliningError> =
+        /// DO
+        /// let myArg = "hello"
+        /// /GCAT/
+        /// END
+        AstNode.Block
+            (createTestNode [ AstNode.VariableBinding
+                                  (createTestNode
+                                      { myVariableBinding with
+                                            Name = "myArg" })
+                              someBodyContent ])
+        |> GslResult.ok
+
+    Assert.AreEqual(expectedResult, actualResult)
+    

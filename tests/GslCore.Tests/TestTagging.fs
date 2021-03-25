@@ -22,6 +22,7 @@ open GslCore.Pragma
 open GslCore.DesignParams
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestTagging() =
 
 

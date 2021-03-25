@@ -13,6 +13,7 @@ open GslCore.Pragma
 open GslCore.DesignParams
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestMapRyseLinkers() =
 
     /// Enable for detailed (very detailed) output from mapRyseLinkers - useful for debugging test cases

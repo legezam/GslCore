@@ -15,6 +15,7 @@ let testLibDir1 = @"../../../../TestGslcLib"
 let testLibDir2 = @"../../../../../TestGslcLib"
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestPromTermLen() =
 
     let emptyPragmas = PragmaCollection.empty

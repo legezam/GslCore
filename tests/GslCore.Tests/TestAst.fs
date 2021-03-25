@@ -16,6 +16,7 @@ open GslCore.Ast.Algorithms
 open GslCore.Constants
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestLinting() =
 
     [<Test>]
@@ -66,6 +67,7 @@ type TestLinting() =
 
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestValidation() =
 
     let assertValidationFail (msgType: AstMessageType)
@@ -137,6 +139,7 @@ type TestValidation() =
         |> ignore
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestTransformation() =
 
 

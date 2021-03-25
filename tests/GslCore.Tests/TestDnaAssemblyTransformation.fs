@@ -62,6 +62,7 @@ module AssemblyTestBase =
           Topology = Linear }
 
 [<TestFixture>]
+[<Category("Integration")>]
 type Test() =
     let runTest assembly expectedSource =
         let transformed =

@@ -26,6 +26,7 @@ type private PartTest =
 
 /// Tests for DNA part retrieval from genome
 [<TestFixture>]
+[<Category("Integration")>]
 type DnaMaterialization() =
     /// location of test gslc_lib fixtures
     let testLibDir1 = @"../../../../TestGslcLib"
@@ -166,6 +167,7 @@ type DnaMaterialization() =
     let testContext2 = [ linkerAlice; placeholder; dFoo ]
 
     [<Test>]
+    [<Category("Integration")>]
     /// Check basic sequence
     member __.ChecktADH1StartsWith() =
         let dna =
@@ -175,6 +177,7 @@ type DnaMaterialization() =
         Assert.AreEqual(tADH1Prefix, dna.Dna.[0..tADH1Prefix.Length - 1].str)
 
     [<Test>]
+    [<Category("Integration")>]
     /// Check basic sequence
     member __.CheckRevtADH1EndsWith() =
         let dna =
@@ -184,6 +187,7 @@ type DnaMaterialization() =
         Assert.IsTrue(dna.Dna.RevComp().str.StartsWith(tADH1Prefix))
 
     [<Test>]
+    [<Category("Integration")>]
     /// Check basic sequence
     member __.ChecktABC1StartsWith() =
         let dna =
@@ -193,6 +197,7 @@ type DnaMaterialization() =
         Assert.AreEqual(tABC1Prefix, dna.Dna.[0..tABC1Prefix.Length - 1].str)
 
     [<Test>]
+    [<Category("Integration")>]
     /// Check basic sequence
     member __.CheckRevtABC1EndsWith() =
         let dna =
@@ -202,49 +207,61 @@ type DnaMaterialization() =
         Assert.IsTrue(dna.Dna.RevComp().str.StartsWith(tABC1Prefix))
 
     [<Test>]
+    [<Category("Integration")>]
     /// fwd gene in genome used in fwd orientation
     member __.CheckFromCoordsFwdGeneFwd() = checkOne test1
 
     [<Test>]
+    [<Category("Integration")>]
     /// rev gene in genome used in fwd orientation
     member __.CheckFromCoordsRevGeneFwd() = checkOne test2
 
     [<Test>]
+    [<Category("Integration")>]
     /// fwd gene in genome used in rev orientation
     member __.CheckFromCoordsFwdGeneRev() = checkOne test3
 
     [<Test>]
+    [<Category("Integration")>]
     /// rev gene in genome used in rev orientation
     member __.CheckFromCoordsRevGeneRev() = checkOne test4
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly1() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly1" testContext1 test1
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly2() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly2" testContext1 test2
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly3() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly3" testContext1 test3
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly4() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly4" testContext1 test4
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly1B() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly1B" testContext2 test1
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly2B() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly2B" testContext2 test2
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly3B() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly3B" testContext2 test3
 
     [<Test>]
+    [<Category("Integration")>]
     member __.CheckFromCoordsProcAssembly4B() =
         checkOneWithProcAssembly "checkFromCoordsProcAssembly4B" testContext2 test4

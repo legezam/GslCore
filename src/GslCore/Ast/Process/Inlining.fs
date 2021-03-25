@@ -134,7 +134,7 @@ module Inlining =
         | x -> GslResult.err (InliningError.FunctionBodyTypeMismatch x)
 
     /// Replace a function call with the contents of a function definition.
-    let private inlineFunctionCall (checkArguments: ParseFunction -> FunctionCall -> GslResult<unit, FunctionValidationError>)
+    let internal inlineFunctionCall (checkArguments: ParseFunction -> FunctionCall -> GslResult<unit, FunctionValidationError>)
                                    (inlineArguments: CapturedVariableBindings -> ParseFunction -> FunctionCall -> GslResult<AstNode, InliningError>)
                                    (state: FunctionInliningState)
                                    (node: AstNode)

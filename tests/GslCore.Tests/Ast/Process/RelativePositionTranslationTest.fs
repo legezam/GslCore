@@ -114,6 +114,7 @@ type TestCasesForCalculatePosition() =
         } :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForCalculatePosition>, "TestCasesForCalculatePosition")>]
+[<Category("Phase1")>]
 let ``Test if calculatePosition returns expected results`` (position: int<OneOffset>,
                                                             maybeQualifier: RelPosQualifier option,
                                                             relPosition: RelPosPosition)
@@ -152,6 +153,7 @@ type TestCasesForGetProvidedPosition() =
         } :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForGetProvidedPosition>, "TestCasesForGetProvidedPosition")>]
+[<Category("Phase1")>]
 let ``Test if getProvidedPosition returns expected results`` (position: ParseRelativePosition)
                                                              : GslResult<int, RelativePositionTranslationMessage> =
     RelativePositionTranslation.getProvidedPosition position

@@ -45,7 +45,6 @@ type TestCasesForFunctionCapturing() =
                 .Returns({ FunctionInliningState.Variables = Map.empty
                            Definitions = Map.empty
                            Depth = 0 })
-                .SetCategory("Function capturing")
                 .SetName("Depth is decreasing in post transform")
 
             TestCaseData({| Node = AstNode.Int { Node.Value = 3; Positions = [] }
@@ -57,7 +56,6 @@ type TestCasesForFunctionCapturing() =
                 .Returns({ FunctionInliningState.Variables = Map.empty
                            Definitions = Map.empty
                            Depth = 0 })
-                .SetCategory("Function capturing")
                 .SetName("Ignores non parsefunction nodes")
 
             let updatedParseFunction =
@@ -80,11 +78,11 @@ type TestCasesForFunctionCapturing() =
                                FunctionInliningState.empty.Definitions
                                |> Map.add testParseFunction.Name updatedParseFunction
                            Depth = 1 })
-                .SetCategory("Function capturing")
                 .SetName("Collected definition get overwritten if another definition with the same name exists")
         } :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForFunctionCapturing>, "TestCasesForFunctionCapturing")>]
+[<Category("Phase1")>]
 let testFunctionCapturing (parameters: {| Node: AstNode
                                           Mode: StateUpdateMode
                                           State: FunctionInliningState |})

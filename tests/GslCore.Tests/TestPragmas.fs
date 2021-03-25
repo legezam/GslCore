@@ -18,6 +18,7 @@ open GslCore.Constants
 open GslCore.Ast.Phase1
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestPragmas() =
     let pragmaBuilder = PragmaBuilder.builtin
 
@@ -66,6 +67,7 @@ type TestPragmas() =
                      "anotherbadargument" ]
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestPragmasAST() =
 
     let pragmaBuilder = PragmaBuilder.builtin

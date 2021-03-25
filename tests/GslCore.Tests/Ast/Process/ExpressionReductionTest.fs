@@ -2,10 +2,8 @@ module GslCore.Tests.Ast.Process.ExpressionReductionTest
 
 open System.Collections
 open GslCore.Ast.Process.ExpressionReduction
-open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Types
 open GslCore.GslResult
-open GslCore.Tests.Ast.Process
 open NUnit.Framework
 
 let createTestNode (value: 'a): Node<'a> = { Node.Value = value; Positions = [] }
@@ -216,5 +214,6 @@ type TestCasesForReduceExpressions() =
 
 
 [<TestCaseSource(typeof<TestCasesForReduceExpressions>, "TestCasesForReduceExpressions")>]
+[<Category("Phase1")>]
 let reduceExpressions (input: AstNode): GslResult<AstNode, ExpressionReductionError> =
     ExpressionReduction.reduceMathExpression input

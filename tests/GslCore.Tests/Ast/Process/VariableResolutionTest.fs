@@ -35,6 +35,7 @@ type TestCasesForTypeElision() =
         } :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForTypeElision>, "TestCasesForTypeElision")>]
+[<Category("Phase1")>]
 let testTypeElision (node: AstNode): GslVariableType option = VariableResolution.elideType node
 
 
@@ -130,6 +131,7 @@ type TestCasesForTypeCheck() =
         } :> IEnumerable
 
 [<TestCaseSource(typeof<TestCasesForTypeCheck>, "TestCasesForTypeCheck")>]
+[<Category("Phase1")>]
 let testTypeCheck (input: {| TargetType: GslVariableType
                              BoundValueType: GslVariableType
                              BoundValue: AstNode |})

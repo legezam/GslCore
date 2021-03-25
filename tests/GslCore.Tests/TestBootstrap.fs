@@ -14,6 +14,7 @@ open GslCore.Legacy
 open GslCore.Core.Expansion.Bootstrapping
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestBootstrapping() =
 
     /// Very dumb expansion rule that just reprints the asseembly.

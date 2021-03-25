@@ -6,6 +6,7 @@ open GslCore.Constants
 open GslCore.Core.Types
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestOrfAnnotation() =
 
     let checkIndices (annotation: OrfAnnotation) (correct: int list) =

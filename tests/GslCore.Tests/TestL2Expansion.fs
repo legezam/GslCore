@@ -15,6 +15,7 @@ open GslCore.Constants
 open GslCore.Core.Expansion.Level2Expansion
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestL2Expansion() =
 
 

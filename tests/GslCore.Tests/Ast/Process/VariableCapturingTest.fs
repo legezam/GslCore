@@ -13,6 +13,7 @@ let testVariableBindingNode =
       Positions = [] }
 
 [<Test>]
+[<Category("Phase1")>]
 let ``captureVariableBindings captures VariableBinding in PreTransform mode`` () =
     let binding = testVariableBindingNode
 
@@ -30,6 +31,7 @@ let ``captureVariableBindings captures VariableBinding in PreTransform mode`` ()
     Assert.AreEqual(expectedResult, result)
 
 [<Test>]
+[<Category("Phase1")>]
 let ``captureVariableBindings does not capture VariableBinding in PostTransform mode`` () =
     let binding = testVariableBindingNode
 
@@ -48,6 +50,7 @@ let ``captureVariableBindings does not capture VariableBinding in PostTransform 
 let testIrrelevantNode = AstNode.Int({ Node.Value = 10; Positions = [] })
 
 [<Test>]
+[<Category("Phase1")>]
 let ``captureVariableBindings does not capture irrelevant node in PostTransform mode`` () =
 
     let inputWrapper = testIrrelevantNode
@@ -72,6 +75,7 @@ let testSelfReferencingVariableBindingNode =
       Positions = [] }
 
 [<Test>]
+[<Category("Phase1")>]
 let ``captureVariableBindings does not capture self-referencing VariableBinding in PreTransform mode`` () =
     let binding = testSelfReferencingVariableBindingNode
 
@@ -91,6 +95,7 @@ let testFunctionLocals =
       Positions = [] }
 
 [<Test>]
+[<Category("Phase1")>]
 let ``captureVariableBindings captures FunctionLocals in PreTransform mode`` () =
     let binding = testFunctionLocals
 
@@ -109,6 +114,7 @@ let ``captureVariableBindings captures FunctionLocals in PreTransform mode`` () 
     Assert.AreEqual(expectedResult, result)
 
 [<Test>]
+[<Category("Phase1")>]
 let ``captureVariableBindings does not capture FunctionLocals in PostTransform mode`` () =
     let binding = testFunctionLocals
 

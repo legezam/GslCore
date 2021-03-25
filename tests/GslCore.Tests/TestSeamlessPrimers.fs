@@ -100,6 +100,7 @@ let dHO =
       Uri = None }
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestSeamlessPrimers() =
     let checkSliceTypes (exp: SliceType list) (actual: SliceType list) =
         if exp <> actual then

@@ -14,6 +14,7 @@ open GslCore.Ast.Algorithms
 open GslCore.Constants
 
 [<TestFixture>]
+[<Category("Integration")>]
 type TestParsing() =
 
     [<Test>]
