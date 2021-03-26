@@ -3,17 +3,17 @@ namespace GslCore.Pragma
 open GslCore.GslResult
 
 
-type PragmaBuilder(pragmas: Map<string, PragmaDefinition>) =
+type PragmaFactory(pragmas: Map<string, PragmaDefinition>) =
     member this.Pragmas = pragmas
 
 [<RequireQualifiedAccess>]
-type PragmaBuilderError =
+type PragmaFactoryError =
     | MissingDefinition of name: string
     | PragmaCreation of PragmaArgumentError
 
-module PragmaBuilder =
+module PragmaFactory =
     /// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
-    let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaBuilder): PragmaDefinition option =
+    let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaFactory): PragmaDefinition option =
         match pragmaDefinition.InvertsTo with
         | None -> None
         | Some name ->
@@ -28,7 +28,7 @@ module PragmaBuilder =
 
                 Some result
 
-    let create (pragmas: PragmaDefinition list): PragmaBuilder =
+    let create (pragmas: PragmaDefinition list): PragmaFactory =
         let pragmaDefinitions =
             pragmas
             |> List.distinctBy LanguagePrimitives.PhysicalHash
@@ -45,7 +45,7 @@ module PragmaBuilder =
                 (pragmaDefinitions.Length)
                 (pragsByName.Count)
 
-        let cache = PragmaBuilder(pragsByName)
+        let cache = PragmaFactory(pragsByName)
         // Make sure any pragmas that invert do it sensibly.
         // Raises an exception if any one doesn't validate.
         for pragmaDefinition in pragmaDefinitions do
@@ -58,7 +58,7 @@ module PragmaBuilder =
     let builtin = BuiltIn.all |> create
 
     /// Print all available pragmas.
-    let printPragmaUsage (cache: PragmaBuilder) =
+    let printPragmaUsage (cache: PragmaFactory) =
         let orderedPragmas =
             cache.Pragmas
             |> Map.toList
@@ -71,11 +71,11 @@ module PragmaBuilder =
     /// Try to build a pragma from a name and values.
     let createPragmaFromNameValue (name: string)
                                   (values: string list)
-                                  (cache: PragmaBuilder)
-                                  : GslResult<Pragma, PragmaBuilderError> =
+                                  (cache: PragmaFactory)
+                                  : GslResult<Pragma, PragmaFactoryError> =
         match cache.Pragmas |> Map.tryFind name with
         | Some definition ->
             definition
             |> Pragma.fromDefinition values
-            |> GslResult.mapError PragmaBuilderError.PragmaCreation
-        | None -> GslResult.err (PragmaBuilderError.MissingDefinition name)
+            |> GslResult.mapError PragmaFactoryError.PragmaCreation
+        | None -> GslResult.err (PragmaFactoryError.MissingDefinition name)

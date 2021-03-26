@@ -13,7 +13,7 @@ open GslCore.Ast.Phase1
 
 
 let defaultPhase1Parameters =
-    { Phase1Parameters.PragmaBuilder = PragmaBuilder.builtin
+    { Phase1Parameters.PragmaBuilder = PragmaFactory.builtin
       LegalCapabilities = Set.empty }
 
 let rec extractAssemblies (n: AstNode): AstNode list =

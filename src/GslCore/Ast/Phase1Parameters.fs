@@ -4,5 +4,5 @@ open GslCore.Pragma
 
 type Phase1Parameters =
     { LegalCapabilities: Capabilities
-      PragmaBuilder: PragmaBuilder }
+      PragmaBuilder: PragmaFactory }
 

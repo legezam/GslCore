@@ -71,13 +71,13 @@ module AssemblyFlattening =
             GslResult.ok shiftedParts
 
     /// Replace any pragmas that invert upon reversal with their inverted version.
-    let private invertPragma (pragmaBuilder: PragmaBuilder) (part: Node<ParsePart>): Node<ParsePart> =
+    let private invertPragma (pragmaBuilder: PragmaFactory) (part: Node<ParsePart>): Node<ParsePart> =
         part
         |> ParsePart.getPragmas
         |> PragmaCollection.values
         |> Seq.map (fun pragma ->
             pragmaBuilder
-            |> PragmaBuilder.inverts pragma.Definition
+            |> PragmaFactory.inverts pragma.Definition
             |> Option.map (fun invertsTo -> { pragma with Definition = invertsTo })
             |> Option.defaultValue pragma)
         |> PragmaCollection.create
@@ -88,7 +88,7 @@ module AssemblyFlattening =
     /// This function encodes the logic that used to reside in MULTIPART expansion.
     /// This function ignores various unexpected conditions, like nodes besides parts inside the assembly.
     ///</summary>
-    let private explodeAssembly (pragmaBuilder: PragmaBuilder)
+    let private explodeAssembly (pragmaBuilder: PragmaFactory)
                                 (assemblyPart: Node<ParsePart>)
                                 (assemblyBasePart: Node<AstNode list>)
                                 : GslResult<AstNode list, AssemblyFlatteningError> =

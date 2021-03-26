@@ -152,7 +152,7 @@ uADH2; dADH2
 
 
     static member PragmaBuilder =
-        PragmaBuilder.createWithBuiltinPragmas [ TaggingPlugin.tagPragmaDef
+        PragmaFactory.createWithBuiltinPragmas [ TaggingPlugin.tagPragmaDef
                                                  TaggingPlugin.gTagPragmaDef ]
 
     [<Test>]

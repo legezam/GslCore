@@ -148,12 +148,12 @@ module private PragmaBuildingError =
                 node
         | PragmaBuildingError.PragmaBuilder (builderError, node) ->
             match builderError with
-            | PragmaBuilderError.MissingDefinition name ->
+            | PragmaFactoryError.MissingDefinition name ->
                 let message =
                     sprintf "Unknown or invalid pragma: '#%s'" name
 
                 AstMessage.createErrorWithStackTrace AstMessageType.PragmaError message node
-            | PragmaBuilderError.PragmaCreation creationError ->
+            | PragmaFactoryError.PragmaCreation creationError ->
                 match creationError with
                 | PragmaArgumentError.Validation message ->
                     AstResult.errStringMsg AstMessageType.PragmaError message node

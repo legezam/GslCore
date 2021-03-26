@@ -11,7 +11,7 @@ type Phase2Parameters =
       Parallel: bool
       Verbose: bool
       LegalCapas: Capabilities
-      PragmaBuilder: PragmaBuilder
+      PragmaBuilder: PragmaFactory
       AlleleSwapProviders: AlleleSwapProvider list
       References: GenomeDefinitions
       CodonTableCache: ICodonProvider }

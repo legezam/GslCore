@@ -21,11 +21,11 @@ type PragmaBuildingError =
     | UndeclaredCapability of capability: string * capabilities: Capabilities * node: AstNode
     | PragmaIsUsedInWrongScope of pragmaName: string * allowedScope: string * usedInScope: string * node: AstNode
     | EmptyPragmaScope of node: AstNode
-    | PragmaBuilder of inner: PragmaBuilderError * node: AstNode
+    | PragmaBuilder of inner: PragmaFactoryError * node: AstNode
     | PragmaDeprecated of depreciation: PragmaDeprecation * node: AstNode
 
 module PragmaBuildingError =
-    let makePragmaBuilderError (node: AstNode) (inner: PragmaBuilderError) =
+    let makePragmaBuilderError (node: AstNode) (inner: PragmaFactoryError) =
         PragmaBuildingError.PragmaBuilder(inner, node)
 
 module PragmaBuilding =
@@ -124,7 +124,7 @@ module PragmaBuilding =
             |> GslResult.collectA
             >>= fun values ->
                     parameters.PragmaBuilder
-                    |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
+                    |> PragmaFactory.createPragmaFromNameValue pragma.Name values
                     |> GslResult.mapError (PragmaBuildingError.makePragmaBuilderError node)
                     >>= (checkDeprecated node)
                     >>= (checkScope contexts node)

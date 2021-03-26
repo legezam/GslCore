@@ -36,7 +36,7 @@ type DnaMaterialization() =
         if Directory.Exists testLibDir1 then testLibDir1 else testLibDir2
 
     let refGenomePragma =
-        PragmaBuilder.createPragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaBuilder.builtin
+        PragmaFactory.createPragmaFromNameValue "refgenome" [ "TestGenome2" ] PragmaFactory.builtin
         |> GslResult.valueOr (fun _ -> failwith "Failure to build refgenome TestGenome2")
 
 

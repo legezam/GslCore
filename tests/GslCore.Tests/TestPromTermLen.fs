@@ -82,7 +82,7 @@ type TestPromTermLen() =
 
     let testPragma name value refGenome expProm expTerm expTermMRNA =
         let pragma =
-            PragmaBuilder.createPragmaFromNameValue name [ value ] PragmaBuilder.builtin
+            PragmaFactory.createPragmaFromNameValue name [ value ] PragmaFactory.builtin
             |> GslResult.valueOr (fun _ -> failwith "building promlen pragma")
 
         let map =
@@ -100,7 +100,7 @@ type TestPromTermLen() =
     member __.TestPragmasExist() =
         let checkPragmaExists name =
             Assert.DoesNotThrow(fun () ->
-                PragmaBuilder.createPragmaFromNameValue name [ "250" ] PragmaBuilder.builtin
+                PragmaFactory.createPragmaFromNameValue name [ "250" ] PragmaFactory.builtin
                 |> GslResult.assertOk
                 |> ignore)
 

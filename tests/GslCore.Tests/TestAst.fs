@@ -29,7 +29,7 @@ type TestLinting() =
         |> GslResult.assertWarning
         |> function
         | Choice2Of2 msg ->
-            Assert.AreEqual(Warning, msg.Type)
+            Assert.AreEqual(AstMessageType.Warning, msg.Type)
             Assert.IsTrue(msg.Message.Contains("The syntax for using a variable has changed"))
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
@@ -44,13 +44,13 @@ type TestLinting() =
         |> fun errors ->
             match errors.[0] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(PragmaError, msg.Type)
+                Assert.AreEqual(AstMessageType.PragmaError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("#push and #pop have been removed"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
             match errors.[1] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(PragmaError, msg.Type)
+                Assert.AreEqual(AstMessageType.PragmaError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("#push and #pop have been removed"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
@@ -94,7 +94,7 @@ type TestValidation() =
 
         let failure =
             assertValidationFail
-                ParserError
+                AstMessageType.ParserError
                 (Some errorText)
                 (Phase1.checkParseError
                  >> GslResult.mapError Phase1Error.toAstMessage)
@@ -111,7 +111,7 @@ type TestValidation() =
             |> GslResult.valueOr (failwithf "%A")
 
         assertValidationFail
-            PartError
+            AstMessageType.PartError
             (Some "Can only apply part mods to Gene or PartId, not Marker")
             (PartValidation.validateModifiers
              >> GslResult.mapError
@@ -129,7 +129,7 @@ type TestValidation() =
             |> GslResult.valueOr (failwithf "%A")
 
         assertValidationFail
-            PartError
+            AstMessageType.PartError
             (Some "Can only apply part mods to Gene or PartId, not Assembly")
             (PartValidation.validateModifiers
              >> GslResult.mapError
@@ -224,13 +224,13 @@ end
         |> fun errors ->
             match errors.[0] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(UnresolvedVariable, msg.Type)
+                Assert.AreEqual(AstMessageType.UnresolvedVariable, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("bar"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
             match errors.[1] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(UnresolvedVariable, msg.Type)
+                Assert.AreEqual(AstMessageType.UnresolvedVariable, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("baz"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
@@ -413,7 +413,7 @@ foo(1)"""
         |> compile variableResolutionPipeline
         |> GslResult.assertError
         |> function
-        | Choice2Of2 msg -> Assert.AreEqual(RecursiveFunctionCall, msg.Type)
+        | Choice2Of2 msg -> Assert.AreEqual(AstMessageType.RecursiveFunctionCall, msg.Type)
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
     [<Test>]
@@ -435,7 +435,7 @@ testFunc(&fooPart, &fooInt)
         |> fun errors ->
             match errors.[0] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(TypeError, msg.Type)
+                Assert.AreEqual(AstMessageType.TypeError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("The variable part has been inferred to have the type Int"))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
@@ -456,13 +456,13 @@ foo(gFOO, pFOO, dFOO)
         |> fun errors ->
             match errors.[0] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(TypeError, msg.Type)
+                Assert.AreEqual(AstMessageType.TypeError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("Function 'foo' expects 2 arguments but received 1."))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
             match errors.[1] with
             | Choice2Of2 msg ->
-                Assert.AreEqual(TypeError, msg.Type)
+                Assert.AreEqual(AstMessageType.TypeError, msg.Type)
                 Assert.IsTrue(msg.Message.Contains("Function 'foo' expects 2 arguments but received 3."))
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 

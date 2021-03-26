@@ -22,7 +22,7 @@ open GslCore.Ast.Phase1
 [<TestFixture>]
 [<Category("Integration")>]
 type TestPragmas() =
-    let pragmaBuilder = PragmaBuilder.builtin
+    let pragmaBuilder = PragmaFactory.builtin
 
     [<Test>]
     member x.TestBadPragmasLocal() =
@@ -33,13 +33,13 @@ type TestPragmas() =
         let goodOption = "test"
 
         Assert.Throws(fun () ->
-            (PragmaBuilder.createPragmaFromNameValue badName [ badOption ] pragmaBuilder)
+            (PragmaFactory.createPragmaFromNameValue badName [ badOption ] pragmaBuilder)
             |> GslResult.valueOr (failwithf "%A")
             |> ignore)
         |> ignore
 
         Assert.DoesNotThrow(fun () ->
-            PragmaBuilder.createPragmaFromNameValue goodName [ goodOption ]
+            PragmaFactory.createPragmaFromNameValue goodName [ goodOption ]
             |> ignore)
 
 
@@ -72,7 +72,7 @@ type TestPragmas() =
 [<Category("Integration")>]
 type TestPragmasAST() =
 
-    let pragmaBuilder = PragmaBuilder.builtin
+    let pragmaBuilder = PragmaFactory.builtin
 
     let phase1Params =
         { Phase1Parameters.PragmaBuilder = pragmaBuilder
@@ -149,7 +149,7 @@ bar("qux")
             |> GslResult.assertError
 
         match error with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaBuilder (PragmaBuilderError.MissingDefinition "verybadpragma",
+        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaBuilder (PragmaFactoryError.MissingDefinition "verybadpragma",
                                                                                           _node))) -> Assert.Pass()
         | x -> Assert.Fail(sprintf "Expecting PragmaBuildingError. Got something else instead: %A" x)
 
@@ -246,7 +246,7 @@ gBAZ"""
             AstNode.Pragma
                 (Node.wrapNode
                     { Definition =
-                          PragmaBuilder
+                          PragmaFactory
                               .builtin
                               .Pragmas
                               .TryFind("seed")
@@ -257,7 +257,7 @@ gBAZ"""
             AstNode.Pragma
                 (Node.wrapNode
                     { Definition =
-                          PragmaBuilder
+                          PragmaFactory
                               .builtin
                               .Pragmas
                               .TryFind("seed")

@@ -42,19 +42,19 @@ gHO^ ; &myAssembly>gACS1"""
 
         match errors.[0] with
         | Choice2Of2 message ->
-            Assert.AreEqual(L2ExpansionError, message.Type)
+            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
             Assert.IsTrue(message.Message.Contains errorText)
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
         match errors.[1] with
         | Choice2Of2 message ->
-            Assert.AreEqual(L2ExpansionError, message.Type)
+            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
             Assert.IsTrue(message.Message.Contains errorText)
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
         match errors.[2] with
         | Choice2Of2 message ->
-            Assert.AreEqual(L2ExpansionError, message.Type)
+            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
             Assert.IsTrue(message.Message.Contains errorText)
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 

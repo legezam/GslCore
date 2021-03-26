@@ -22,7 +22,7 @@ type TestMapRyseLinkers() =
 
     let makePragma name values =
         let p =
-            PragmaBuilder.createPragmaFromNameValue name values PragmaBuilder.builtin
+            PragmaFactory.createPragmaFromNameValue name values PragmaFactory.builtin
             |> GslResult.valueOr (fun _ -> failwith "building pragma")
 
         { Pragmas = [ p.Name, p ] |> Map.ofList }
