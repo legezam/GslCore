@@ -111,9 +111,9 @@ module LexParseError =
             { AstMessage.Message = fullMsg
               SourcePosition = errNode.pos
               Node = errNode
-              Type = ParserError
+              Type = AstMessageType.ParserError
               StackTrace = Some(stackTrace) }
-        | LexParseException (ex, node) -> AstResult.exceptionToError ParserError node ex
+        | LexParseException (ex, node) -> AstResult.exceptionToError AstMessageType.ParserError node ex
 
 
 module LexAndParse =

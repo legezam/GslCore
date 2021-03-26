@@ -17,7 +17,7 @@ module LegacyAssemblyCreationError =
             match paramError with
             | PcrParameterRevisionError err ->
                 let message = err |> PcrParameterParseError.toString
-                AstMessage.createErrorWithStackTrace PragmaError message node
+                AstMessage.createErrorWithStackTrace AstMessageType.PragmaError message node
         | PartCreationError partError ->
             match partError with
             | IllegalSliceConstruction (left, right) ->

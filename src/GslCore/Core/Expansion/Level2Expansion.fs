@@ -125,10 +125,11 @@ module Level2Expansion =
         | AstNode.L2Element e ->
             // if you see an L2 element, check if the promoter looks like an Assembly
             match e.Value.Promoter with
-            | AssemblyPart _ -> AstResult.errString L2ExpansionError "Unsupported use of an Assembly." node
+            | AssemblyPart _ ->
+                AstResult.errString AstMessageType.L2ExpansionError "Unsupported use of an Assembly." node
             | RecursivePart _ ->
                 AstResult.errString
-                    (InternalError L2ExpansionError)
+                    (AstMessageType.InternalError AstMessageType.L2ExpansionError)
                     "Unexpected recursive part definition in L2 promoter position."
                     node
             | _ -> Validation.good

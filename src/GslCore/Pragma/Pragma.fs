@@ -30,6 +30,17 @@ type Pragma =
     override this.ToString() =
         sprintf "#%s %s" this.Name (String.concat " " this.Arguments)
 
+[<RequireQualifiedAccess>]
+type ArgumentShapeError =
+    | ArgumentNumberMismatch of pragmaName: string * expected: int * actual: int * arguments: string list
+    | TooFewArguments of pragmaName: string * expected: int * actual: int * arguments: string list
+    | TooManyArguments of pragmaName: string * expected: int * actual: int * arguments: string list
+    | SetMismatch of pragmaName: string * expectedSet: int list * actual: int * arguments: string list
+
+[<RequireQualifiedAccess>]
+type PragmaArgumentError =
+    | Shape of ArgumentShapeError
+    | Validation of string
 
 module Pragma =
     let getName (this: Pragma): string = this.Definition.Name
@@ -38,7 +49,7 @@ module Pragma =
         match this.Definition.Scope with
         | BlockOnly Persistent
         | BlockOnly PersistentCumulative
-        | BlockOrPart Persistent        
+        | BlockOrPart Persistent
         | BlockOrPart PersistentCumulative -> false
         | BlockOnly Transient
         | BlockOnly TransientCumulative
@@ -54,40 +65,43 @@ module Pragma =
         this.Definition = BuiltIn.warningPragmaDef
     /// Is this pragma a flag to deactivate a warning?
     let ignoresWarning (this: Pragma): string option =
-        if this.Definition = BuiltIn.warnoffPragmaDef
-        then Some(this.Arguments.[0])
-        else None
+        if this.Definition = BuiltIn.warnoffPragmaDef then
+            Some(this.Arguments.[0])
+        else
+            None
     /// Is this pragma a #capa directive?
     let isCapa (this: Pragma): bool = this.Definition = BuiltIn.capaPragmaDef
     /// Helper function to check the list of args for a particular value.
     let hasVal (value: string) (this: Pragma): bool = List.contains value this.Arguments
 
-
     /// Validated pragma construction during parsing
-    let fromDefinition (arguments: string list) (pragmaDefinition: PragmaDefinition): GslResult<Pragma, string> =
+    let fromDefinition (arguments: string list)
+                       (pragmaDefinition: PragmaDefinition)
+                       : GslResult<Pragma, PragmaArgumentError> =
         let name = pragmaDefinition.Name
 
         // check that the right number of arguments were supplied
-        let nArg = arguments.Length
+        let numOfArguments = arguments.Length
 
-        let checkNArgs n =
-            if nArg <> n
-            then GslResult.err (sprintf "Pragma #%s expected %d argument(s) but got %d: %A" name n nArg arguments)
-            else GslResult.ok ()
+        let checkNArgs expected =
+            if numOfArguments <> expected then
+                GslResult.err (ArgumentShapeError.ArgumentNumberMismatch(name, expected, numOfArguments, arguments))
+            else
+                GslResult.ok ()
 
         let checkMinArgs min =
-            if nArg < min
-            then GslResult.err
-                     (sprintf "Pragma #%s expected at least %d argument(s) but got %d: %A" name min nArg arguments)
-            else GslResult.ok ()
+            if numOfArguments < min then
+                GslResult.err (ArgumentShapeError.TooFewArguments(name, min, numOfArguments, arguments))
+            else
+                GslResult.ok ()
 
         let checkMaxArgs max _ =
-            if nArg > max
-            then GslResult.err
-                     (sprintf "Pragma #%s expected at most %d argument(s) but got %d: %A" name max nArg arguments)
-            else GslResult.ok ()
+            if numOfArguments > max then
+                GslResult.err (ArgumentShapeError.TooManyArguments(name, max, numOfArguments, arguments))
+            else
+                GslResult.ok ()
 
-        let checkArgShape (): GslResult<unit, string> =
+        let checkArgShape (): GslResult<unit, ArgumentShapeError> =
             match pragmaDefinition.Shape with
             | Zero -> checkNArgs 0
             | One -> checkNArgs 1
@@ -95,21 +109,17 @@ module Pragma =
             | AtLeast n -> checkMinArgs n
             | Range (min, max) -> checkMinArgs min >>= checkMaxArgs max
             | ExactlySet vals ->
-                if not (vals |> List.contains nArg) then
-                    GslResult.err
-                        (sprintf
-                            "Pragma %s expected any number of arguments in the set %A but got %d: %A"
-                             name
-                             vals
-                             nArg
-                             arguments)
+                if not (vals |> List.contains numOfArguments) then
+                    GslResult.err (ArgumentShapeError.SetMismatch(name, vals, numOfArguments, arguments))
                 else
                     GslResult.ok ()
 
-        let validateArgs (): PragmaValidationResult = pragmaDefinition.Validate arguments
+        let validateArgs _: GslResult<unit, string> = pragmaDefinition.Validate arguments
 
         checkArgShape ()
-        >>= validateArgs
-        |> GslResult.map (fun () ->
+        |> GslResult.mapError PragmaArgumentError.Shape
+        >>= (validateArgs
+             >> GslResult.mapError PragmaArgumentError.Validation)
+        |> GslResult.map (fun _ ->
             { Pragma.Definition = pragmaDefinition
               Arguments = arguments })

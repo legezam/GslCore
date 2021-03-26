@@ -5,6 +5,7 @@ open FsToolkit.ErrorHandling
 open GslCore.Ast
 open GslCore.Ast.Process
 open GslCore.Ast.Process.AssemblyStuffing
+open GslCore.Ast.Process.PragmaBuilding
 open GslCore.DesignParams
 open GslCore.GslResult
 open GslCore.PcrParamParse
@@ -148,14 +149,9 @@ bar("qux")
             |> GslResult.assertError
 
         match error with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaCreationError (message,
-                                                                                                               _node))) ->
-            if message.Contains "verybadpragma" then
-                Assert.Pass()
-            else
-                Assert.Fail
-                    (sprintf "Expected error message that contains reference to #verybadpragma. Instead got: %s" message)
-        | x -> Assert.Fail(sprintf "Expecting PragmaCreationError. Got something else instead: %A" x)
+        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaBuilder (PragmaBuilderError.MissingDefinition "verybadpragma",
+                                                                                          _node))) -> Assert.Pass()
+        | x -> Assert.Fail(sprintf "Expecting PragmaBuildingError. Got something else instead: %A" x)
 
     [<Test>]
     member x.TestBadPragmaScopes() =
@@ -168,19 +164,19 @@ bar("qux")
             |> GslResult.assertErrors
 
         match errors.[0] with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaIsUsedInWrongScope (name,
-                                                                                                                    _allowedScope,
-                                                                                                                    usedScope,
-                                                                                                                    _node))) ->
+        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaIsUsedInWrongScope (name,
+                                                                                                     _allowedScope,
+                                                                                                     usedScope,
+                                                                                                     _node))) ->
             Assert.AreEqual("fuse", name)
             Assert.AreEqual("block-level", usedScope)
         | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
 
         match errors.[1] with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaIsUsedInWrongScope (name,
-                                                                                                                    _allowedScope,
-                                                                                                                    usedScope,
-                                                                                                                    _node))) ->
+        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaIsUsedInWrongScope (name,
+                                                                                                     _allowedScope,
+                                                                                                     usedScope,
+                                                                                                     _node))) ->
             Assert.AreEqual("capa", name)
             Assert.AreEqual("part-level", usedScope)
         | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
@@ -197,14 +193,12 @@ bar("qux")
             |> GslResult.assertWarnings
 
         match warnings.[0] with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaDeprecated (deprecation,
-                                                                                                            _node))) ->
+        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaDeprecated (deprecation, _node))) ->
             Assert.AreEqual("stitch", deprecation.Name)
         | x -> Assert.Fail(sprintf "Expecting PragmaDeprecated. Got something else instead: %A" x)
 
         match warnings.[1] with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (GslCore.Ast.Process.PragmaBuilding.PragmaDeprecated (deprecation,
-                                                                                                            _node))) ->
+        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaDeprecated (deprecation, _node))) ->
             Assert.AreEqual("stitch", deprecation.Name)
         | x -> Assert.Fail(sprintf "Expecting PragmaDeprecated. Got something else instead: %A" x)
 
@@ -326,8 +320,8 @@ gBAZ"""
         |> GslResult.assertError
         |> function
         | Phase1Error.AssemblyStuffingError (AssemblyStuffingError.PragmaMerge (_node,
-                                                                                     PragmaMergeError.PragmaConflict (incoming,
-                                                                                                                      existing))) ->
+                                                                                PragmaMergeError.PragmaConflict (incoming,
+                                                                                                                 existing))) ->
 
             Assert.AreEqual("name", incoming.Name)
 

@@ -20,7 +20,10 @@ module BootstrapError =
             let contextMsg =
                 sprintf "An error occurred while parsing this internally-generated GSL source code:\n%s" node.Value
 
-            AstMessage.createErrorWithStackTrace (InternalError(ParserError)) contextMsg (AstNode.String node)
+            AstMessage.createErrorWithStackTrace
+                (AstMessageType.InternalError(AstMessageType.ParserError))
+                contextMsg
+                (AstNode.String node)
         | BootstrapError.ExternalOperation externalError -> formatExternalError externalError
         | BootstrapError.Unpack (expectedType, maybeNote, node) ->
             let extraText =
@@ -31,7 +34,7 @@ module BootstrapError =
             let msg =
                 sprintf "Unable to unpack as a '%s'.%s" expectedType extraText
 
-            AstResult.errStringMsg (BootstrapError(Some(node))) msg node
+            AstResult.errStringMsg (AstMessageType.BootstrapError(Some(node))) msg node
 
 module BootstrapExpandAssemblyError =
     let toAstMessage (formatBootstrapError: 'a -> AstMessage)
@@ -54,7 +57,7 @@ module BootstrapExecutionError =
 module Level2ExpansionError =
     let toAstMessage: Level2ExpansionError -> AstMessage =
         function
-        | ExpansionException (ex, node) -> AstResult.exceptionToError L2ExpansionError node ex
+        | ExpansionException (ex, node) -> AstResult.exceptionToError AstMessageType.L2ExpansionError node ex
         | L2LineCreationError innerError -> LegacyL2LineCreationError.toAstMessage innerError
         | AssemblyStuffingFailure innerError -> AssemblyStuffingError.toAstMessage innerError
         | BoostrapError innerError -> BootstrapError.toAstMessage Phase1Error.toAstMessage innerError

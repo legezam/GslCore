@@ -1,6 +1,7 @@
 namespace GslCore.Ast.Phase1
 
 open GslCore.Ast.ErrorHandling
+open GslCore.Pragma
 
 
 module NoMessage =
@@ -15,17 +16,20 @@ module private RelativePositionTranslationMessage =
             match calcError with
             | NegativeLeftAminoAcidStartPosition position ->
                 AstMessage.createErrorWithStackTrace
-                    ValueError
+                    AstMessageType.ValueError
                     (sprintf "Cannot begin with a negative amino acid offset: %d" position)
                     node
 
             | NegativeRightAminoAcidStartPosition position ->
                 AstMessage.createErrorWithStackTrace
-                    ValueError
+                    AstMessageType.ValueError
                     (sprintf "Cannot offset negative amino acids from start: %d" position)
                     node
             | PositionCannotBeZero ->
-                AstMessage.createErrorWithStackTrace ValueError (sprintf "Slice index cannot be zero") node
+                AstMessage.createErrorWithStackTrace
+                    AstMessageType.ValueError
+                    (sprintf "Slice index cannot be zero")
+                    node
 
         | PositionIsNotInteger node -> AstResult.internalTypeMismatchMsg (Some "relative position building") "Int" node
 
@@ -43,7 +47,7 @@ module private VariableResolutionError =
 
         | VariableResolutionError.IllegalFunctionLocal (variableName, node) ->
             AstResult.errStringFMsg
-                (InternalError(AstMessageType.UnresolvedVariable))
+                (AstMessageType.InternalError(AstMessageType.UnresolvedVariable))
                 "A variable resolved to a function local during strict variable resolution: %s"
                 variableName
                 node
@@ -60,7 +64,7 @@ module private FunctionInliningError =
             match innerError with
             | FunctionValidationError.ParameterNumberMismatch (functionCall, neededArgs, passedArgs) ->
                 AstResult.errStringMsg
-                    TypeError
+                    AstMessageType.TypeError
                     (sprintf
                         "Function '%s' expects %d arguments but received %d."
                          functionCall.Name
@@ -69,7 +73,7 @@ module private FunctionInliningError =
                     functionCallNode
         | InliningError.MissingFunctionLocals parseFunction ->
             AstResult.errStringMsg
-                (InternalError(TypeError))
+                (AstMessageType.InternalError(AstMessageType.TypeError))
                 "No function locals node found in function definition block."
                 parseFunction.Body
         | InliningError.FunctionCallTypeMismatch node ->
@@ -90,31 +94,37 @@ module private ExpressionReductionMessage =
     let toAstMessage: ExpressionReductionError -> AstMessage =
         function
         | ExpectedNumericVariable (node, foundType) ->
-            AstResult.errStringMsg TypeError (sprintf "Expecting a numeric variable type, but found %O." foundType) node
+            AstResult.errStringMsg
+                AstMessageType.TypeError
+                (sprintf "Expecting a numeric variable type, but found %O." foundType)
+                node
         | TypeIsNotAllowedInBinaryExpression node ->
             AstResult.errStringMsg
-                TypeError
+                AstMessageType.TypeError
                 (sprintf "'%s' is not allowed to appear in a numeric binary operation." node.TypeName)
                 node
         | TypeIsNotAllowedInNegationExpression node ->
-            AstResult.errStringMsg TypeError (sprintf "'%s' is not allowed to appear in a negation." node.TypeName) node
+            AstResult.errStringMsg
+                AstMessageType.TypeError
+                (sprintf "'%s' is not allowed to appear in a negation." node.TypeName)
+                node
         | UnsupportedStringOperation (operator, node) ->
-            AstResult.errStringMsg TypeError (sprintf "String doesn't support operator %A" operator) node
+            AstResult.errStringMsg AstMessageType.TypeError (sprintf "String doesn't support operator %A" operator) node
 
 module private PragmaBuildingError =
     open GslCore.Ast.Process.PragmaBuilding
 
     let toAstMessage: PragmaBuildingError -> AstMessage =
         function
-        | UnresolvedVariableInPragma (node, variableName) ->
+        | PragmaBuildingError.UnresolvedVariableInPragma (node, variableName) ->
             AstResult.errStringFMsg
-                (InternalError(UnresolvedVariable))
+                (AstMessageType.InternalError(AstMessageType.UnresolvedVariable))
                 "Unresolved variable in pragma: '%s'"
                 variableName
                 node
-        | IllegalPragmaArgumentType argumentNode ->
+        | PragmaBuildingError.IllegalPragmaArgumentType argumentNode ->
             AstResult.internalTypeMismatchMsg (Some "pragma value") "String, Int, or Float" argumentNode
-        | UndeclaredCapability (capability, legalCapas, node) ->
+        | PragmaBuildingError.UndeclaredCapability (capability, legalCapas, node) ->
             let legalCapas =
                 legalCapas
                 |> Set.toList
@@ -124,18 +134,73 @@ module private PragmaBuildingError =
             let msg =
                 sprintf "Undeclared capability: %s.  Declared capabilities are %s" capability legalCapas
 
-            AstResult.errStringMsg PragmaError msg node
+            AstResult.errStringMsg AstMessageType.PragmaError msg node
 
-        | PragmaIsUsedInWrongScope (pragmaName, allowedScope, usedInScope, node) ->
+        | PragmaBuildingError.PragmaIsUsedInWrongScope (pragmaName, allowedScope, usedInScope, node) ->
             let msg =
                 sprintf "#%s is used at %s, but is restricted to %s." pragmaName usedInScope allowedScope
 
-            AstResult.errStringMsg PragmaError msg node
-        | EmptyPragmaScope node ->
-            AstResult.errStringMsg (InternalError(PragmaError)) "Pragma scope context is empty." node
-        | PragmaCreationError (message, node) -> AstMessage.createErrorWithStackTrace PragmaError message node
-        | PragmaDeprecated (depreciation, node) ->
-            AstMessage.create None DeprecationWarning depreciation.WarningMessage node
+            AstResult.errStringMsg AstMessageType.PragmaError msg node
+        | PragmaBuildingError.EmptyPragmaScope node ->
+            AstResult.errStringMsg
+                (AstMessageType.InternalError(AstMessageType.PragmaError))
+                "Pragma scope context is empty."
+                node
+        | PragmaBuildingError.PragmaBuilder (builderError, node) ->
+            match builderError with
+            | PragmaBuilderError.MissingDefinition name ->
+                let message =
+                    sprintf "Unknown or invalid pragma: '#%s'" name
+
+                AstMessage.createErrorWithStackTrace AstMessageType.PragmaError message node
+            | PragmaBuilderError.PragmaCreation creationError ->
+                match creationError with
+                | PragmaArgumentError.Validation message ->
+                    AstResult.errStringMsg AstMessageType.PragmaError message node
+                | PragmaArgumentError.Shape argShapeError ->
+                    match argShapeError with
+                    | ArgumentShapeError.SetMismatch (name, vals, numOfArguments, arguments) ->
+                        let message =
+                            sprintf
+                                "Pragma %s expected any number of arguments in the set %A but got %d: %A"
+                                name
+                                vals
+                                numOfArguments
+                                arguments
+
+                        AstResult.errStringMsg AstMessageType.PragmaError message node
+                    | ArgumentShapeError.ArgumentNumberMismatch (name, expected, numOfArguments, arguments) ->
+                        let message =
+                            sprintf
+                                "Pragma #%s expected %d argument(s) but got %d: %A"
+                                name
+                                expected
+                                numOfArguments
+                                arguments
+
+                        AstResult.errStringMsg AstMessageType.PragmaError message node
+                    | ArgumentShapeError.TooFewArguments (name, min, numOfArguments, arguments) ->
+                        let message =
+                            sprintf
+                                "Pragma #%s expected at least %d argument(s) but got %d: %A"
+                                name
+                                min
+                                numOfArguments
+                                arguments
+
+                        AstResult.errStringMsg AstMessageType.PragmaError message node
+                    | ArgumentShapeError.TooManyArguments (name, max, numOfArguments, arguments) ->
+                        let message =
+                            sprintf
+                                "Pragma #%s expected at most %d argument(s) but got %d: %A"
+                                name
+                                max
+                                numOfArguments
+                                arguments
+
+                        AstResult.errStringMsg AstMessageType.PragmaError message node
+        | PragmaBuildingError.PragmaDeprecated (depreciation, node) ->
+            AstMessage.create None AstMessageType.DeprecationWarning depreciation.WarningMessage node
 
 module private AssemblyFlatteningError =
     open GslCore.Ast.Types
@@ -145,14 +210,13 @@ module private AssemblyFlatteningError =
         function
         | FlippingTrailingFuse part ->
             AstResult.errStringMsg
-                PragmaError
+                AstMessageType.PragmaError
                 "Found a trailing #fuse in an assembly that needs to flip."
                 (AstNode.Part part)
         | PragmaMergeError msg -> msg
 
 module internal AssemblyStuffingError =
     open GslCore.Ast.Process.AssemblyStuffing
-    open GslCore.Pragma
 
     let toAstMessage: AssemblyStuffingError -> AstMessage =
         function
@@ -168,7 +232,7 @@ module internal AssemblyStuffingError =
                         (formatPragma incoming)
                         (formatPragma existing)
 
-                AstResult.errStringMsg PragmaError msg node
+                AstResult.errStringMsg AstMessageType.PragmaError msg node
 
 module private PragmaWarningError =
     open GslCore.Ast.Process.PragmaWarning
@@ -188,7 +252,7 @@ module private RoughageExpansionError =
         function
         | ConstructHasIndeterminateLocus node ->
             AstResult.errStringFMsg
-                ValueError
+                AstMessageType.ValueError
                 "Roughage construct has indeterminate locus: %s"
                 (AstNode.decompile node)
                 node
@@ -198,7 +262,7 @@ module private ParseErrorType =
 
     let toAstMessage: ParseErrorType -> AstMessage =
         function
-        | ParseError (message, node) -> AstMessage.createErrorWithStackTrace ParserError message node
+        | ParseError (message, node) -> AstMessage.createErrorWithStackTrace AstMessageType.ParserError message node
 
 module private PartBaseValidationError =
     open GslCore.Ast.Process.Validation
@@ -206,7 +270,11 @@ module private PartBaseValidationError =
     let toAstMessage: PartBaseValidationError -> AstMessage =
         function
         | NotValidBasePart node ->
-            AstResult.errStringFMsg (InternalError(PartError)) "%s is not a valid base part." node.TypeName node
+            AstResult.errStringFMsg
+                (AstMessageType.InternalError(AstMessageType.PartError))
+                "%s is not a valid base part."
+                node.TypeName
+                node
 
 module private PartModifierValidationError =
     open GslCore.Ast.Process.Validation
@@ -214,7 +282,11 @@ module private PartModifierValidationError =
     let toAstMessage: PartModifierValidationError -> AstMessage =
         function
         | NotAValidModifierTarget node ->
-            AstResult.errStringFMsg PartError "Can only apply part mods to Gene or PartId, not %s" node.TypeName node
+            AstResult.errStringFMsg
+                AstMessageType.PartError
+                "Can only apply part mods to Gene or PartId, not %s"
+                node.TypeName
+                node
 
 module private RecursiveCallCheckError =
     open GslCore.Ast.Process.Validation
@@ -223,7 +295,7 @@ module private RecursiveCallCheckError =
         function
         | RecursiveCallFoundError (functionCall, node) ->
             AstResult.errStringFMsg
-                RecursiveFunctionCall
+                AstMessageType.RecursiveFunctionCall
                 "Found a recursive call to '%s'. GSL does not support recursive functions."
                 functionCall.Name
                 node
@@ -241,7 +313,7 @@ module private LinterHint =
             AstMessage.createWarning msgText node
         | PushPopDeprecated node ->
             AstResult.errStringMsg
-                PragmaError
+                AstMessageType.PragmaError
                 "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
                 node
 

@@ -63,7 +63,7 @@ module Phase2Error =
 
         | LimitExceeded (limit, node) ->
             AstResult.errStringFMsg
-                (InternalError(GeneralError))
+                (AstMessageType.InternalError(AstMessageType.GeneralError))
                 "Compiler phase 2 hit recursion limit of %d."
                 limit
                 node

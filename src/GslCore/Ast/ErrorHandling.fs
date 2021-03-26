@@ -15,6 +15,7 @@ open GslCore.Constants
 
 /// Enumeration of every possible kind of error.  Most of these will just be flags, some might hold
 /// extra data for convenience and to allow the outer message type to remain the standard.
+[<RequireQualifiedAccess>]
 type AstMessageType =
     | Context // a message which should be interpreted as additional context for a previous message
     | Warning
@@ -73,7 +74,7 @@ module AstMessage =
           StackTrace = stackTrace }
 
     /// Create a message with no stack trace, of Warning type.
-    let createWarning = create None Warning
+    let createWarning = create None AstMessageType.Warning
 
     /// Create a message that collects a stack trace, with unspecified type.
     let createErrorWithStackTrace = create (Some(StackTrace()))
@@ -109,7 +110,7 @@ module AstResult =
                 declaredType
                 expectedType
 
-        errStringMsg TypeError message node
+        errStringMsg AstMessageType.TypeError message node
 
     let variableTypeMismatch (variableName: string) (declaredType: 'a) (expectedType: 'b) (node: AstNode): AstResult<'a> =
         variableTypeMismatchMsg variableName declaredType expectedType node
@@ -129,7 +130,7 @@ module AstResult =
                 (AstMessage.optionalContextStr maybeContext)
                 (actualNode.TypeName)
 
-        errStringMsg (InternalError(TypeError)) message actualNode
+        errStringMsg (AstMessageType.InternalError(AstMessageType.TypeError)) message actualNode
 
     let internalTypeMismatch (maybeContext: string option) (expectedType: string) (actualNode: AstNode): AstResult<'a> =
         internalTypeMismatchMsg maybeContext expectedType actualNode
@@ -140,7 +141,7 @@ module AstResult =
         let message =
             sprintf "Found an unbuilt pragma%s: '%s'" (AstMessage.optionalContextStr context) name
 
-        errString (InternalError(PragmaError)) message node
+        errString (AstMessageType.InternalError(AstMessageType.PragmaError)) message node
 
     /// Convert an exception into an error message.
     /// Provide an AST node for context.
@@ -217,7 +218,7 @@ module GslParseErrorContext =
             msgs
             |> List.partition (fun msg ->
                 match msg.Type with
-                | DeprecationWarning -> true
+                | AstMessageType.DeprecationWarning -> true
                 | _ -> false)
 
         let dedupedDepWarnings =

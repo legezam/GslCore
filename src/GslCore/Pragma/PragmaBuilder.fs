@@ -5,7 +5,12 @@ open GslCore.GslResult
 
 type PragmaBuilder(pragmas: Map<string, PragmaDefinition>) =
     member this.Pragmas = pragmas
-    
+
+[<RequireQualifiedAccess>]
+type PragmaBuilderError =
+    | MissingDefinition of name: string
+    | PragmaCreation of PragmaArgumentError
+
 module PragmaBuilder =
     /// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
     let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaBuilder): PragmaDefinition option =
@@ -62,9 +67,15 @@ module PragmaBuilder =
 
         for p in orderedPragmas do
             printfn "%s" (PragmaDefinition.format p)
-        
+
     /// Try to build a pragma from a name and values.
-    let createPragmaFromNameValue (name: string) (values: string list) (cache: PragmaBuilder): GslResult<Pragma, string> =
+    let createPragmaFromNameValue (name: string)
+                                  (values: string list)
+                                  (cache: PragmaBuilder)
+                                  : GslResult<Pragma, PragmaBuilderError> =
         match cache.Pragmas |> Map.tryFind name with
-        | Some definition -> definition |> Pragma.fromDefinition values
-        | None -> GslResult.err (sprintf "Unknown or invalid pragma: '#%s'" name)         
+        | Some definition ->
+            definition
+            |> Pragma.fromDefinition values
+            |> GslResult.mapError PragmaBuilderError.PragmaCreation
+        | None -> GslResult.err (PragmaBuilderError.MissingDefinition name)

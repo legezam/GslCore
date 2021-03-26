@@ -17,8 +17,8 @@ type NameCheckError =
 module NameCheckError =
     let toAstMessage: NameCheckError -> AstMessage =
         function
-        | UnknownGene (geneName, basePart) -> AstResult.errStringFMsg PartError "Unknown gene: '%s'." geneName basePart
-        | ReferenceError (message, node) -> AstMessage.createErrorWithStackTrace RefGenomeError message node
+        | UnknownGene (geneName, basePart) -> AstResult.errStringFMsg AstMessageType.PartError "Unknown gene: '%s'." geneName basePart
+        | ReferenceError (message, node) -> AstMessage.createErrorWithStackTrace AstMessageType.RefGenomeError message node
 
 
 // ==================

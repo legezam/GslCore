@@ -14,14 +14,19 @@ type PragmaConstructionContext =
     | BlockLevel
     | PartLevel
 
+[<RequireQualifiedAccess>]
 type PragmaBuildingError =
     | UnresolvedVariableInPragma of node: AstNode * variableName: string
     | IllegalPragmaArgumentType of argumentNode: AstNode
     | UndeclaredCapability of capability: string * capabilities: Capabilities * node: AstNode
     | PragmaIsUsedInWrongScope of pragmaName: string * allowedScope: string * usedInScope: string * node: AstNode
     | EmptyPragmaScope of node: AstNode
-    | PragmaCreationError of message: string * node: AstNode
+    | PragmaBuilder of inner: PragmaBuilderError * node: AstNode
     | PragmaDeprecated of depreciation: PragmaDeprecation * node: AstNode
+
+module PragmaBuildingError =
+    let makePragmaBuilderError (node: AstNode) (inner: PragmaBuilderError) =
+        PragmaBuildingError.PragmaBuilder(inner, node)
 
 module PragmaBuilding =
 
@@ -51,14 +56,15 @@ module PragmaBuilding =
         | AstNode.Int intWrapper -> GslResult.ok (intWrapper.Value.ToString())
         | AstNode.Float floatWrapper -> GslResult.ok (floatWrapper.Value.ToString())
         | AstNode.TypedVariable ({ Value = (name, _); Positions = _ }) as astNode ->
-            GslResult.err (UnresolvedVariableInPragma(astNode, name))
-        | x -> GslResult.err (EmptyPragmaScope x)
+            GslResult.err (PragmaBuildingError.UnresolvedVariableInPragma(astNode, name))
+        | x -> GslResult.err (PragmaBuildingError.EmptyPragmaScope x)
 
     let private checkDeprecated (node: AstNode) (pragma: Pragma): GslResult<Pragma, PragmaBuildingError> =
         match PragmaDeprecation.deprecatedPragmas
               |> Map.tryFind pragma.Name with
         | Some depreciation -> // deprecated pragma, issue a warning and replace it
-            let warning = PragmaDeprecated(depreciation, node)
+            let warning =
+                PragmaBuildingError.PragmaDeprecated(depreciation, node)
 
             let replacedPragma = depreciation.Replace pragma
             GslResult.warn warning replacedPragma
@@ -75,7 +81,7 @@ module PragmaBuilding =
                 not (legalCapas.Contains(pragma.Arguments.[0]))
 
             if isNotLegalCapa then
-                GslResult.err (UndeclaredCapability(pragma.Name, legalCapas, node))
+                GslResult.err (PragmaBuildingError.UndeclaredCapability(pragma.Name, legalCapas, node))
             else
                 GslResult.ok pragma
         else
@@ -97,9 +103,9 @@ module PragmaBuilding =
 
             match errCond with
             | Some (allowedScope, usedIn) ->
-                GslResult.err (PragmaIsUsedInWrongScope(pragma.Name, allowedScope, usedIn, node))
+                GslResult.err (PragmaBuildingError.PragmaIsUsedInWrongScope(pragma.Name, allowedScope, usedIn, node))
             | None -> GslResult.ok pragma
-        | [] -> GslResult.err (EmptyPragmaScope node)
+        | [] -> GslResult.err (PragmaBuildingError.EmptyPragmaScope node)
 
 
     /// Attempt to build a real pragma from a parsed pragma.
@@ -113,19 +119,16 @@ module PragmaBuilding =
             let pragma = pragmaWrapper.Value
             /// Building pragmas returns strings at the moment.
             /// Wrap them in an AST message.
-            // TODO: fix this sad state of affairs once the big changes have landed in default.
-            let wrapPragmaErrorString (message: string): PragmaBuildingError = PragmaCreationError(message, node)
-
             pragma.Values
             |> List.map checkPragmaArg
             |> GslResult.collectA
-            >>= (fun values ->
-                parameters.PragmaBuilder
-                |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
-                |> GslResult.mapError wrapPragmaErrorString)
-            >>= (checkDeprecated node)
-            >>= (checkScope contexts node)
-            >>= (checkCapa parameters.LegalCapabilities node)
+            >>= fun values ->
+                    parameters.PragmaBuilder
+                    |> PragmaBuilder.createPragmaFromNameValue pragma.Name values
+                    |> GslResult.mapError (PragmaBuildingError.makePragmaBuilderError node)
+                    >>= (checkDeprecated node)
+                    >>= (checkScope contexts node)
+                    >>= (checkCapa parameters.LegalCapabilities node)
             |> GslResult.map (fun builtPragma ->
                 AstNode.Pragma
                     { Value = builtPragma
