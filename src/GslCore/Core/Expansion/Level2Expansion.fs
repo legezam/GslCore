@@ -17,6 +17,7 @@ open GslCore.Reference
 open GslCore.Core.PluginTypes
 open GslCore.Ast.Process.AssemblyStuffing
 
+[<RequireQualifiedAccess>]
 type Level2ExpansionError =
 
     | ExpansionException of exn * node: AstNode
@@ -140,7 +141,7 @@ module Level2Expansion =
                      (providers: L2Provider list)
                      (referenceGenomes: GenomeDefinitions)
                      (tree: AstTreeHead)
-                     : GslResult<AstTreeHead, Level2ExpansionError> =
+                     : TreeTransformResult<Level2ExpansionError, PragmaEnvironmentError> =
 
         let bootstrapExpandL2Expression pragmaContext node =
             /// Perform the expansion operation, capturing any exception as an error.
@@ -148,16 +149,16 @@ module Level2Expansion =
                 try
                     expandL2Expression providers referenceGenomes construct
                     |> GslResult.ok
-                with e -> GslResult.err (ExpansionException(e, node))
+                with e -> GslResult.err (Level2ExpansionError.ExpansionException(e, node))
 
 
             match node with
             | AstNode.L2Expression l2e ->
                 LegacyL2Conversion.convertL2Line pragmaContext l2e
-                |> GslResult.mapError L2LineCreationError
+                |> GslResult.mapError Level2ExpansionError.L2LineCreationError
                 >>= expandCaptureException
                 >>= (Bootstrapping.bootstrapPhase1 parameters l2e.Positions
-                     >> GslResult.mapError BoostrapError)
+                     >> GslResult.mapError Level2ExpansionError.BoostrapError)
             | _ -> GslResult.ok node
 
         let foldMapParameters =
@@ -166,10 +167,7 @@ module Level2Expansion =
               StateUpdate = UpdatePragmaEnvironment.update
               Map = bootstrapExpandL2Expression }
 
-        FoldMap.foldMap  // run the bootstrapped expand operation
-            PragmaEnvironment.empty
-            foldMapParameters
-            tree
+        FoldMap.foldMap PragmaEnvironment.empty foldMapParameters tree
         >>= Bootstrapping.healSplices
         >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
-             >> GslResult.mapError AssemblyStuffingFailure) // Bootstrapped assemblies need their pragma environment reinjected
+             >> TreeTransformResult.mapMapError Level2ExpansionError.AssemblyStuffingFailure) // Bootstrapped assemblies need their pragma environment reinjected

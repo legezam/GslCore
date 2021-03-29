@@ -1,6 +1,8 @@
 namespace GslCore.Ast.Phase1
 
 
+open Amyris.Dna
+open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Linting
 open GslCore.Ast.Process.Validation
 open GslCore.GslResult
@@ -18,6 +20,7 @@ open GslCore.Ast.Process.RoughageExpansion
 open GslCore.Ast.Process.PragmaWarning
 open GslCore.Ast.Process.PragmaBuilding
 open GslCore.Ast.Process.Naming
+open GslCore.Reference
 
 // ==================
 // phase 1 of AST reduction
@@ -41,14 +44,17 @@ module Phase1 =
 
     let recursiveCallCheck =
         RecursiveCalls.check
+        >> TreeTransformResult.unwrapMapResult
         >> GslResult.mapError Phase1Error.RecursiveCallCheckError
 
     let variableResolution =
         VariableResolution.resolveVariables
+        >> TreeTransformResult.unwrapMapResult
         >> GslResult.mapError Phase1Error.VariableResolutionError
 
     let functionInlining =
         Inlining.inlineFunctionCalls
+        >> TreeTransformResult.unwrapMapResult
         >> GslResult.mapError Phase1Error.FunctionInliningError
 
     let stripFunctions =
@@ -57,6 +63,7 @@ module Phase1 =
 
     let variableResolutionStrict =
         VariableResolution.resolveVariablesStrict
+        >> TreeTransformResult.unwrapMapResult
         >> GslResult.mapError Phase1Error.VariableResolutionError
 
     let stripVariables =
@@ -69,6 +76,7 @@ module Phase1 =
 
     let pragmaBuilding parameters =
         PragmaBuilding.buildPragmas parameters
+        >> TreeTransformResult.unwrapMapResult
         >> GslResult.mapError Phase1Error.PragmaBuildingError
 
     let pragmaWarningCollection =
@@ -104,7 +112,7 @@ module Phase1 =
         >=> functionInlining
         >=> stripFunctions
         >=> variableResolutionStrict
-        >=> stripVariables   
+        >=> stripVariables
         >=> expressionReduction
         >=> pragmaBuilding parameters
         >=> pragmaWarningCollection
@@ -114,7 +122,17 @@ module Phase1 =
         >=> partModifierValidation
         >=> assemblyStuffing
 
+    let checkGeneNames (references: GenomeDefinitions)
+                       (library: Map<string, Dna>)
+                       : AstTreeHead -> GslResult<AstTreeHead, PostPhase1Error> =
+        NameChecking.checkGeneNames references library
+        >> GslResult.mapError PostPhase1Error.NameCheck
+
+    let nameAssemblies: AstTreeHead -> GslResult<AstTreeHead, PostPhase1Error> =
+        NameChecking.nameAssemblies
+        >> GslResult.mapError PostPhase1Error.Naming
+
     /// Prep a tree for phase 2, after phase 1 compilation is complete.
-    let postPhase1 rgs library =
-        NameChecking.checkGeneNames rgs library
-        >=> NameChecking.nameAssemblies
+    let postPhase1 references library =
+        checkGeneNames references library
+        >=> nameAssemblies

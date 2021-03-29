@@ -1,5 +1,6 @@
 namespace GslCore.Core.AssemblyGathering
 
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Legacy.Types
@@ -27,7 +28,7 @@ module AssemblyGathering =
     /// Convert all assembly parts to legacy Assemblies, and gather them in a mutable accumulator.
     /// Return the accumulation if all conversions were successful.
     let convertAndGatherAssemblies (astTreeHead: AstTreeHead)
-                                   : GslResult<Assembly list * AstTreeHead, LegacyAssemblyCreationError> =
+                                   : GslResult<Assembly list * AstTreeHead, FoldMapError<LegacyAssemblyCreationError, PragmaEnvironmentError>> =
         let accum = ResizeArray<Assembly>()
 
         let parameters =

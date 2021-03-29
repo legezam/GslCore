@@ -3,6 +3,7 @@ namespace GslCore.Core.Expansion.HeterologyExpansion
 open System
 open FsToolkit.ErrorHandling
 open GslCore.Ast.Phase1
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.Algorithms
@@ -32,6 +33,7 @@ type HeterologyExpansionError =
     | ExternalPartResolutionFailure of partId: LegacyPartId * externalError: string
     | HeterologyBlockLeftInDesign of GslSourceCode
     | InvalidLenPragma of value: string
+    | PragmaArgumentError of PragmaArgumentError
 
 module HeterologyExpansion =
     let private modIsNotSlice: Modifier -> bool =
@@ -142,26 +144,28 @@ module HeterologyExpansion =
                             Modifier.Slice(newSlice)
                             :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
 
-                        let result =
-                            { Part =
-                                  Part.GenePart
-                                      { gp with
-                                            Part = { gp.Part with Modifiers = newMods } }
-                              Pragma = pr3
-                              IsForward = fwd3 }
-                            :: { Part = Part.InlineDna alt
-                                 Pragma =
-                                     pr2
-                                     |> PragmaCollection.add
-                                         { Pragma.Definition = BuiltIn.inlinePragmaDef
-                                           Arguments = [] }
-                                 IsForward = fwd2 }
-                               :: { Part = Part.GenePart gpUp
-                                    Pragma = pr1
-                                    IsForward = fwd1 }
-                                  :: res
-                        // Prepend backwards as we will flip list at end - watch out, pragmas are reversed as well
-                        scan parameters assembly result tl
+                        pr2
+                        |> PragmaCollection.add
+                            { Pragma.Definition = BuiltIn.inlinePragmaDef
+                              Arguments = [] }
+                        |> GslResult.mapError HeterologyExpansionError.PragmaArgumentError
+                        >>= fun updatedPr2 ->
+                                let result =
+                                    { Part =
+                                          Part.GenePart
+                                              { gp with
+                                                    Part = { gp.Part with Modifiers = newMods } }
+                                      Pragma = pr3
+                                      IsForward = fwd3 }
+                                    :: { Part = Part.InlineDna alt
+                                         Pragma = updatedPr2
+                                         IsForward = fwd2 }
+                                       :: { Part = Part.GenePart gpUp
+                                            Pragma = pr1
+                                            IsForward = fwd1 }
+                                          :: res
+                                // Prepend backwards as we will flip list at end - watch out, pragmas are reversed as well
+                                scan parameters assembly result tl
 
         | { Part = Part.GenePart gpUp
             Pragma = pr1
@@ -232,28 +236,31 @@ module HeterologyExpansion =
                             Modifier.Slice(newSlice)
                             :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
 
-                        let result =
-                            { Part =
-                                  Part.GenePart
-                                      { gp with
-                                            Part = { gp.Part with Modifiers = newMods } }
-                              Pragma = pr4
-                              IsForward = fwd4 }
-                            :: { Part = Part.InlineDna newInline
-                                 Pragma =
-                                     (pr2
-                                      |> PragmaCollection.add
-                                          { Pragma.Definition = BuiltIn.inlinePragmaDef
-                                            Arguments = [] })
-                                 IsForward = fwd2 }
-                               :: { Part = Part.GenePart gpUp
-                                    Pragma = pr1
-                                    IsForward = fwd1 }
-                                  :: res
+                        pr2
+                        |> PragmaCollection.add
+                            { Pragma.Definition = BuiltIn.inlinePragmaDef
+                              Arguments = [] }
+                        |> GslResult.mapError HeterologyExpansionError.PragmaArgumentError
+                        >>= fun updatedPr2 ->
+                                let result =
 
-                        // Prepend backwards as we will flip list at end
-                        // Note - currently destroy any pragmas attached to the heterology block itself
-                        scan parameters assembly result tl
+                                    { Part =
+                                          Part.GenePart
+                                              { gp with
+                                                    Part = { gp.Part with Modifiers = newMods } }
+                                      Pragma = pr4
+                                      IsForward = fwd4 }
+                                    :: { Part = Part.InlineDna newInline
+                                         Pragma = updatedPr2
+                                         IsForward = fwd2 }
+                                       :: { Part = Part.GenePart gpUp
+                                            Pragma = pr1
+                                            IsForward = fwd1 }
+                                          :: res
+
+                                // Prepend backwards as we will flip list at end
+                                // Note - currently destroy any pragmas attached to the heterology block itself
+                                scan parameters assembly result tl
 
         | { Part = Part.GenePart gp
             Pragma = pr1
@@ -340,28 +347,30 @@ module HeterologyExpansion =
                             Modifier.Slice(newSlice)
                             :: (gp.Part.Modifiers |> List.filter modIsNotSlice)
 
-                        let result =
-                            { Part = Part.GenePart gpDown
-                              Pragma = pr4
-                              IsForward = fwd4 }
-                            :: { Part = Part.InlineDna newInline
-                                 Pragma =
-                                     pr3
-                                     |> PragmaCollection.add
-                                         { Pragma.Definition = BuiltIn.inlinePragmaDef
-                                           Arguments = [] }
-                                 IsForward = fwd3 }
-                               :: { Part =
-                                        Part.GenePart
-                                            { gp with
-                                                  Part = { gp.Part with Modifiers = newMods } }
-                                    Pragma = pr1
-                                    IsForward = fwd1 }
-                                  :: res
+                        pr3
+                        |> PragmaCollection.add
+                            { Pragma.Definition = BuiltIn.inlinePragmaDef
+                              Arguments = [] }
+                        |> GslResult.mapError HeterologyExpansionError.PragmaArgumentError
+                        >>= fun updatedPr3 ->
+                                let result =
+                                    { Part = Part.GenePart gpDown
+                                      Pragma = pr4
+                                      IsForward = fwd4 }
+                                    :: { Part = Part.InlineDna newInline
+                                         Pragma = updatedPr3
+                                         IsForward = fwd3 }
+                                       :: { Part =
+                                                Part.GenePart
+                                                    { gp with
+                                                          Part = { gp.Part with Modifiers = newMods } }
+                                            Pragma = pr1
+                                            IsForward = fwd1 }
+                                          :: res
 
-                        // Prepend backwards as we will flip list at end
-                        // Note - currently destroy pr2 pragmas associated with the hetblock
-                        scan parameters assembly result tl
+                                // Prepend backwards as we will flip list at end
+                                // Note - currently destroy pr2 pragmas associated with the hetblock
+                                scan parameters assembly result tl
 
         | { Part = Part.PartId pid1
             Pragma = pr1
@@ -450,24 +459,26 @@ module HeterologyExpansion =
                                 Modifier.Slice(newSlice)
                                 :: (pid1.Modifiers |> List.filter modIsNotSlice)
 
-                            let result =
-                                { Part = Part.PartId pid4
-                                  Pragma = pr4
-                                  IsForward = fwd4 }
-                                :: { Part = Part.InlineDna newInline
-                                     Pragma =
-                                         pr3
-                                         |> PragmaCollection.add
-                                             { Pragma.Definition = BuiltIn.inlinePragmaDef
-                                               Arguments = [] }
-                                     IsForward = fwd3 }
-                                   :: { Part = Part.PartId { pid1 with Modifiers = newMods }
-                                        Pragma = pr1
-                                        IsForward = fwd1 }
-                                      :: res
-                            // Prepend backwards as we will flip list at end
-                            // Note - currently destroy pr2 pragmas associated with the hetblock
-                            scan parameters assembly result tl)
+                            pr3
+                            |> PragmaCollection.add
+                                { Pragma.Definition = BuiltIn.inlinePragmaDef
+                                  Arguments = [] }
+                            |> GslResult.mapError HeterologyExpansionError.PragmaArgumentError
+                            >>= fun updatedPr3 ->
+                                    let result =
+                                        { Part = Part.PartId pid4
+                                          Pragma = pr4
+                                          IsForward = fwd4 }
+                                        :: { Part = Part.InlineDna newInline
+                                             Pragma = updatedPr3
+                                             IsForward = fwd3 }
+                                           :: { Part = Part.PartId { pid1 with Modifiers = newMods }
+                                                Pragma = pr1
+                                                IsForward = fwd1 }
+                                              :: res
+                                    // Prepend backwards as we will flip list at end
+                                    // Note - currently destroy pr2 pragmas associated with the hetblock
+                                    scan parameters assembly result tl)
             >>= id
         | hd :: tl -> scan parameters assembly (hd :: res) tl // do nothing
         | [] -> GslResult.ok (List.rev res)
@@ -498,7 +509,7 @@ module HeterologyExpansion =
     /// Expand all heterology blocks in an AST.
     let expandHetBlocks (parameters: Phase2Parameters)
                         (tree: AstTreeHead)
-                        : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>>> =
+                        : TreeTransformResult<BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>>, PragmaEnvironmentError> =
 
         let assemblyExpansion = expandHB parameters
 

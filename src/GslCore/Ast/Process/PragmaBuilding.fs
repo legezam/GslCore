@@ -136,11 +136,11 @@ module PragmaBuilding =
         | _ -> GslResult.ok node
 
     /// Build genuine pragmas from reduced parsed pragmas.
-    let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult<PragmaBuildingError> =
+    let buildPragmas (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult<PragmaBuildingError, unit> =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = updatePragmaConstructionContext
+              StateUpdate = FoldMapParameters.alwaysOkUpdate updatePragmaConstructionContext
               Map = compilePragma parameters }
 
         FoldMap.foldMap [] foldMapParameters

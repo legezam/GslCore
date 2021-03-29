@@ -1,6 +1,7 @@
 namespace GslCore.Ast.Phase1
 
 open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Types
 open GslCore.Pragma
 
 
@@ -111,6 +112,48 @@ module private ExpressionReductionMessage =
         | UnsupportedStringOperation (operator, node) ->
             AstResult.errStringMsg AstMessageType.TypeError (sprintf "String doesn't support operator %A" operator) node
 
+module PragmaArgumentError =
+    let toAstMessage (node: AstNode): PragmaArgumentError -> AstMessage =
+        function
+        | PragmaArgumentError.Validation message -> AstResult.errStringMsg AstMessageType.PragmaError message node
+        | PragmaArgumentError.Shape argShapeError ->
+            match argShapeError with
+            | ArgumentShapeError.SetMismatch (name, vals, numOfArguments, arguments) ->
+                let message =
+                    sprintf
+                        "Pragma %s expected any number of arguments in the set %A but got %d: %A"
+                        name
+                        vals
+                        numOfArguments
+                        arguments
+
+                AstResult.errStringMsg AstMessageType.PragmaError message node
+            | ArgumentShapeError.ArgumentNumberMismatch (name, expected, numOfArguments, arguments) ->
+                let message =
+                    sprintf "Pragma #%s expected %d argument(s) but got %d: %A" name expected numOfArguments arguments
+
+                AstResult.errStringMsg AstMessageType.PragmaError message node
+            | ArgumentShapeError.TooFewArguments (name, min, numOfArguments, arguments) ->
+                let message =
+                    sprintf
+                        "Pragma #%s expected at least %d argument(s) but got %d: %A"
+                        name
+                        min
+                        numOfArguments
+                        arguments
+
+                AstResult.errStringMsg AstMessageType.PragmaError message node
+            | ArgumentShapeError.TooManyArguments (name, max, numOfArguments, arguments) ->
+                let message =
+                    sprintf
+                        "Pragma #%s expected at most %d argument(s) but got %d: %A"
+                        name
+                        max
+                        numOfArguments
+                        arguments
+
+                AstResult.errStringMsg AstMessageType.PragmaError message node
+
 module private PragmaBuildingError =
     open GslCore.Ast.Process.PragmaBuilding
 
@@ -153,67 +196,94 @@ module private PragmaBuildingError =
                     sprintf "Unknown or invalid pragma: '#%s'" name
 
                 AstMessage.createErrorWithStackTrace AstMessageType.PragmaError message node
-            | PragmaFactoryError.PragmaCreation creationError ->
-                match creationError with
-                | PragmaArgumentError.Validation message ->
-                    AstResult.errStringMsg AstMessageType.PragmaError message node
-                | PragmaArgumentError.Shape argShapeError ->
-                    match argShapeError with
-                    | ArgumentShapeError.SetMismatch (name, vals, numOfArguments, arguments) ->
-                        let message =
-                            sprintf
-                                "Pragma %s expected any number of arguments in the set %A but got %d: %A"
-                                name
-                                vals
-                                numOfArguments
-                                arguments
+            | PragmaFactoryError.PragmaCreation pragmaArgumentError ->
+                pragmaArgumentError
+                |> PragmaArgumentError.toAstMessage node
 
-                        AstResult.errStringMsg AstMessageType.PragmaError message node
-                    | ArgumentShapeError.ArgumentNumberMismatch (name, expected, numOfArguments, arguments) ->
-                        let message =
-                            sprintf
-                                "Pragma #%s expected %d argument(s) but got %d: %A"
-                                name
-                                expected
-                                numOfArguments
-                                arguments
-
-                        AstResult.errStringMsg AstMessageType.PragmaError message node
-                    | ArgumentShapeError.TooFewArguments (name, min, numOfArguments, arguments) ->
-                        let message =
-                            sprintf
-                                "Pragma #%s expected at least %d argument(s) but got %d: %A"
-                                name
-                                min
-                                numOfArguments
-                                arguments
-
-                        AstResult.errStringMsg AstMessageType.PragmaError message node
-                    | ArgumentShapeError.TooManyArguments (name, max, numOfArguments, arguments) ->
-                        let message =
-                            sprintf
-                                "Pragma #%s expected at most %d argument(s) but got %d: %A"
-                                name
-                                max
-                                numOfArguments
-                                arguments
-
-                        AstResult.errStringMsg AstMessageType.PragmaError message node
         | PragmaBuildingError.PragmaDeprecated (depreciation, node) ->
             AstMessage.create None AstMessageType.DeprecationWarning depreciation.WarningMessage node
 
-module private AssemblyFlatteningError =
-    open GslCore.Ast.Types
+module GetPragmaError =
+    open GslCore.Ast.Process.ParsePart
+
+    let toAstMessage: GetPragmaError -> AstMessage =
+        function
+        | GetPragmaError.UnBuiltPragma (parsePragma, node) ->
+            AstResult.unbuiltPragmaError None parsePragma.Value.Name node
+        | GetPragmaError.UnknownPragmaNode node -> AstResult.internalTypeMismatchMsg None "Pragma" node
+
+module MergePragmaError =
+    open GslCore.Ast.Process.ParsePart
+
+    let toAstMessage: MergePragmaError -> AstMessage =
+        function
+        | MergePragmaError.GetPragmaError innerError -> innerError |> GetPragmaError.toAstMessage
+        | MergePragmaError.PragmaCollision (collidingPragmas, node) ->
+            let msg =
+                sprintf "Pragma collision(s): %s" (collidingPragmas |> String.concat ", ")
+
+            AstResult.errStringMsg AstMessageType.PragmaError msg node
+
+module PragmaInversionError =
+    let toAstMessage (node: AstNode): PragmaInversionError -> AstMessage =
+        function
+        | PragmaInversionError.IncompatibleTarget (source, target) ->
+            let message =
+                sprintf "Pragma %s inverts to %s but they have differing argShapes." source.Name target.Name
+
+            AstResult.errStringMsg AstMessageType.PragmaError message node
+        | PragmaInversionError.UnknownTarget (source, targetName) ->
+            let message =
+                sprintf "Pragma %s inverts to an unknown pragma %s" source.Name targetName
+
+            AstResult.errStringMsg AstMessageType.PragmaError message node
+
+module InvertPragmaError =
     open GslCore.Ast.Process.AssemblyFlattening
 
-    let toAstMessage: AssemblyFlatteningError -> AstMessage =
+    let toAstMessage (node: AstNode): InvertPragmaError -> AstMessage =
         function
-        | FlippingTrailingFuse part ->
+        | InvertPragmaError.Inversion inner -> inner |> PragmaInversionError.toAstMessage node
+        | InvertPragmaError.GetPragma inner -> inner |> GetPragmaError.toAstMessage
+
+module ShiftFuseError =
+    open GslCore.Ast.Process.AssemblyFlattening
+
+    let toAstMessage (node: AstNode): ShiftFuseError -> AstMessage =
+        function
+        | ShiftFuseError.GetPragma inner -> inner |> GetPragmaError.toAstMessage
+        | ShiftFuseError.PragmaArgument (inner) -> inner |> PragmaArgumentError.toAstMessage node
+
+module AssemblyExplosionError =
+    open GslCore.Ast.Process.AssemblyFlattening
+
+    let toAstMessage (node: AstNode): AssemblyExplosionError -> AstMessage =
+        function
+        | AssemblyExplosionError.GetPragma inner -> inner |> GetPragmaError.toAstMessage
+        | AssemblyExplosionError.InvertPragma inner -> inner |> InvertPragmaError.toAstMessage node
+        | AssemblyExplosionError.MergePragma inner -> inner |> MergePragmaError.toAstMessage
+        | AssemblyExplosionError.ShiftFuse inner -> inner |> ShiftFuseError.toAstMessage node
+        | AssemblyExplosionError.FlippingTrailingFuse part ->
             AstResult.errStringMsg
                 AstMessageType.PragmaError
                 "Found a trailing #fuse in an assembly that needs to flip."
                 (AstNode.Part part)
-        | PragmaMergeError msg -> msg
+
+module RecursivePartCollapseError =
+    open GslCore.Ast.Process.AssemblyFlattening
+
+    let toAstMessage: RecursivePartCollapseError -> AstMessage =
+        function
+        | RecursivePartCollapseError.GetPragma inner -> inner |> GetPragmaError.toAstMessage
+        | RecursivePartCollapseError.MergePragma inner -> inner |> MergePragmaError.toAstMessage
+
+module private AssemblyFlatteningError =
+    open GslCore.Ast.Process.AssemblyFlattening
+
+    let toAstMessage: AssemblyFlatteningError -> AstMessage =
+        function
+        | AssemblyFlatteningError.Explosion (inner, node) -> inner |> AssemblyExplosionError.toAstMessage node
+        | AssemblyFlatteningError.RecursivePartCollapse inner -> inner |> RecursivePartCollapseError.toAstMessage
 
 module internal AssemblyStuffingError =
     open GslCore.Ast.Process.AssemblyStuffing
@@ -233,6 +303,8 @@ module internal AssemblyStuffingError =
                         (formatPragma existing)
 
                 AstResult.errStringMsg AstMessageType.PragmaError msg node
+        | AssemblyStuffingError.PragmaArgument (inner, node) -> inner |> PragmaArgumentError.toAstMessage node
+        | AssemblyStuffingError.GetPragma inner -> inner |> GetPragmaError.toAstMessage
 
 module private PragmaWarningError =
     open GslCore.Ast.Process.PragmaWarning
@@ -317,6 +389,8 @@ module private LinterHint =
                 "#push and #pop have been removed from GSL.  Please port your code to use do/end blocks."
                 node
 
+
+
 open GslCore.Ast.Process.RelativePositionTranslation
 open GslCore.Ast.Process.VariableResolution
 open GslCore.Ast.Process.Inlining
@@ -328,6 +402,7 @@ open GslCore.Ast.Process.PragmaWarning
 open GslCore.Ast.Process.RoughageExpansion
 open GslCore.Ast.Process.Validation
 open GslCore.Ast.Linting
+open GslCore.Ast.Algorithms
 
 [<RequireQualifiedAccess>]
 type Phase1Error =
@@ -337,7 +412,7 @@ type Phase1Error =
     | ExpressionReductionError of ExpressionReductionError
     | PragmaBuildingError of PragmaBuildingError
     | AssemblyFlatteningError of AssemblyFlatteningError
-    | AssemblyStuffingError of AssemblyStuffingError
+    | AssemblyStuffingError of FoldMapError<AssemblyStuffingError, PragmaEnvironmentError>
     | PragmaWarningError of PragmaWarningError
     | RoughageExpansionError of RoughageExpansionError
     | ParseErrorType of ParseErrorType
@@ -355,7 +430,11 @@ module Phase1Error =
         | Phase1Error.ExpressionReductionError msg -> ExpressionReductionMessage.toAstMessage msg
         | Phase1Error.PragmaBuildingError msg -> PragmaBuildingError.toAstMessage msg
         | Phase1Error.AssemblyFlatteningError msg -> AssemblyFlatteningError.toAstMessage msg
-        | Phase1Error.AssemblyStuffingError msg -> AssemblyStuffingError.toAstMessage msg
+        | Phase1Error.AssemblyStuffingError msg ->
+            match msg with
+            | MapError inner -> AssemblyStuffingError.toAstMessage inner
+            | StateUpdateError (PragmaEnvironmentError.PragmaArgument (inner, node)) ->
+                inner |> PragmaArgumentError.toAstMessage node
         | Phase1Error.PragmaWarningError msg -> PragmaWarningError.toAstMessage msg
         | Phase1Error.RoughageExpansionError msg -> RoughageExpansionError.toAstMessage msg
         | Phase1Error.ParseErrorType msg -> ParseErrorType.toAstMessage msg
@@ -365,3 +444,30 @@ module Phase1Error =
         | Phase1Error.LinterHint msg -> LinterHint.toAstMessage msg
         | Phase1Error.FunctionInliningError msg -> FunctionInliningError.toAstMessage msg
         | Phase1Error.NoError _ -> failwith "IMPOSSIBLE"
+
+
+module NamingError =
+    open GslCore.Ast.Process.Naming
+
+    let toAstMessage: NamingError -> AstMessage =
+        function
+        | NamingError.AddPragma (inner, node) -> inner |> PragmaArgumentError.toAstMessage node
+        | NamingError.GetPragma inner -> inner |> GetPragmaError.toAstMessage
+
+module NameCheckError =
+    open GslCore.Ast.Process.Naming
+
+    let toAstMessage: NameCheckError -> AstMessage =
+        function
+        | NameCheckError.UnknownGene (geneName, basePart) ->
+            AstResult.errStringFMsg AstMessageType.PartError "Unknown gene: '%s'." geneName basePart
+        | NameCheckError.ReferenceError (message, node) ->
+            AstMessage.createErrorWithStackTrace AstMessageType.RefGenomeError message node
+        | NameCheckError.GetPragmaError inner -> inner |> GetPragmaError.toAstMessage
+
+open GslCore.Ast.Process.Naming
+
+[<RequireQualifiedAccess>]
+type PostPhase1Error =
+    | NameCheck of NameCheckError
+    | Naming of NamingError

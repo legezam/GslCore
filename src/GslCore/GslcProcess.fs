@@ -2,7 +2,11 @@
 namespace GslCore.GslcProcess
 
 open Amyris.Bio
+open GslCore.Ast.Algorithms
 open GslCore.Ast.ErrorHandling
+open GslCore.Ast.Phase1
+open GslCore.Ast.Phase1
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Process.Naming
 open GslCore.Ast.Types
 open GslCore.Core.ResolveExtPart
@@ -26,13 +30,14 @@ open GslCore.Ast
 open GslCore.GslResult
 
 
+
 [<RequireQualifiedAccess>]
 type GslProcessError =
     | LexParseError of LexParseError
     | Phase1Error of Phase1Error
-    | AssemblyGatheringError of LegacyAssemblyCreationError
-    | L2ExpansionError of Level2ExpansionError
-    | PostPhase1Error of NameCheckError
+    | AssemblyGatheringError of FoldMapError<LegacyAssemblyCreationError, PragmaEnvironmentError>
+    | L2ExpansionError of FoldMapError<Level2ExpansionError, PragmaEnvironmentError>
+    | PostPhase1Error of PostPhase1Error
     | Phase2Error of Phase2Error
 
 module GslProcessError =
@@ -40,9 +45,24 @@ module GslProcessError =
         function
         | GslProcessError.LexParseError inner -> inner |> LexParseError.toAstMessage
         | GslProcessError.Phase1Error inner -> inner |> Phase1Error.toAstMessage
-        | GslProcessError.AssemblyGatheringError inner -> inner |> LegacyAssemblyCreationError.toAstMessage
-        | GslProcessError.L2ExpansionError inner -> inner |> Level2ExpansionError.toAstMessage
-        | GslProcessError.PostPhase1Error inner -> inner |> NameCheckError.toAstMessage
+        | GslProcessError.AssemblyGatheringError inner ->
+            match inner with
+            | MapError assemblyCreationError ->
+                assemblyCreationError
+                |> LegacyAssemblyCreationError.toAstMessage
+            | StateUpdateError (PragmaEnvironmentError.PragmaArgument (argError, node)) ->
+                argError |> PragmaArgumentError.toAstMessage node
+        | GslProcessError.L2ExpansionError inner ->
+            match inner with
+            | MapError expansionError ->
+                expansionError
+                |> Level2ExpansionError.toAstMessage
+            | StateUpdateError (PragmaEnvironmentError.PragmaArgument (argError, node)) ->
+                argError |> PragmaArgumentError.toAstMessage node
+        | GslProcessError.PostPhase1Error inner ->
+            match inner with
+            | PostPhase1Error.Naming naming -> naming |> NamingError.toAstMessage
+            | PostPhase1Error.NameCheck namecheck -> namecheck |> NameCheckError.toAstMessage
         | GslProcessError.Phase2Error inner -> inner |> Phase2Error.toAstMessage
 
 module ExternalPartResolutionError =
@@ -163,6 +183,7 @@ module GslcProcess =
         AssemblyGathering.convertAndGatherAssemblies
         >> GslResult.mapError GslProcessError.AssemblyGatheringError
 
+
     let private l2Expansion phase1Params l2Providers referenceGenomes =
         Level2Expansion.expandLevel2 phase1Params l2Providers referenceGenomes
         >> GslResult.mapError GslProcessError.L2ExpansionError
@@ -280,7 +301,9 @@ module GslcProcess =
 
     /// Promote long slices to regular rabits to avoid trying to build
     /// impossibly long things with oligos.
-    let cleanLongSlicesInPartsList (pragmas: PragmaCollection) (slices: DNASlice list) =
+    let cleanLongSlicesInPartsList (pragmas: PragmaCollection)
+                                   (slices: DNASlice list)
+                                   : GslResult<DNASlice list, PragmaArgumentError> =
         slices
         |> List.map (fun slice ->
             let isInline = slice.Type = SliceType.Inline
@@ -301,32 +324,35 @@ module GslcProcess =
                         | None -> "synthetic"
                         | Some x -> x
 
-                let pragmas =
-                    // add in an amp tag on this guy too, since we are now comitting to
-                    // not placing it inline using primers
-                    match slice.Pragmas
-                          |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
-                    | Some _ -> slice.Pragmas // already there
-                    | None ->
-                        slice.Pragmas
-                        |> PragmaCollection.add
-                            { Pragma.Definition = BuiltIn.ampPragmaDef
-                              Arguments = [] }
 
-                { slice with
-                      Type = SliceType.Regular
-                      DnaSource = source
-                      Pragmas = pragmas }
+                // add in an amp tag on this guy too, since we are now comitting to
+                // not placing it inline using primers
+                match slice.Pragmas
+                      |> PragmaCollection.tryFind BuiltIn.ampPragmaDef with
+                | Some _ -> GslResult.ok slice.Pragmas // already there
+                | None ->
+                    slice.Pragmas
+                    |> PragmaCollection.add
+                        { Pragma.Definition = BuiltIn.ampPragmaDef
+                          Arguments = [] }
+                |> GslResult.map (fun pragmas ->
+                    { slice with
+                          Type = SliceType.Regular
+                          DnaSource = source
+                          Pragmas = pragmas })
 
             else
-                slice)
+                GslResult.ok slice)
+        |> GslResult.collectA
 
     /// Promote long slices to regular rabits to avoid trying to build
     /// impossibly long things with oligos.
-    let cleanLongSlices _ (a: DnaAssembly): GslResult<DnaAssembly, _> =
-        GslResult.ok
-            { a with
-                  DnaParts = cleanLongSlicesInPartsList a.Pragmas a.DnaParts }
+    let cleanLongSlices _ (assembly: DnaAssembly): GslResult<DnaAssembly, AssemblyTransformationMessage<DnaAssembly>> =
+        cleanLongSlicesInPartsList assembly.Pragmas assembly.DnaParts
+        |> GslResult.map (fun parts -> { assembly with DnaParts = parts })
+        |> GslResult.mapError (fun error ->
+            let message = sprintf "%A" error
+            AssemblyTransformationMessage.messageToAssemblyMessage assembly message)
 
 
     /// we run into trouble during primer generation if a virtual part (fuse) gets between two parts that
@@ -367,9 +393,14 @@ module GslcProcess =
         // listing all available transformations and showing which transformations will run given the
         // provided args.
         /// use all assembly transformers to transform an assembly
-        let transformAssembly a =
+        let transformAssembly (assembly: DnaAssembly) =
+            let transform (currentResult: DnaAssembly)
+                          (transformer: ATContext -> DnaAssembly -> GslResult<DnaAssembly, AssemblyTransformationMessage<DnaAssembly>>)
+                          : GslResult<DnaAssembly, AssemblyTransformationMessage<DnaAssembly>> =
+                transformer atContext currentResult
+
             assemblyTransformers
-            |> List.fold (fun r transformer -> r >>= (transformer atContext)) (GslResult.ok a)
+            |> GslResult.fold transform assembly
 
         /// Attempt to transform all of the assemblies
         assemblies

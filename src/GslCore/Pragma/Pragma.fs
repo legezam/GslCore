@@ -41,6 +41,7 @@ type ArgumentShapeError =
 type PragmaArgumentError =
     | Shape of ArgumentShapeError
     | Validation of string
+    
 
 module Pragma =
     let getName (this: Pragma): string = this.Definition.Name

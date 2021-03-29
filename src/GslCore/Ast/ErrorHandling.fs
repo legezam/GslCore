@@ -137,11 +137,11 @@ module AstResult =
         |> GslResult.err
 
     ///Create an internal error if we encounter a pragma that hasn't been built.
-    let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): AstResult<'a> =
+    let unbuiltPragmaError (context: string option) (name: string) (node: AstNode): AstMessage =
         let message =
             sprintf "Found an unbuilt pragma%s: '%s'" (AstMessage.optionalContextStr context) name
 
-        errString (AstMessageType.InternalError(AstMessageType.PragmaError)) message node
+        errStringMsg (AstMessageType.InternalError(AstMessageType.PragmaError)) message node
 
     /// Convert an exception into an error message.
     /// Provide an AST node for context.

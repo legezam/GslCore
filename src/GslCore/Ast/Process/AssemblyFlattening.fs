@@ -1,9 +1,8 @@
 namespace GslCore.Ast.Process.AssemblyFlattening
 
 
-open GslCore.Ast.Process
+open GslCore.Ast.Process.ParsePart
 open GslCore.Ast.Types
-open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
 open GslCore.Pragma
@@ -13,9 +12,38 @@ open GslCore.Pragma
 // collapsing nested assemblies into a single top-level part
 // ==========================
 
-type AssemblyFlatteningError =
+[<RequireQualifiedAccess>]
+type ShiftFuseError =
+    | PragmaArgument of PragmaArgumentError
+    | GetPragma of GetPragmaError
+
+
+[<RequireQualifiedAccess>]
+type RecursivePartCollapseError =
+    | GetPragma of GetPragmaError
+    | MergePragma of MergePragmaError
+
+[<RequireQualifiedAccess>]
+type InvertPragmaError =
+    | Inversion of PragmaInversionError
+    | GetPragma of GetPragmaError
+
+[<RequireQualifiedAccess>]
+type AssemblyExplosionError =
+    | InvertPragma of InvertPragmaError
     | FlippingTrailingFuse of part: Node<ParsePart>
-    | PragmaMergeError of AstMessage
+    | ShiftFuse of ShiftFuseError
+    | GetPragma of GetPragmaError
+    | MergePragma of MergePragmaError
+
+[<RequireQualifiedAccess>]
+type AssemblyFlatteningError =
+    | Explosion of AssemblyExplosionError * node: AstNode
+    | RecursivePartCollapse of RecursivePartCollapseError
+
+module AssemblyFlatteningError =
+    let makeExplosionError (node: AstNode) (error: AssemblyExplosionError) =
+        AssemblyFlatteningError.Explosion(error, node)
 
 module AssemblyFlattening =
 
@@ -29,28 +57,33 @@ module AssemblyFlattening =
 
     let private shiftOne (shiftedParts: Node<ParsePart> list, addFuse: bool)
                          (part: Node<ParsePart>)
-                         : Node<ParsePart> list * bool =
+                         : GslResult<Node<ParsePart> list * bool, ShiftFuseError> =
+
         let fusablePragma =
             { Pragma.Definition = BuiltIn.fusePragmaDef
               Arguments = [] }
 
-        let pragmas = ParsePart.getPragmas part
-        // if this part has a #fuse, we need to add one to the next part
-        let nextNeedsFuse =
-            pragmas
-            |> PragmaCollection.containsPragma fusablePragma
-
-        let newPart =
-            let newPragmas =
-                if addFuse then
-                    pragmas |> PragmaCollection.add fusablePragma
-                else
+        ParsePart.getPragmasStrict part
+        |> GslResult.mapError ShiftFuseError.GetPragma
+        >>= fun pragmas ->
+                // if this part has a #fuse, we need to add one to the next part
+                let nextNeedsFuse =
                     pragmas
-                    |> PragmaCollection.removePragma fusablePragma
+                    |> PragmaCollection.containsPragma fusablePragma
 
-            ParsePart.replacePragmas part newPragmas
+                let newPragmasResult =
+                    if addFuse then
+                        pragmas |> PragmaCollection.add fusablePragma
+                    else
+                        pragmas
+                        |> PragmaCollection.removePragma fusablePragma
+                        |> GslResult.ok
 
-        (newPart :: shiftedParts, nextNeedsFuse)
+                newPragmasResult
+                |> GslResult.mapError ShiftFuseError.PragmaArgument
+                |> GslResult.map (fun newPragmas ->
+                    let newPart = ParsePart.replacePragmas part newPragmas
+                    (newPart :: shiftedParts, nextNeedsFuse))
 
     ///<summary>
     /// Shift any fuse pragmas one slot to the right.
@@ -62,26 +95,40 @@ module AssemblyFlattening =
     /// to do this anyway.
     ///</summary>
     let private shiftFusePragmaAndReverseList (parts: Node<ParsePart> list)
-                                              : GslResult<Node<ParsePart> list, AssemblyFlatteningError> =
-        let shiftedParts, trailingFuse = parts |> List.fold shiftOne ([], false)
+                                              : GslResult<Node<ParsePart> list, AssemblyExplosionError> =
 
-        if trailingFuse then
-            GslResult.err (FlippingTrailingFuse(List.head shiftedParts))
-        else
-            GslResult.ok shiftedParts
+
+        parts
+        |> GslResult.fold shiftOne ([], false)
+        |> GslResult.mapError AssemblyExplosionError.ShiftFuse
+        >>= fun (shiftedParts, trailingFuse) ->
+                if trailingFuse then
+                    GslResult.err (AssemblyExplosionError.FlippingTrailingFuse(List.head shiftedParts))
+                else
+                    GslResult.ok shiftedParts
 
     /// Replace any pragmas that invert upon reversal with their inverted version.
-    let private invertPragma (pragmaBuilder: PragmaFactory) (part: Node<ParsePart>): Node<ParsePart> =
+    let private invertPragma (pragmaBuilder: PragmaFactory)
+                             (part: Node<ParsePart>)
+                             : GslResult<Node<ParsePart>, InvertPragmaError> =
         part
-        |> ParsePart.getPragmas
-        |> PragmaCollection.values
-        |> Seq.map (fun pragma ->
-            pragmaBuilder
-            |> PragmaFactory.inverts pragma.Definition
-            |> Option.map (fun invertsTo -> { pragma with Definition = invertsTo })
-            |> Option.defaultValue pragma)
-        |> PragmaCollection.create
-        |> ParsePart.replacePragmas part
+        |> ParsePart.getPragmasStrict
+        |> GslResult.mapError InvertPragmaError.GetPragma
+        >>= fun retrievedPragmas ->
+                retrievedPragmas
+                |> PragmaCollection.values
+                |> Seq.map (fun pragma ->
+                    pragmaBuilder
+                    |> PragmaFactory.inverts pragma.Definition
+                    |> GslResult.map
+                        (Option.map (fun invertsTo -> { pragma with Definition = invertsTo })
+                         >> Option.defaultValue pragma))
+                |> Seq.toList
+                |> GslResult.collectA
+                |> GslResult.mapError InvertPragmaError.Inversion
+                |> GslResult.map
+                    (PragmaCollection.create
+                     >> ParsePart.replacePragmas part)
 
     ///<summary>
     /// Explode an assembly into a flat list of parts.
@@ -91,7 +138,7 @@ module AssemblyFlattening =
     let private explodeAssembly (pragmaBuilder: PragmaFactory)
                                 (assemblyPart: Node<ParsePart>)
                                 (assemblyBasePart: Node<AstNode list>)
-                                : GslResult<AstNode list, AssemblyFlatteningError> =
+                                : GslResult<AstNode list, AssemblyExplosionError> =
         // This operation is trivial if the assembly is in the forward orientation.
         // If it needs to reverse, it is rather tedious.
         let subParts = unpackParts assemblyBasePart.Value
@@ -106,44 +153,49 @@ module AssemblyFlattening =
                           Value =
                               { subPart.Value with
                                     IsForward = not subPart.Value.IsForward } }) // flip the part
-                |> List.map (invertPragma pragmaBuilder) // flip the pragmas
-                |> shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
+                |> List.map
+                    (invertPragma pragmaBuilder
+                     >> GslResult.mapError AssemblyExplosionError.InvertPragma) // flip the pragmas
+                |> GslResult.collectA
+                >>= shiftFusePragmaAndReverseList // shift fuse pragmas one flip to the right, reversing the list
         // now that the parts are correctly oriented, stuff the assembly pragmas into them
         correctlyOrientedParts
-        >>= fun parts ->
-                parts
-                |> List.map (fun parsePart -> ParsePart.mergePragmas parsePart (ParsePart.getPragmas assemblyPart))
-                |> GslResult.collectA
-                |> GslResult.mapError PragmaMergeError
-                |> GslResult.map (List.map AstNode.Part)
+        >>= (List.map (fun parsePart ->
+                 ParsePart.getPragmasStrict assemblyPart
+                 |> GslResult.mapError AssemblyExplosionError.GetPragma
+                 >>= (ParsePart.mergePragmas parsePart
+                      >> GslResult.mapError AssemblyExplosionError.MergePragma))
+             >> GslResult.collectA
+             >> GslResult.map (List.map AstNode.Part))
 
     /// Collapse a part whose base part is another part.
     // TODO: we should probably be more careful with mods here
     let private collapseRecursivePart (outerPart: Node<ParsePart>)
                                       (innerPart: Node<ParsePart>)
-                                      : GslResult<AstNode, AssemblyFlatteningError> =
-        let outerPragmas = ParsePart.getPragmas outerPart
+                                      : GslResult<AstNode, RecursivePartCollapseError> =
+        ParsePart.getPragmasStrict outerPart
+        |> GslResult.mapError RecursivePartCollapseError.GetPragma
+        >>= fun outerPragmas ->
+                ParsePart.mergePragmas innerPart outerPragmas
+                |> GslResult.mapError RecursivePartCollapseError.MergePragma
+                |> GslResult.map (fun newInner ->
+                    let joinedMods =
+                        innerPart.Value.Modifiers
+                        @ outerPart.Value.Modifiers
 
-        let joinedMods =
-            innerPart.Value.Modifiers
-            @ outerPart.Value.Modifiers
+                    let newDir =
+                        not
+                            (innerPart.Value.IsForward
+                             <> outerPart.Value.IsForward) // should be rev if one or the other is rev.
 
-        let newDir =
-            not
-                (innerPart.Value.IsForward
-                 <> outerPart.Value.IsForward) // should be rev if one or the other is rev.
+                    let newInnerWithOuterMods =
+                        { newInner with
+                              Value =
+                                  { newInner.Value with
+                                        Modifiers = joinedMods
+                                        IsForward = newDir } }
 
-        ParsePart.mergePragmas innerPart outerPragmas
-        |> GslResult.map (fun newInner ->
-            let newInnerWithOuterMods =
-                { newInner with
-                      Value =
-                          { newInner.Value with
-                                Modifiers = joinedMods
-                                IsForward = newDir } }
-
-            AstNode.Part newInnerWithOuterMods)
-        |> GslResult.mapError PragmaMergeError
+                    AstNode.Part newInnerWithOuterMods)
 
     /// Explode any nested assemblies up into the list of parts in the parent assembly.
     // TODO: need to handle mods, and allow only if contents of assembly is a single gene part.
@@ -161,8 +213,9 @@ module AssemblyFlattening =
                 match part with
                 | AssemblyPart (assemblyPart, assemblyBasePart) ->
                     explodeAssembly parameters.PragmaBuilder assemblyPart assemblyBasePart
-                | x -> GslResult.ok [ x ])
+                | nonAssemblyPart -> GslResult.ok [ nonAssemblyPart ])
             |> GslResult.collectA
+            |> GslResult.mapError (AssemblyFlatteningError.makeExplosionError node)
             |> GslResult.map (fun partLists ->
                 let newBasePart =
                     AstNode.Assembly
@@ -177,8 +230,9 @@ module AssemblyFlattening =
         | RecursivePart (outer, inner) ->
             // flatten parts that have another part as their base part due to using a single-part variable in an assembly
             collapseRecursivePart outer inner
+            |> GslResult.mapError AssemblyFlatteningError.RecursivePartCollapse
         | _ -> GslResult.ok node
 
     /// Moving from the bottom of the tree up, flatten nested assemblies and recursive parts.
-    let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> TreeTransformResult<AssemblyFlatteningError> =
+    let flattenAssemblies (parameters: Phase1Parameters): AstTreeHead -> GslResult<AstTreeHead, AssemblyFlatteningError> =
         FoldMap.map Serial BottomUp (flattenAssembly parameters)

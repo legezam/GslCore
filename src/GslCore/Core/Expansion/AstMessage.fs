@@ -1,5 +1,6 @@
 namespace GslCore.Core.Expansion.AstMessage
 
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Core.Expansion.Bootstrapping
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Phase1
@@ -11,6 +12,7 @@ open GslCore.Core.Expansion.Level2Expansion
 open GslCore.Core.Expansion.MutationExpansion
 open GslCore.Core.Expansion.ProteinExpansion
 open GslCore.Legacy.AstMessage
+open GslCore.Pragma
 
 module BootstrapError =
     let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapError<'a> -> AstMessage =
@@ -49,18 +51,23 @@ module BootstrapExpandAssemblyError =
 
 
 module BootstrapExecutionError =
-    let toAstMessage (formatExternalError: 'a -> AstMessage): BootstrapExecutionError<'a> -> AstMessage =
+    let toAstMessage (formatExternalError: 'a -> AstMessage)
+                     : BootstrapExecutionError<'a> -> AstMessage =
         function
         | BootstrapExecutionError.AssemblyStuffing innerError -> innerError |> AssemblyStuffingError.toAstMessage
         | BootstrapExecutionError.ExternalOperation innerError -> innerError |> formatExternalError
+        | BootstrapExecutionError.PragmaError (PragmaEnvironmentError.PragmaArgument (innerError, node)) ->
+            innerError |> PragmaArgumentError.toAstMessage node
 
 module Level2ExpansionError =
     let toAstMessage: Level2ExpansionError -> AstMessage =
         function
-        | ExpansionException (ex, node) -> AstResult.exceptionToError AstMessageType.L2ExpansionError node ex
-        | L2LineCreationError innerError -> LegacyL2LineCreationError.toAstMessage innerError
-        | AssemblyStuffingFailure innerError -> AssemblyStuffingError.toAstMessage innerError
-        | BoostrapError innerError -> BootstrapError.toAstMessage Phase1Error.toAstMessage innerError
+        | Level2ExpansionError.ExpansionException (ex, node) ->
+            AstResult.exceptionToError AstMessageType.L2ExpansionError node ex
+        | Level2ExpansionError.L2LineCreationError innerError -> LegacyL2LineCreationError.toAstMessage innerError
+        | Level2ExpansionError.AssemblyStuffingFailure innerError -> AssemblyStuffingError.toAstMessage innerError
+        | Level2ExpansionError.BoostrapError innerError ->
+            BootstrapError.toAstMessage Phase1Error.toAstMessage innerError
 
 module ProteinExpansionError =
     let toAstMessage (node: AstNode): ProteinExpansionError -> AstMessage =
@@ -83,6 +90,7 @@ module ProteinExpansionError =
 module HeterologyExpansionError =
     let toAstMessage (node: AstNode): HeterologyExpansionError -> AstMessage =
         function
+        | HeterologyExpansionError.PragmaArgumentError inner -> inner |> PragmaArgumentError.toAstMessage node
         | HeterologyExpansionError.NonGeneNeighbourPart neighbourGene ->
             AstResult.errStringFMsg
                 AstMessageType.HetBlockError

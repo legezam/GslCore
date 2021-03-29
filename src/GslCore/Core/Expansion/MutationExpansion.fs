@@ -2,6 +2,7 @@ namespace GslCore.Core.Expansion.MutationExpansion
 
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Phase1
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.Constants
@@ -191,7 +192,7 @@ module MutationExpansion =
     /// Expand all mutations in an AST.
     let expandMutations (parameters: Phase2Parameters)
                         (tree: AstTreeHead)
-                        : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, MutationExpansionError>>> =
+                        : TreeTransformResult<BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, MutationExpansionError>>, PragmaEnvironmentError> =
 
         let assemblyExpansion = expandMut parameters
 

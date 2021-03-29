@@ -77,16 +77,16 @@ module RecursiveCalls =
                                    : GslResult<AstNode, RecursiveCallCheckError> =
         match node with
         | AstNode.FunctionCall functionCall when functionStack
-                                         |> List.contains functionCall.Value.Name ->
+                                                 |> List.contains functionCall.Value.Name ->
             GslResult.err (RecursiveCallFoundError(functionCall.Value, node))
         | _ -> GslResult.ok node
 
     /// Fail if a GSL program contains recursively-defined functions.
-    let check =
+    let check: AstTreeHead -> TreeTransformResult<RecursiveCallCheckError, unit> =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = updateRecursiveCheckState
+              StateUpdate = FoldMapParameters.alwaysOkUpdate updateRecursiveCheckState
               Map = checkRecursiveCall }
 
         FoldMap.foldMap [] foldMapParameters

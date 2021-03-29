@@ -11,22 +11,26 @@ type PragmaFactoryError =
     | MissingDefinition of name: string
     | PragmaCreation of PragmaArgumentError
 
+[<RequireQualifiedAccess>]
+type PragmaInversionError =
+    | UnknownTarget of PragmaDefinition * expectedTarget: string
+    | IncompatibleTarget of source: PragmaDefinition * target: PragmaDefinition
+
 module PragmaFactory =
     /// Check that a pragma inverts to a legal pragma.  Returns the pragma it inverts to or raises an exception.
-    let inverts (pragmaDefinition: PragmaDefinition) (cache: PragmaFactory): PragmaDefinition option =
+    let inverts (pragmaDefinition: PragmaDefinition)
+                (cache: PragmaFactory)
+                : GslResult<PragmaDefinition option, PragmaInversionError> =
         match pragmaDefinition.InvertsTo with
-        | None -> None
+        | None -> GslResult.ok None
         | Some name ->
             match cache.Pragmas.TryFind name with
-            | None -> failwithf "Pragma %s inverts to an unknown pragma %s" (pragmaDefinition.Name) name
+            | None -> GslResult.err (PragmaInversionError.UnknownTarget(pragmaDefinition, name))
             | Some result -> // inverts to a known pragma, make sure they have the same shape
                 if pragmaDefinition.Shape <> result.Shape then
-                    failwithf
-                        "Pragma %s inverts to %s but they have differing argShapes."
-                        (pragmaDefinition.Name)
-                        (result.Name)
-
-                Some result
+                    GslResult.err (PragmaInversionError.IncompatibleTarget(pragmaDefinition, result))
+                else
+                    GslResult.ok (Some result)
 
     let create (pragmas: PragmaDefinition list): PragmaFactory =
         let pragmaDefinitions =

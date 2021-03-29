@@ -386,7 +386,30 @@ module AstNode =
 
 type NodeTransformResult<'a> = GslResult<AstNode, 'a>
 
-type TreeTransformResult<'a> = GslResult<AstTreeHead, 'a>
+type FoldMapError<'a, 'b> =
+    | MapError of 'a
+    | StateUpdateError of 'b
+
+type TreeTransformResult<'a, 'b> = GslResult<AstTreeHead, FoldMapError<'a, 'b>>
+
+module TreeTransformResult =
+    let unwrapMapResult (result: TreeTransformResult<'a, unit>): GslResult<AstTreeHead, 'a> =
+        result
+        |> GslResult.mapError (function
+            | MapError mapResult -> mapResult
+            | StateUpdateError () -> failwith "Impossible")
+
+    let mapMapError (mapper: 'a -> 'c) (result: TreeTransformResult<'a, 'b>): TreeTransformResult<'c, 'b> =
+        result
+        |> GslResult.mapError (function
+            | MapError mapError -> MapError(mapper mapError)
+            | StateUpdateError stateError -> StateUpdateError stateError)
+
+    let mapUpdateError (mapper: 'b -> 'c) (result: TreeTransformResult<'a, 'b>): TreeTransformResult<'a, 'c> =
+        result
+        |> GslResult.mapError (function
+            | MapError mapError -> MapError mapError
+            | StateUpdateError stateError -> StateUpdateError(mapper stateError))
 
 type FoldMapDirection =
     | TopDown
@@ -414,54 +437,71 @@ module StateUpdateMode =
         | PreTransform -> operator state node
         | PostTransform -> state
 
-type FoldmapMode =
+type FoldMapMode =
     | Serial
     | Parallel
 
-type FoldMapParameters<'State, 'Msg> =
-    { Mode: FoldmapMode
+type FoldMapParameters<'State, 'Msg, 'StateMsg> =
+    { Mode: FoldMapMode
       Direction: FoldMapDirection
-      StateUpdate: StateUpdateMode -> 'State -> AstNode -> 'State
+      StateUpdate: StateUpdateMode -> 'State -> AstNode -> GslResult<'State, 'StateMsg>
       Map: 'State -> AstNode -> NodeTransformResult<'Msg> }
+
+module FoldMapParameters =
+    let inline alwaysOkUpdate (f: StateUpdateMode -> 'State -> AstNode -> 'a)
+                              (mode: StateUpdateMode)
+                              (state: 'State)
+                              (node: AstNode)
+                              : GslResult<'a, unit> =
+        f mode state node |> GslResult.ok
 
 module rec FoldMap =
 
     /// Inner recursive call.
     let rec internal loop (state: 'State)
                           (node: AstNode)
-                          (parameters: FoldMapParameters<'State, 'Msg>)
-                          : 'State * GslResult<AstNode, 'Msg> =
+                          (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
+                          : GslResult<'State * AstNode, FoldMapError<'Msg, 'StateMsg>> =
 
         /// Fold over this node and produce an updated state.
-        let preTransformedState =
-            parameters.StateUpdate PreTransform state node
+        //let preTransformedState =
+        parameters.StateUpdate PreTransform state node
+        |> GslResult.mapError StateUpdateError
+        >>= fun preTransformedState ->
 
-        // depending on the direction switch, either first transform the node and then its children,
-        // or transform the children first and then the current node.  This is the difference between
-        // rebuilding the tree top-down and bottom-up.
-        let transformedTree =
-            match parameters.Direction with
-            | TopDown ->
-                parameters.Map preTransformedState node
-                >>= transformChildren preTransformedState parameters
-            | BottomUp ->
-                // transform the children of the node
-                transformChildren preTransformedState parameters node
-                // then transform the node with transformed children
-                >>= parameters.Map preTransformedState
+                // depending on the direction switch, either first transform the node and then its children,
+                // or transform the children first and then the current node.  This is the difference between
+                // rebuilding the tree top-down and bottom-up.
+                let transformedTreeResult: GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
+                    match parameters.Direction with
+                    | TopDown ->
+                        parameters.Map preTransformedState node
+                        |> GslResult.mapError MapError
+                        >>= transformChildren preTransformedState parameters
+                    | BottomUp ->
+                        // transform the children of the node
+                        transformChildren preTransformedState parameters node
+                        // then transform the node with transformed children
+                        >>= (parameters.Map preTransformedState
+                             >> GslResult.mapError MapError)
 
-        // run the state update function in PostTransform mode, using the original node
-        // this allows block-scoped cleanup to occur.
-        let postTransformedState =
-            parameters.StateUpdate PostTransform preTransformedState node
-        // return the transformed node and the state from folding only it, not its children
-        postTransformedState, transformedTree
+
+                // run the state update function in PostTransform mode, using the original node
+                // this allows block-scoped cleanup to occur.
+                let postTransformedTreeResult =
+                    parameters.StateUpdate PostTransform preTransformedState node
+                    |> GslResult.mapError StateUpdateError
+
+
+                (transformedTreeResult, postTransformedTreeResult)
+                // return the transformed node and the state from folding only it, not its children
+                ||> GslResult.map2 (fun transformedTree postTransformedState -> postTransformedState, transformedTree)
 
     /// Recursive into the children of a node.
     let internal transformChildren (state: 'State)
-                                   (parameters: FoldMapParameters<'State, 'Msg>)
+                                   (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                    (node: AstNode)
-                                   : GslResult<AstNode, 'Msg> =
+                                   : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         // recurse into children of the revised node
         match node with
         | Leaf leaf -> GslResult.ok leaf // leaf nodes need no recursion
@@ -495,15 +535,15 @@ module rec FoldMap =
     /// in processBlock, to ensure that state only accumulates over top-level nodes inside
     /// blocks.
     let internal foldAndDropState (state: 'State)
-                                  (parameters: FoldMapParameters<'State, 'Msg>)
+                                  (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                   (node: AstNode)
-                                  : GslResult<AstNode, 'Msg> =
-        snd (loop state node parameters)
+                                  : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
+        loop state node parameters |> GslResult.map snd
 
     let internal processRelativePosition (state: 'State)
-                                         (parameters: FoldMapParameters<'State, 'Msg>)
+                                         (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                          (node: Node<ParseRelativePosition>)
-                                         : GslResult<AstNode, 'Msg> =
+                                         : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         foldAndDropState state parameters node.Value.Item
         |> GslResult.map (fun updatedValue ->
             let updatedWrapper = { node.Value with Item = updatedValue }
@@ -511,9 +551,9 @@ module rec FoldMap =
             AstNode.ParseRelPos { node with Value = updatedWrapper })
 
     let internal processSlice (state: 'State)
-                              (parameters: FoldMapParameters<'State, 'Msg>)
+                              (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                               (node: Node<ParseSlice>)
-                              : GslResult<AstNode, 'Msg> =
+                              : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         let newLeft =
             foldAndDropState state parameters node.Value.Left
 
@@ -530,9 +570,9 @@ module rec FoldMap =
                 AstNode.Slice { node with Value = updatedWrapper })
 
     let internal processL2Element (state: 'State)
-                                  (parameters: FoldMapParameters<'State, 'Msg>)
+                                  (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                   (node: Node<L2Element>)
-                                  : GslResult<AstNode, 'Msg> =
+                                  : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         let newPromoter =
             foldAndDropState state parameters node.Value.Promoter
 
@@ -551,9 +591,9 @@ module rec FoldMap =
                            Value = updatedWrapperValue }))
 
     let internal processPragma (state: 'State)
-                               (parameters: FoldMapParameters<'State, 'Msg>)
+                               (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                (node: Node<ParsePragma>)
-                               : GslResult<AstNode, 'Msg> =
+                               : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         node.Value.Values
         |> List.map (foldAndDropState state parameters)
         |> GslResult.collectA
@@ -563,9 +603,9 @@ module rec FoldMap =
             AstNode.ParsePragma { node with Value = updatedValue })
 
     let internal processFunctionDefinition (state: 'State)
-                                           (parameters: FoldMapParameters<'State, 'Msg>)
+                                           (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                            (node: Node<ParseFunction>)
-                                           : GslResult<AstNode, 'Msg> =
+                                           : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         foldAndDropState state parameters node.Value.Body
         |> GslResult.map (fun newBody ->
             let updatedValue = { node.Value with Body = newBody }
@@ -573,9 +613,9 @@ module rec FoldMap =
             AstNode.FunctionDef { node with Value = updatedValue })
 
     let internal processFunctionCall (state: 'State)
-                                     (parameters: FoldMapParameters<'State, 'Msg>)
+                                     (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                      (node: Node<FunctionCall>)
-                                     : GslResult<AstNode, 'Msg> =
+                                     : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         GslResult.collectA (List.map (foldAndDropState state parameters) node.Value.Arguments)
         |> GslResult.map (fun newArgs ->
             let updatedValue = { node.Value with Arguments = newArgs }
@@ -583,17 +623,17 @@ module rec FoldMap =
             AstNode.FunctionCall { node with Value = updatedValue })
 
     let internal processAssembly (state: 'State)
-                                 (parameters: FoldMapParameters<'State, 'Msg>)
+                                 (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                  (node: Node<AstNode list>)
-                                 : GslResult<AstNode, 'Msg> =
+                                 : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         GslResult.collectA (List.map (foldAndDropState state parameters) node.Value)
         |> GslResult.map (fun newParts -> AstNode.Assembly { node with Value = newParts })
 
     // Parts have quite a few children, so break this out as a function for cleanliness.
     let internal processPart (state: 'State)
-                             (parameters: FoldMapParameters<'State, 'Msg>)
+                             (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                              (partWrapper: Node<ParsePart>)
-                             : GslResult<AstNode, 'Msg> =
+                             : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         let parsePart = partWrapper.Value
 
         let updatedBasePart =
@@ -623,9 +663,9 @@ module rec FoldMap =
 
     // L2 expressions are a bit complicated, so break this out for cleanliness.
     let internal processL2Expression (state: 'State)
-                                     (parameters: FoldMapParameters<'State, 'Msg>)
+                                     (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                      (level2Wrapper: Node<L2Expression>)
-                                     : GslResult<AstNode, 'Msg> =
+                                     : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         let level2Expression = level2Wrapper.Value
 
         let updatedLocus =
@@ -654,67 +694,76 @@ module rec FoldMap =
     /// and no further.  So, simple rule: anything that needs to involve block-scoped state update
     /// needs to be a rule that operates on an immediate child of a block.</summary>
     let internal processBlock (state: 'State)
-                              (parameters: FoldMapParameters<'State, 'Msg>)
+                              (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                               (blockWrapper: Node<AstNode list>)
-                              : GslResult<AstNode, 'Msg> =
+                              : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         /// Folding function that collects the results of node transformation while accumulating state.
         /// The resulting list of nodes needs to be reversed.
-        let foldAndAccum (s, transformedNodes) n =
-            let newState, transformedNode = loop s n parameters
-            (newState, transformedNode :: transformedNodes)
+        let foldAndAccum (state: 'State, transformedNodes: AstNode list)
+                         (node: AstNode)
+                         : GslResult<('State * AstNode list), FoldMapError<'Msg, 'StateMsg>> =
+            //let newState, transformedNode = loop state n parameters
+            loop state node parameters
+            |> GslResult.map (fun (newState, transformedNode) -> (newState, transformedNode :: transformedNodes))
 
         // The _ on the line below drops the state accumulated over the block.
-        let (_, newLineResults) =
-            List.fold foldAndAccum (state, []) blockWrapper.Value
-        // merge the new line results into one result
-        newLineResults
-        |> List.rev
-        |> GslResult.collectA
-        |> GslResult.map (fun newLines -> AstNode.Block({ blockWrapper with Value = newLines }))
+        //let (_, newLineResults) =
+
+        GslResult.fold foldAndAccum (state, []) blockWrapper.Value
+        |> GslResult.map (fun (_, newLineResults) ->
+            // merge the new line results into one result
+            AstNode.Block
+                ({ blockWrapper with
+                       Value = newLineResults |> List.rev }))
 
 
     /// Performs processing of each node in a block in parallel, with the same semantics as serial.
     let internal processBlockParallel (state: 'State)
-                                      (parameters: FoldMapParameters<'State, 'Msg>)
+                                      (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                       (blockWrapper: Node<AstNode list>)
-                                      : GslResult<AstNode, 'Msg> =
-        let nodeArray = blockWrapper.Value |> Array.ofList
+                                      : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
+        let nodesInBlock = blockWrapper.Value |> Array.ofList
         // We need to compute all of the block-accumulated state up-front and pass it in to each step.
-        // This implies a bit of redundent computation as each inner call will recompute.
-        let computeStateForNextNode stateIn n =
-            let pretransState =
-                parameters.StateUpdate PreTransform stateIn n
+        // This implies a bit of redundant computation as each inner call will recompute.
+        let computeStateForNextNode (stateIn: 'State) (node: AstNode): GslResult<'State, 'StateMsg> =
+            parameters.StateUpdate PreTransform stateIn node
+            >>= fun preTransState -> parameters.StateUpdate PostTransform preTransState node
 
-            parameters.StateUpdate PostTransform pretransState n
+        let accumulateStateForNode (inputStates: GslResult<'State list, FoldMapError<'Msg, 'StateMsg>>)
+                                   (node: AstNode)
+                                   : GslResult<'State list, FoldMapError<'Msg, 'StateMsg>> =
+            inputStates
+            >>= fun inputStates ->
+                    let headState = inputStates |> List.head
 
-        let statesForNodes =
-            nodeArray
-            |> Array.fold (fun inputStates n ->
-                let outputState =
-                    computeStateForNextNode (List.head inputStates) n
+                    computeStateForNextNode headState node
+                    |> GslResult.mapError StateUpdateError
+                    |> GslResult.map (fun outputState -> outputState :: inputStates)
 
-                outputState :: inputStates) [ state ]
-            |> List.tail // we don't need the output from the last node
-            |> List.rev
-            |> List.toArray
+        let statesForNodesResult =
+            let initialState = GslResult.ok [ state ]
 
-        assert (statesForNodes.Length = nodeArray.Length)
+            nodesInBlock
+            |> Array.fold accumulateStateForNode initialState
+            |> GslResult.map (List.tail >> List.rev >> List.toArray) // we don't need the output from the last node
 
         let nCores = System.Environment.ProcessorCount
         // leave one for the OS, make sure at least 1!
         let useNCores = nCores - 1 |> max 1
 
-        Array.zip statesForNodes nodeArray
-        |> PSeq.map (fun (inputState, n) -> loop inputState n parameters |> snd)
-        |> PSeq.withDegreeOfParallelism useNCores
-        |> PSeq.toList
-        |> GslResult.collectA
-        |> GslResult.map (fun newLines -> AstNode.Block({ blockWrapper with Value = newLines }))
+        statesForNodesResult
+        >>= fun statesForNodes ->
+                Array.zip statesForNodes nodesInBlock
+                |> PSeq.map (fun (inputState, n) -> loop inputState n parameters |> GslResult.map snd)
+                |> PSeq.withDegreeOfParallelism useNCores
+                |> PSeq.toList
+                |> GslResult.collectA
+                |> GslResult.map (fun newLines -> AstNode.Block({ blockWrapper with Value = newLines }))
 
     let internal processVariableBinding (state: 'State)
-                                        (parameters: FoldMapParameters<'State, 'Msg>)
+                                        (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                         (node: Node<VariableBinding>)
-                                        : GslResult<AstNode, 'Msg> =
+                                        : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         (foldAndDropState state parameters node.Value.Value)
         |> GslResult.map (fun newInner ->
             let updatedNodeValue = { node.Value with Value = newInner }
@@ -722,18 +771,18 @@ module rec FoldMap =
             AstNode.VariableBinding { node with Value = updatedNodeValue })
 
     let internal processTypedValue (state: 'State)
-                                   (parameters: FoldMapParameters<'State, 'Msg>)
+                                   (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                    (node: Node<GslVariableType * AstNode>)
-                                   : GslResult<AstNode, 'Msg> =
+                                   : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         let gslType, typedValue = node.Value
 
         (foldAndDropState state parameters typedValue)
         |> GslResult.map (fun newInner -> AstNode.TypedValue { node with Value = gslType, newInner })
 
     let internal processBinaryOperation (state: 'State)
-                                        (parameters: FoldMapParameters<'State, 'Msg>)
+                                        (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                         (node: Node<BinaryOperation>)
-                                        : GslResult<AstNode, 'Msg> =
+                                        : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         let newLeft =
             foldAndDropState state parameters node.Value.Left
 
@@ -750,9 +799,9 @@ module rec FoldMap =
                 AstNode.BinaryOperation { node with Value = updatedWrapper })
 
     let internal processNegation (state: 'State)
-                                 (parameters: FoldMapParameters<'State, 'Msg>)
+                                 (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                                  (node: Node<AstNode>)
-                                 : GslResult<AstNode, 'Msg> =
+                                 : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         foldAndDropState state parameters node.Value
         |> GslResult.map (fun updatedValue -> AstNode.Negation({ node with Value = updatedValue }))
 
@@ -776,13 +825,11 @@ module rec FoldMap =
     // TODO: this function really needs a drawing to be clear.  Document this using a graph example.
     // IMPORTANT: please take great care if editing this algorithm!
     let foldMap (initialState: 'State)
-                (parameters: FoldMapParameters<'State, 'Msg>)
+                (parameters: FoldMapParameters<'State, 'Msg, 'StateMsg>)
                 (tree: AstTreeHead)
-                : TreeTransformResult<'Msg> =
-        let _, newTree =
-            loop initialState tree.wrappedNode parameters
-
-        newTree |> GslResult.map AstTreeHead
+                : TreeTransformResult<'Msg, 'StateMsg> =
+        loop initialState tree.wrappedNode parameters
+        |> GslResult.map (fun (_state, tree) -> AstTreeHead tree)
 
     ///<summary>
     /// Produce a new AST by recursively applying a function to every node in the tree.
@@ -792,14 +839,22 @@ module rec FoldMap =
     /// Bottom-up order should be used when a transformation is going to be decreasing the branching of
     /// some part of the tree, like collapsing binary expressions into a single value.
     ///</summary>
-    let map mode direction f tree =
+    let map (mode: FoldMapMode)
+            (direction: FoldMapDirection)
+            (mapFunc: AstNode -> NodeTransformResult<'a>)
+            (tree: AstTreeHead)
+            : GslResult<AstTreeHead, 'a> =
+
         let parameters =
             { FoldMapParameters.Direction = direction
               Mode = mode
-              StateUpdate = fun _ _ _ -> ()
-              Map = fun _ -> f }
+              StateUpdate = fun _ _ _ -> GslResult.ok ()
+              Map = fun _ -> mapFunc }
 
-        foldMap () parameters tree
+        let initialState = ()
+
+        foldMap initialState parameters tree
+        |> TreeTransformResult.unwrapMapResult
 
 
 type ValidationResult = AstResult<unit>
@@ -815,9 +870,11 @@ module Validation =
     /// Enforces that the tree remains the same by only accepting a function that returns nothing.
     /// Can perform multiple validations in parallel on each node by combining the node validation
     /// functions with the &&& infix operator.
-    let validate (f: AstNode -> GslResult<unit, 'a>) tree =
+    let validate (validatorFunc: AstNode -> GslResult<unit, 'a>) (tree: AstTreeHead): GslResult<AstTreeHead, 'a> =
         // we can express this operation using map and by doctoring the inputs and outputs.
         // map requires a function that produces a transformation result.
-        let fPassThru (node: AstNode) = f node |> GslResult.map (fun _ -> node) // splice the node into successful validation result which is always ()
+        let fPassThru (node: AstNode): GslResult<AstNode, 'a> =
+            validatorFunc node
+            |> GslResult.map (fun _ -> node) // splice the node into successful validation result which is always ()
 
         FoldMap.map Serial TopDown fPassThru tree

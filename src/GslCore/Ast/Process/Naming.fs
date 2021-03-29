@@ -1,6 +1,7 @@
 namespace GslCore.Ast.Process.Naming
 
 open Amyris.Dna
+open GslCore.Ast.Process.ParsePart
 open GslCore.Constants
 open GslCore.Ast.Process
 open GslCore.Ast.Types
@@ -10,15 +11,16 @@ open GslCore.GslResult
 open GslCore.Pragma
 open GslCore.Reference
 
+[<RequireQualifiedAccess>]
 type NameCheckError =
     | UnknownGene of geneName: string * basePart: AstNode
     | ReferenceError of errorMessage: string * node: AstNode
+    | GetPragmaError of GetPragmaError
 
-module NameCheckError =
-    let toAstMessage: NameCheckError -> AstMessage =
-        function
-        | UnknownGene (geneName, basePart) -> AstResult.errStringFMsg AstMessageType.PartError "Unknown gene: '%s'." geneName basePart
-        | ReferenceError (message, node) -> AstMessage.createErrorWithStackTrace AstMessageType.RefGenomeError message node
+[<RequireQualifiedAccess>]
+type NamingError =
+    | AddPragma of PragmaArgumentError * node: AstNode
+    | GetPragma of GetPragmaError
 
 
 // ==================
@@ -35,18 +37,20 @@ module NameChecking =
         match node with
         | GenePart (parsePart, genePart) ->
             let geneName = genePart.Value.Gene.[1..].ToUpper()
-            let partPragmas = ParsePart.getPragmas parsePart
 
+            ParsePart.getPragmasStrict parsePart
+            |> GslResult.mapError NameCheckError.GetPragmaError
+            >>= fun partPragmas ->
 
-            GenomeDefinitions.getReferenceGenome references [ partPragmas; assemblyPragmas ]
-            |> GslResult.fromResult (fun message -> ReferenceError(message, node))
-            >>= fun reference ->
-                    if reference
-                       |> GenomeDefinition.isValidFeature geneName
-                       || library.ContainsKey(geneName) then
-                        GslResult.ok ()
-                    else
-                        GslResult.err (UnknownGene(geneName, parsePart.Value.BasePart))
+                    GenomeDefinitions.getReferenceGenome references [ partPragmas; assemblyPragmas ]
+                    |> GslResult.fromResult (fun message -> NameCheckError.ReferenceError(message, node))
+                    >>= fun reference ->
+                            if reference
+                               |> GenomeDefinition.isValidFeature geneName
+                               || library.ContainsKey(geneName) then
+                                GslResult.ok ()
+                            else
+                                GslResult.err (NameCheckError.UnknownGene(geneName, parsePart.Value.BasePart))
         | _ -> GslResult.ok ()
 
     /// Check all the gene names in the context of a single assembly.
@@ -56,18 +60,19 @@ module NameChecking =
                                          : GslResult<unit, NameCheckError> =
         match node with
         | AssemblyPart (partWrapper, assemblyWrapper) ->
-            let assemblyPragmas = ParsePart.getPragmas partWrapper
-
-            assemblyWrapper.Value
-            |> List.map (checkGeneName reference library assemblyPragmas)
-            |> GslResult.collectA
-            |> GslResult.ignore
+            ParsePart.getPragmasStrict partWrapper
+            |> GslResult.mapError NameCheckError.GetPragmaError
+            >>= fun assemblyPragmas ->
+                    assemblyWrapper.Value
+                    |> List.map (checkGeneName reference library assemblyPragmas)
+                    |> GslResult.collectA
+                    |> GslResult.ignore
         | _ -> GslResult.ok ()
 
     /// Validate all gene names.
     let checkGeneNames (reference: GenomeDefinitions)
                        (library: Map<string, Dna>)
-                       : AstTreeHead -> TreeTransformResult<NameCheckError> =
+                       : AstTreeHead -> GslResult<AstTreeHead, NameCheckError> =
         Validation.validate (checkGeneNamesInAssembly reference library)
 
 
@@ -97,33 +102,39 @@ module NameChecking =
     /// Name an assembly if it is not already named.
     /// We accomplish this by replacing the assembly with a subblock, into which we're placed a name pragma.
     /// Since naming happens after pragma stuffing, we also put the name pragma into the assebly itself.
-    let private nameAssembly (node: AstNode): AstNode =
+    let private nameAssembly (node: AstNode): GslResult<AstNode, NamingError> =
         match node with
         | AssemblyPart (assemblyWrapper, _) ->
-            let pragmas = ParsePart.getPragmas assemblyWrapper
+            ParsePart.getPragmasStrict assemblyWrapper
+            |> GslResult.mapError NamingError.GetPragma
+            >>= fun pragmas ->
+                    if pragmas
+                       |> PragmaCollection.contains BuiltIn.namePragmaDef then
+                        GslResult.ok node // already named
+                    else
+                        let literal = AstNode.decompile node |> cleanHashName
 
-            if pragmas
-               |> PragmaCollection.contains BuiltIn.namePragmaDef then node // already named
-            else let literal = AstNode.decompile node |> cleanHashName
+                        let name =
+                            literal
+                                .Substring(0, min literal.Length Default.NameMaxLength)
+                                .Replace("@", "(@)")
 
-                 let name =
-                     literal
-                         .Substring(0, min literal.Length Default.NameMaxLength)
-                         .Replace("@", "(@)")
+                        let namePragma =
+                            { Pragma.Definition = BuiltIn.namePragmaDef
+                              Arguments = [ name ] }
 
-                 let namePragma =
-                     { Pragma.Definition = BuiltIn.namePragmaDef
-                       Arguments = [ name ] }
 
-                 let mergedPragmas =
-                     pragmas |> PragmaCollection.add namePragma
+                        pragmas
+                        |> PragmaCollection.add namePragma
+                        |> GslResult.mapError (fun error -> NamingError.AddPragma(error, node))
+                        |> GslResult.map (fun mergedPragmas ->
 
-                 let namedAssembly =
-                     AstNode.Part(ParsePart.replacePragmas assemblyWrapper mergedPragmas)
+                            let namedAssembly =
+                                AstNode.Part(ParsePart.replacePragmas assemblyWrapper mergedPragmas)
 
-                 let pragmaNode = AstNode.Pragma(Node.wrapNode namePragma)
-                 AstNode.Block(Utils.nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ])
-        | _ -> node
+                            let pragmaNode = AstNode.Pragma(Node.wrapNode namePragma)
+                            AstNode.Block(Utils.nodeWrapWithNodePosition node [ pragmaNode; namedAssembly ]))
+        | _ -> GslResult.ok node
 
 
     ///<summary>
@@ -131,5 +142,5 @@ module NameChecking =
     /// Also prepend a name pragma, accomplished by replacing the assembly with a subblock that includes
     /// the new name pragma.
     ///</summary>
-    let nameAssemblies (head: AstTreeHead): TreeTransformResult<'a> =
-        FoldMap.map Serial TopDown (GslResult.promote nameAssembly) head
+    let nameAssemblies (head: AstTreeHead): GslResult<AstTreeHead, NamingError> =
+        FoldMap.map Serial TopDown nameAssembly head

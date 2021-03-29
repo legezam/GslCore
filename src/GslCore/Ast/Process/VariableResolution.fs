@@ -163,7 +163,7 @@ module VariableResolution =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = VariableCapturing.captureVariableBindings
+              StateUpdate = FoldMapParameters.alwaysOkUpdate VariableCapturing.captureVariableBindings
               Map = resolveVariable AllowUnresolvedFunctionLocals }
 
         FoldMap.foldMap Map.empty foldMapParameters
@@ -174,7 +174,7 @@ module VariableResolution =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = VariableCapturing.captureVariableBindings
+              StateUpdate = FoldMapParameters.alwaysOkUpdate VariableCapturing.captureVariableBindings
               Map = resolveVariable Strict }
 
         FoldMap.foldMap Map.empty foldMapParameters

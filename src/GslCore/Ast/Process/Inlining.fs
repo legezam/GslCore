@@ -109,9 +109,9 @@ module Inlining =
     /// Inline the passed function args in place of the FunctionLocals placeholder.
     /// Return a revised block.
     let internal inlinePassedArguments (createVariableBinding: string -> AstNode -> GslResult<AstNode, InliningError>)
-                                      (parseFunction: ParseFunction)
-                                      (functionCall: FunctionCall)
-                                      : GslResult<AstNode, InliningError> =
+                                       (parseFunction: ParseFunction)
+                                       (functionCall: FunctionCall)
+                                       : GslResult<AstNode, InliningError> =
         match parseFunction.Body with
         | AstNode.Block blockWrapper as block ->
             match blockWrapper.Value with
@@ -135,10 +135,10 @@ module Inlining =
 
     /// Replace a function call with the contents of a function definition.
     let internal inlineFunctionCall (checkArguments: ParseFunction -> FunctionCall -> GslResult<unit, FunctionValidationError>)
-                                   (inlineArguments: CapturedVariableBindings -> ParseFunction -> FunctionCall -> GslResult<AstNode, InliningError>)
-                                   (state: FunctionInliningState)
-                                   (node: AstNode)
-                                   : GslResult<AstNode, InliningError> =
+                                    (inlineArguments: CapturedVariableBindings -> ParseFunction -> FunctionCall -> GslResult<AstNode, InliningError>)
+                                    (state: FunctionInliningState)
+                                    (node: AstNode)
+                                    : GslResult<AstNode, InliningError> =
         match node with
         | AstNode.FunctionCall functionCallWrapper when state.Depth = 0 -> // only do inlining if we're not inside a def
             let functionCall = functionCallWrapper.Value
@@ -146,7 +146,7 @@ module Inlining =
             match state.Definitions.TryFind(functionCall.Name) with
             | Some functionDefinition ->
                 // Helper function to add new position to an AST node
-                let addPositions (node: AstNode) =
+                let addPositions (node: AstNode): GslResult<AstNode, InliningError> =
                     GslResult.ok (Utils.prependPositionsAstNode functionCallWrapper.Positions node)
 
                 // inline the args into the function call block
@@ -176,7 +176,7 @@ module Inlining =
 
             { FoldMapParameters.Direction = TopDown
               Mode = Serial
-              StateUpdate = updateFunctionInliningState
+              StateUpdate = FoldMapParameters.alwaysOkUpdate updateFunctionInliningState
               Map = inlineFunctionCall checkArguments inlineArgumentsUsingVariableResolution }
 
         FoldMap.foldMap FunctionInliningState.empty foldMapParameters

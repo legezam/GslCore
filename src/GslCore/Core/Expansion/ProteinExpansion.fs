@@ -1,6 +1,7 @@
 namespace GslCore.Core.Expansion.ProteinExpansion
 
 open GslCore.Ast.Phase1
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Types
 open GslCore.Constants
 open GslCore.Ast.Algorithms
@@ -109,7 +110,7 @@ module ProteinExpansion =
     /// Expand all inline protein sequences in an AST.
     let expandInlineProteins (parameters: Phase2Parameters)
                              (tree: AstTreeHead)
-                             : GslResult<AstTreeHead, BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>>> =
+                             : TreeTransformResult<BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>>, PragmaEnvironmentError> =
 
         let mode =
             if parameters.Parallel then Parallel else Serial

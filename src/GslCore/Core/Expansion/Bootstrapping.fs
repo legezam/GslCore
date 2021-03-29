@@ -28,6 +28,7 @@ type BootstrapExpandAssemblyError<'a, 'b> =
 type BootstrapExecutionError<'a> =
     | AssemblyStuffing of AssemblyStuffingError
     | ExternalOperation of 'a
+    | PragmaError of PragmaEnvironmentError
 
 module Bootstrapping =
 
@@ -73,7 +74,7 @@ module Bootstrapping =
 
     /// Replace all source positions in a bootstrapped expanded tree with the position of the node
     /// that was expanded into source.
-    let private replaceSourcePositions (position: SourcePosition list): AstTreeHead -> TreeTransformResult<'a> =
+    let private replaceSourcePositions (position: SourcePosition list): AstTreeHead -> GslResult<AstTreeHead, 'a> =
         FoldMap.map Serial TopDown (GslResult.promote (replaceSourcePosition position))
 
 
@@ -151,7 +152,7 @@ module Bootstrapping =
         | _ -> node
 
     /// Explode all Splices into their enclosing context.
-    let healSplices (head: AstTreeHead): TreeTransformResult<'a> =
+    let healSplices (head: AstTreeHead): GslResult<AstTreeHead, 'a> =
         FoldMap.map Serial TopDown (GslResult.promote healSplice) head
 
 
@@ -186,9 +187,9 @@ module Bootstrapping =
     /// This is necessary because some bootstrapped expansion phases convert a single
     /// node into a miniature block, which we want to expand into the outer context.
     let executeBootstrap (bootstrappedExpansionFunction: AssemblyConversionContext -> AstNode -> NodeTransformResult<'a>)
-                         (mode: FoldmapMode)
+                         (mode: FoldMapMode)
                          (tree: AstTreeHead)
-                         : GslResult<AstTreeHead, BootstrapExecutionError<'a>> =
+                         : TreeTransformResult<BootstrapExecutionError<'a>, PragmaEnvironmentError> =
         let foldMapParameters =
             { FoldMapParameters.Direction = TopDown
               Mode = mode
@@ -199,7 +200,9 @@ module Bootstrapping =
             AssemblyConversionContext.empty
             foldMapParameters
             tree
-        |> GslResult.mapError BootstrapExecutionError.ExternalOperation
+        |> GslResult.mapError (function
+            | MapError mapError -> MapError(BootstrapExecutionError.ExternalOperation mapError)
+            | StateUpdateError pragmaError -> StateUpdateError pragmaError)
         >>= healSplices
         >>= (AssemblyStuffing.stuffPragmasIntoAssemblies
-             >> GslResult.mapError BootstrapExecutionError.AssemblyStuffing) // Bootstrapped assemblies need their pragma environment reinjected
+             >> TreeTransformResult.mapMapError BootstrapExecutionError.AssemblyStuffing) // Bootstrapped assemblies need their pragma environment reinjected

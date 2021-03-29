@@ -1,8 +1,10 @@
 ﻿/// AST versions of biological expansions
 namespace GslCore.Core
 
+open GslCore.Ast.Algorithms
 open GslCore.Ast.ErrorHandling
 open GslCore.Ast.Phase1
+open GslCore.Ast.Process.AssemblyStuffing
 open GslCore.Ast.Types
 open GslCore.Core.Expansion
 open GslCore.Core.Expansion.AstMessage
@@ -11,18 +13,19 @@ open GslCore.Core.Expansion.HeterologyExpansion
 open GslCore.Core.Expansion.MutationExpansion
 open GslCore.Core.Expansion.ProteinExpansion
 open GslCore.GslResult
+open GslCore.Pragma
 
 type Phase2Error =
     | MutationExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, MutationExpansionError>> *
+        FoldMapError<BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, MutationExpansionError>>, PragmaEnvironmentError> *
         pass: int *
         node: AstNode
     | ProteinExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>> *
+        FoldMapError<BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, ProteinExpansionError>>, PragmaEnvironmentError> *
         pass: int *
         node: AstNode
     | HeterologyExpansionError of
-        BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>> *
+        FoldMapError<BootstrapExecutionError<BootstrapExpandAssemblyError<BootstrapError<Phase1Error>, HeterologyExpansionError>>, PragmaEnvironmentError> *
         pass: int *
         node: AstNode
     | LimitExceeded of limit: int * node: AstNode
@@ -36,6 +39,9 @@ module Phase2Error =
     let makeHeterologyError pass node error =
         HeterologyExpansionError(error, pass, node)
 
+    let pragmaArgumentToAstMessage (node: AstNode) (err: PragmaArgumentError) =
+        err |> PragmaArgumentError.toAstMessage node
+
     let toAstMessage: Phase2Error -> AstMessage =
         function
         // TODO previously we passed the error type into the inner bootstrapper function so the error returned became specific to the type of
@@ -43,23 +49,35 @@ module Phase2Error =
         // be a good place to make the AstMessage be specific to the step being executed. Now skipping that as it doesn't
         // fit correctly here (i removed the exception catching completely as it is not supposed to be the way of handling errors here more on that soon.
         | MutationExpansionError (err, _pass, node) ->
-            err
-            |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage
-                    (BootstrapError.toAstMessage Phase1Error.toAstMessage)
-                     (MutationExpansionError.toAstMessage node))
+            match err with
+            | MapError err ->
+                err
+                |> BootstrapExecutionError.toAstMessage
+                    (BootstrapExpandAssemblyError.toAstMessage
+                        (BootstrapError.toAstMessage Phase1Error.toAstMessage)
+                         (MutationExpansionError.toAstMessage node))
+            | StateUpdateError (PragmaEnvironmentError.PragmaArgument (err, _generatedNode)) ->
+                err |> PragmaArgumentError.toAstMessage node
         | HeterologyExpansionError (err, _pass, node) ->
-            err
-            |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage
-                    (BootstrapError.toAstMessage Phase1Error.toAstMessage)
-                     (HeterologyExpansionError.toAstMessage node))
+            match err with
+            | MapError err ->
+                err
+                |> BootstrapExecutionError.toAstMessage
+                    (BootstrapExpandAssemblyError.toAstMessage
+                        (BootstrapError.toAstMessage Phase1Error.toAstMessage)
+                         (HeterologyExpansionError.toAstMessage node))
+            | StateUpdateError (PragmaEnvironmentError.PragmaArgument (err, _generatedNode)) ->
+                err |> PragmaArgumentError.toAstMessage node
         | ProteinExpansionError (err, _pass, node) ->
-            err
-            |> BootstrapExecutionError.toAstMessage
-                (BootstrapExpandAssemblyError.toAstMessage
-                    (BootstrapError.toAstMessage Phase1Error.toAstMessage)
-                     (ProteinExpansionError.toAstMessage node))
+            match err with
+            | MapError err ->
+                err
+                |> BootstrapExecutionError.toAstMessage
+                    (BootstrapExpandAssemblyError.toAstMessage
+                        (BootstrapError.toAstMessage Phase1Error.toAstMessage)
+                         (ProteinExpansionError.toAstMessage node))
+            | StateUpdateError (PragmaEnvironmentError.PragmaArgument (err, _generatedNode)) ->
+                err |> PragmaArgumentError.toAstMessage node
 
         | LimitExceeded (limit, node) ->
             AstResult.errStringFMsg

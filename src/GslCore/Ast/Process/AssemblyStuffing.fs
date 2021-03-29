@@ -1,6 +1,7 @@
 namespace GslCore.Ast.Process.AssemblyStuffing
 
 open GslCore.Ast.Process
+open GslCore.Ast.Process.ParsePart
 open GslCore.Ast.Types
 open GslCore.Ast.Algorithms
 open GslCore.GslResult
@@ -34,23 +35,34 @@ module PragmaEnvironment =
           WarnOffs = Set.empty }
 
 [<RequireQualifiedAccess>]
+type PragmaEnvironmentError = PragmaArgument of PragmaArgumentError * node: AstNode
+
+[<RequireQualifiedAccess>]
 type PragmaMergeError = PragmaConflict of incoming: Pragma * existing: Pragma
 
 [<RequireQualifiedAccess>]
-type AssemblyStuffingError = PragmaMerge of node: AstNode * inner: PragmaMergeError
+type AssemblyStuffingError =
+    | PragmaMerge of node: AstNode * inner: PragmaMergeError
+    | PragmaArgument of PragmaArgumentError * node: AstNode
+    | GetPragma of GetPragmaError
 
 module AssemblyStuffingError =
     let makePragmaMergeError (node: AstNode) (pragmaCheckError: PragmaMergeError): AssemblyStuffingError =
         AssemblyStuffingError.PragmaMerge(node, pragmaCheckError)
 
+    let makePragmaArgumentError (node: AstNode) (error: PragmaArgumentError) =
+        AssemblyStuffingError.PragmaArgument(error, node)
+
 module UpdatePragmaEnvironment =
-    let private accumulatePragmas (environment: PragmaEnvironment) (node: AstNode): PragmaEnvironment =
+    let private accumulatePragmas (environment: PragmaEnvironment)
+                                  (node: AstNode)
+                                  : GslResult<PragmaEnvironment, PragmaArgumentError> =
         match node with
         | AstNode.Pragma { Node.Value = pragma; Positions = _ } ->
             let isWarning = pragma |> Pragma.isWarning
 
             if isWarning then
-                environment
+                environment |> GslResult.ok
             else
                 let ignoresWarning = pragma |> Pragma.ignoresWarning
 
@@ -58,6 +70,7 @@ module UpdatePragmaEnvironment =
                 | Some warnOff ->
                     { environment with
                           WarnOffs = environment.WarnOffs |> Set.add warnOff }
+                    |> GslResult.ok
                 | None ->
                     let setsCapability = pragma |> Pragma.setsCapability
 
@@ -65,19 +78,22 @@ module UpdatePragmaEnvironment =
                     | Some capability ->
                         { environment with
                               Capabilities = environment.Capabilities.Add(capability) }
+                        |> GslResult.ok
                     | None ->
                         let isTransient = pragma |> Pragma.isTransient
 
                         if isTransient then
-                            { environment with
-                                  UnassignedTransients =
-                                      environment.UnassignedTransients
-                                      |> PragmaCollection.add pragma }
+                            environment.UnassignedTransients
+                            |> PragmaCollection.add pragma
+                            |> GslResult.map (fun updatedCollection ->
+                                { environment with
+                                      UnassignedTransients = updatedCollection })
                         else
-                            { environment with
-                                  Persistent =
-                                      environment.Persistent
-                                      |> PragmaCollection.add pragma }
+                            environment.Persistent
+                            |> PragmaCollection.add pragma
+                            |> GslResult.map (fun updatedCollection ->
+                                { environment with
+                                      Persistent = updatedCollection })
 
         | AstNode.Part _
         | AstNode.L2Expression _ ->
@@ -85,7 +101,8 @@ module UpdatePragmaEnvironment =
             { environment with
                   UnassignedTransients = PragmaCollection.empty
                   AssignedTransients = environment.UnassignedTransients }
-        | _ -> environment
+            |> GslResult.ok
+        | _ -> environment |> GslResult.ok
 
     let private resetTransientsOnBlock (environment: PragmaEnvironment) (node: AstNode): PragmaEnvironment =
         match node with
@@ -100,10 +117,17 @@ module UpdatePragmaEnvironment =
     /// Update the pragma environment on both pragmas and part nodes.
     /// Ignores unbuilt pragmas.
     /// Also operates on blocks, to ensure that block capture transient pragmas.
-    let update (mode: StateUpdateMode) (environment: PragmaEnvironment) (node: AstNode): PragmaEnvironment =
+    let update (mode: StateUpdateMode)
+               (environment: PragmaEnvironment)
+               (node: AstNode)
+               : GslResult<PragmaEnvironment, PragmaEnvironmentError > =
         match mode with
-        | PreTransform -> accumulatePragmas environment node
-        | PostTransform -> resetTransientsOnBlock environment node
+        | PreTransform ->
+            accumulatePragmas environment node
+            |> GslResult.mapError (fun err -> PragmaEnvironmentError.PragmaArgument (err, node))
+        | PostTransform ->
+            resetTransientsOnBlock environment node
+            |> GslResult.ok
 
 module AssemblyStuffing =
 
@@ -146,7 +170,7 @@ module AssemblyStuffing =
 
             newPragmas |> PragmaCollection.add warnOffPragma
         else
-            newPragmas
+            newPragmas |> GslResult.ok
 
     /// Deposit collected pragmas into an assembly.
     let private stuffPragmasIntoAssembly (validateMerge: PragmaCollection -> PragmaCollection -> GslResult<unit, PragmaMergeError>)
@@ -160,18 +184,19 @@ module AssemblyStuffing =
                 |> PragmaCollection.mergeInCollection pragmaEnvironment.AssignedTransients
 
             // get a pragma collection from this assembly
-            let assemblyPragmas = ParsePart.getPragmas partWrapper
+            ParsePart.getPragmasStrict partWrapper
+            |> GslResult.mapError AssemblyStuffingError.GetPragma
+            >>= fun assemblyPragmas ->
+                    validateMerge incoming assemblyPragmas
+                    |> GslResult.mapError (AssemblyStuffingError.makePragmaMergeError node)
+                    >>= (fun _ ->
+                        mergePragmas pragmaEnvironment incoming assemblyPragmas
+                        |> GslResult.mapError (AssemblyStuffingError.makePragmaArgumentError node)
+                        |> GslResult.map (fun newPragmas ->
+                            let result =
+                                ParsePart.replacePragmas partWrapper newPragmas
 
-            validateMerge incoming assemblyPragmas
-            |> GslResult.mapError (AssemblyStuffingError.makePragmaMergeError node)
-            |> GslResult.map (fun _ ->
-                let newPragmas =
-                    mergePragmas pragmaEnvironment incoming assemblyPragmas
-
-                let result =
-                    ParsePart.replacePragmas partWrapper newPragmas
-
-                AstNode.Part result)
+                            AstNode.Part result))
         | _ -> GslResult.ok node
 
     ///<summary>

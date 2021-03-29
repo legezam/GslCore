@@ -1,6 +1,5 @@
 namespace GslCore.Pragma
 
-open System
 open FsToolkit.ErrorHandling
 open GslCore.GslResult
 open GslCore.Pragma
@@ -33,32 +32,37 @@ type PragmaCollection =
 
 module PragmaCollection =
     /// Add a Pragma to this collection.
-    let add (pragma: Pragma) (this: PragmaCollection): PragmaCollection =
-        let pragmas =
+    let add (pragma: Pragma) (this: PragmaCollection): GslResult<PragmaCollection, PragmaArgumentError> =
+        let pragmasResult =
             match pragma.Definition.Scope with
             | BlockOnly PersistentCumulative
             | BlockOnly TransientCumulative
             | BlockOrPart PersistentCumulative
             | BlockOrPart TransientCumulative ->
                 match this.Pragmas |> Map.tryFind pragma.Name with
-                | None -> this.Pragmas |> Map.add pragma.Name pragma
+                | None ->
+                    this.Pragmas
+                    |> Map.add pragma.Name pragma
+                    |> GslResult.ok
                 | Some existing ->
-                    let newPragma =
-                        let newArgs = existing.Arguments @ pragma.Arguments
 
-                        existing.Definition
-                        |> Pragma.fromDefinition newArgs
-                        |> GslResult.valueOr (fun messages -> failwithf "%s" (String.Join(";", messages)))
+                    let newArgs = existing.Arguments @ pragma.Arguments
 
-                    this.Pragmas |> Map.add pragma.Name newPragma
+                    existing.Definition
+                    |> Pragma.fromDefinition newArgs
+                    |> GslResult.map (fun newPragma -> this.Pragmas |> Map.add pragma.Name newPragma)
 
             | BlockOnly Persistent
             | BlockOnly Transient
             | BlockOrPart Persistent
             | BlockOrPart Transient
-            | PartOnly -> this.Pragmas |> Map.add pragma.Name pragma
+            | PartOnly ->
+                this.Pragmas
+                |> Map.add pragma.Name pragma
+                |> GslResult.ok
 
-        { this with Pragmas = pragmas }
+        pragmasResult
+        |> GslResult.map (fun pragmas -> { this with Pragmas = pragmas })
 
     /// Remove a pragma from this collection.
     let removeName (name: string) (this: PragmaCollection): PragmaCollection =
