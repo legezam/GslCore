@@ -24,8 +24,7 @@ type TestBootstrapping() =
         GslResult.ok s
 
     /// Expansion rule that always raises an exception.
-    let expansionFail _ =
-        failwith "Expansion failed with an exception."
+    let expansionFail foo _ = GslResult.err foo
 
     let bootstrapToTree node =
         match node with
@@ -37,9 +36,7 @@ type TestBootstrapping() =
 
     let compilePhase1NoCapas =
         GslSourceCode
-        >> (compile
-                (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters
-                 >> GslResult.mapError Phase1Error.toAstMessage))
+        >> (compile (Phase1.phase1 AssemblyTestSupport.defaultPhase1Parameters))
 
     /// Test that a bootstrap operation round-trips successfully.
     let testAssembly source =
@@ -58,9 +55,9 @@ type TestBootstrapping() =
 
         Bootstrapping.executeBootstrap bootstrapOperation Serial node
 
-    let testCaptureException node =
+    let testCaptureException failure node =
         let bootstrapOperation =
-            Bootstrapping.bootstrapExpandLegacyAssembly expansionFail bootstrapPhase1NoCapas
+            Bootstrapping.bootstrapExpandLegacyAssembly (expansionFail failure) bootstrapPhase1NoCapas
 
         Bootstrapping.executeBootstrap bootstrapOperation Serial node
 
@@ -83,15 +80,16 @@ type TestBootstrapping() =
 
         printfn "Source in: %s" source
 
-    [<Test;
-      Ignore("Should be ignored as of now as phase2 is supposed to stay away from exception based error handling (WIP)")>]
+    [<Test>]
     member x.TestCaptureExpansionFailure() =
         let source = "gFOO" // doesn't matter what's in here for this test
+        let failureResult = "error!"
 
         compilePhase1NoCapas source
         |> GslResult.assertOk
-        |> testCaptureException
+        |> (testCaptureException failureResult)
         |> GslResult.assertError
-        |> fun msg ->
-            //TODO finish
-            Assert.Pass()
+        |> function
+        | MapError (BootstrapExecutionError.ExternalOperation (BootstrapExpandAssemblyError.Expansion error)) ->
+            Assert.AreEqual(failureResult, error)
+        | x -> Assert.Fail(sprintf "Expected provided error, got %A" x)

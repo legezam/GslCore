@@ -147,33 +147,28 @@ type TestTransformation() =
 
     let variableTest =
         sourceCompareTest
-            (Phase1.variableResolution
-             >> GslResult.mapError Phase1Error.toAstMessage)
+            Phase1.variableResolution
 
     let mathReductionTest =
         sourceCompareTest
             (Phase1.variableResolution
-             >=> Phase1.expressionReduction
-             >> GslResult.mapError Phase1Error.toAstMessage)
+             >=> Phase1.expressionReduction)
 
     let functionInliningTest =
         sourceCompareTest
             (Phase1.variableResolution
              >=> Phase1.functionInlining
-             >=> Phase1.stripFunctions
-             >> GslResult.mapError Phase1Error.toAstMessage)
+             >=> Phase1.stripFunctions)
 
     let flattenAssemblyTest =
         sourceCompareTest
             (Phase1.pragmaBuilding AssemblyTestSupport.defaultPhase1Parameters
-             >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters
-             >> GslResult.mapError Phase1Error.toAstMessage)
+             >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters)
 
     let flattenPartTest =
         sourceCompareTest
             (Phase1.variableResolution
-             >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters
-             >> GslResult.mapError Phase1Error.toAstMessage)
+             >=> Phase1.assemblyFlattening AssemblyTestSupport.defaultPhase1Parameters)
 
     let variableResolutionPipeline =
         Phase1.recursiveCallCheck
@@ -240,7 +235,7 @@ end
         |> GslResult.assertError
         |> fun error ->
             match error with
-            | Choice2Of2 (Phase1Error.VariableResolutionError (VariableResolutionError.UnresolvedVariable (name, node))) ->
+            | Choice2Of2 (Phase1Error.VariableResolutionError (VariableResolutionError.UnresolvedVariable (name, _node))) ->
                 Assert.AreEqual("baz", name)
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
