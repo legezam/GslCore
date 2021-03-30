@@ -698,18 +698,14 @@ module rec FoldMap =
                               (blockWrapper: Node<AstNode list>)
                               : GslResult<AstNode, FoldMapError<'Msg, 'StateMsg>> =
         /// Folding function that collects the results of node transformation while accumulating state.
-        /// The resulting list of nodes needs to be reversed.
         let foldAndAccum (state: 'State, transformedNodes: AstNode list)
                          (node: AstNode)
                          : GslResult<('State * AstNode list), FoldMapError<'Msg, 'StateMsg>> =
-            //let newState, transformedNode = loop state n parameters
             loop state node parameters
             |> GslResult.map (fun (newState, transformedNode) -> (newState, transformedNode :: transformedNodes))
 
-        // The _ on the line below drops the state accumulated over the block.
-        //let (_, newLineResults) =
 
-        GslResult.fold foldAndAccum (state, []) blockWrapper.Value
+        GslResult.foldM foldAndAccum (state, []) blockWrapper.Value
         |> GslResult.map (fun (_, newLineResults) ->
             // merge the new line results into one result
             AstNode.Block

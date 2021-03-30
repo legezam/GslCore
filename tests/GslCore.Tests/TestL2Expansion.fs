@@ -25,38 +25,63 @@ type TestL2Expansion() =
         >=> (Validation.validate Level2Expansion.validateNoAssemblyInL2Promoter)
 
     [<Test>]
-    member x.TestDetectAssemblyInL2Promoter() =
+    member x.TestDetectAssemblyInL2Promoter1() =
         let errorText = "Unsupported use of an Assembly."
 
         let source =
             """
-(!gERG10 ; !pFBA1 ; pSLN1)>gADH1
+(!gERG10 ; !pFBA1 ; pSLN1)>gADH1"""
+            |> GslSourceCode
+
+        let errors =
+            compile phase1WithL2Validation source
+            |> GslResult.assertError
+
+        match errors with
+        | Choice2Of2 message ->
+            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
+            Assert.IsTrue(message.Message.Contains errorText)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+        
+    [<Test>]
+    member x.TestDetectAssemblyInL2Promoter2() =
+        let errorText = "Unsupported use of an Assembly."
+
+        let source =
+            """
 let myAssembly = (pSLN1; mERG10 ; pTDH3)
-&myAssembly>gADH1
+&myAssembly>gADH1"""
+            |> GslSourceCode
+
+        let errors =
+            compile phase1WithL2Validation source
+            |> GslResult.assertError
+
+        match errors with
+        | Choice2Of2 message ->
+            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
+            Assert.IsTrue(message.Message.Contains errorText)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+        
+    [<Test>]
+    member x.TestDetectAssemblyInL2Promoter3() =
+        let errorText = "Unsupported use of an Assembly."
+
+        let source =
+            """
+let myAssembly = (pSLN1; mERG10 ; pTDH3)
 gHO^ ; &myAssembly>gACS1"""
             |> GslSourceCode
 
         let errors =
             compile phase1WithL2Validation source
-            |> GslResult.assertErrors
+            |> GslResult.assertError
 
-        match errors.[0] with
+        match errors with
         | Choice2Of2 message ->
             Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
             Assert.IsTrue(message.Message.Contains errorText)
-        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
-
-        match errors.[1] with
-        | Choice2Of2 message ->
-            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
-            Assert.IsTrue(message.Message.Contains errorText)
-        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
-
-        match errors.[2] with
-        | Choice2Of2 message ->
-            Assert.AreEqual(AstMessageType.L2ExpansionError, message.Type)
-            Assert.IsTrue(message.Message.Contains errorText)
-        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+        | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)           
 
     [<Test>]
     member x.TestInlineL2PromoterSwap() =

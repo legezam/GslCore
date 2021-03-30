@@ -1,6 +1,7 @@
 ﻿namespace GslCore.Tests
 
 open GslCore
+open GslCore.AstAssertions
 open GslCore.DesignParams
 open GslCore.GslResult
 open NUnit.Framework
@@ -91,6 +92,7 @@ type Test() =
             |> PragmaCollection.add
                 { Pragma.Definition = BuiltIn.refGenomePragmaDef
                   Arguments = [ "foogenome" ] }
+            |> GslResult.assertOk
 
 
         let assemblyHasRefGenome =
@@ -103,6 +105,7 @@ type Test() =
             |> PragmaCollection.add
                 { Pragma.Definition = BuiltIn.dnaSrcPragmaDef
                   Arguments = [ "foosource" ] }
+            |> GslResult.assertOk
             |> AssemblyTestBase.testSlice
 
         let assemblyHasSource =

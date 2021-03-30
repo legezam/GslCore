@@ -233,65 +233,92 @@ let smallInline =
         Breed.Inline
 
 let uFooFuse =
-    { uFoo with
-          Pragmas = uFoo.Pragmas |> PragmaCollection.add fusePragma
-          SliceName = uFoo.SliceName + "#fuse" }
+    uFoo.Pragmas
+    |> PragmaCollection.add fusePragma
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { uFoo with
+              Pragmas = pragmas
+              SliceName = uFoo.SliceName + "#fuse" }
 
 let smallInlineAmp =
-    { smallInline with
-          Pragmas = smallInline.Pragmas |> PragmaCollection.add amp
-          SliceName = smallInline.SliceName + "#amp" }
+    smallInline.Pragmas
+    |> PragmaCollection.add amp
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { smallInline with
+              Pragmas = pragmas
+              SliceName = smallInline.SliceName + "#amp" }
 
 let smallInlineFuse =
-    { smallInline with
-          Pragmas =
-              smallInline.Pragmas
-              |> PragmaCollection.add fusePragma
-          SliceName = smallInline.SliceName + "#fuse" }
+    smallInline.Pragmas
+    |> PragmaCollection.add fusePragma
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { smallInline with
+              Pragmas = pragmas
+              SliceName = smallInline.SliceName + "#fuse" }
 
 let mediumInlineAmp =
-    { mediumInline with
-          Pragmas = mediumInline.Pragmas |> PragmaCollection.add amp
-          SliceName = mediumInline.SliceName + "#amp" }
+    mediumInline.Pragmas
+    |> PragmaCollection.add amp
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { mediumInline with
+              Pragmas = pragmas
+              SliceName = mediumInline.SliceName + "#amp" }
 
 let mediumInlineFuse =
-    { mediumInline with
-          Pragmas =
-              mediumInline.Pragmas
-              |> PragmaCollection.add fusePragma
-          SliceName = mediumInline.SliceName + "#fuse" }
+    mediumInline.Pragmas
+    |> PragmaCollection.add fusePragma
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { mediumInline with
+              Pragmas = pragmas
+              SliceName = mediumInline.SliceName + "#fuse" }
 
 let longInlineAmp =
-    { longInline with
-          Pragmas = longInline.Pragmas |> PragmaCollection.add amp
-          SliceName = longInline.SliceName + "#amp" }
+    longInline.Pragmas
+    |> PragmaCollection.add amp
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { longInline with
+              Pragmas = pragmas
+              SliceName = longInline.SliceName + "#amp" }
 
 let longInlineAmpFuse =
-    { longInlineAmp with
-          Pragmas =
-              longInlineAmp.Pragmas
-              |> PragmaCollection.add fusePragma
-          SliceName = longInlineAmp.SliceName + "#fuse" }
+    longInlineAmp.Pragmas
+    |> PragmaCollection.add fusePragma
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { longInlineAmp with
+              Pragmas = pragmas
+              SliceName = longInlineAmp.SliceName + "#fuse" }
 
 let longInlineInline =
-    { longInline with
-          Pragmas =
-              longInline.Pragmas
-              |> PragmaCollection.add inlinePragma }
+    longInline.Pragmas
+    |> PragmaCollection.add inlinePragma
+    |> GslResult.assertOk
+    |> fun pragmas -> { longInline with Pragmas = pragmas }
 
 let shortInlineWithRabitStart =
-    { shortInline with
-          Pragmas =
-              shortInline.Pragmas
-              |> PragmaCollection.add rabitStart
-          SliceName = shortInline.SliceName + "#rabitstart" }
+    shortInline.Pragmas
+    |> PragmaCollection.add rabitStart
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { shortInline with
+              Pragmas = pragmas
+
+              SliceName = shortInline.SliceName + "#rabitstart" }
 
 let shortInlineWithRabitEnd =
-    { shortInline with
-          Pragmas =
-              shortInline.Pragmas
-              |> PragmaCollection.add rabitEnd
-          SliceName = shortInline.SliceName + "#rabitend" }
+    shortInline.Pragmas
+    |> PragmaCollection.add rabitEnd
+    |> GslResult.assertOk
+    |> fun pragmas ->
+        { shortInline with
+              Pragmas = pragmas
+              SliceName = shortInline.SliceName + "#rabitend" }
 
 let linkerAlice =
     makeSimpleSlice

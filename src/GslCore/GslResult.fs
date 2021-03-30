@@ -213,7 +213,7 @@ module GslResult =
         | Ok success -> success.Result
         | Error errors -> op errors
 
-    let inline fold (folder: 'a -> 'c -> GslResult<'a, 'b>) (initialState: 'a) (list: 'c list): GslResult<'a, 'b> =
+    let inline foldM (folder: 'a -> 'c -> GslResult<'a, 'b>) (initialState: 'a) (list: 'c list): GslResult<'a, 'b> =
 
         let rec loop (currentStateResult: GslResult<'a, 'b>) (remaining: 'c list): GslResult<'a, 'b> =
             currentStateResult

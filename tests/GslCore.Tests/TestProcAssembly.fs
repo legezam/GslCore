@@ -2,6 +2,7 @@ namespace GslCore.Tests
 
 open System
 open GslCore
+open GslCore.AstAssertions
 open GslCore.Pragma
 open GslCore.Primer
 open NUnit.Framework
@@ -45,6 +46,7 @@ type TestProcAssembly() =
         // that are too short to be treated as inlines
         let cleanedSlices =
             GslcProcess.cleanLongSlicesInPartsList PragmaCollection.empty slices
+            |> GslResult.assertOk
 
         PrimerCreation.designPrimersForAssembly
             verbose  // debug

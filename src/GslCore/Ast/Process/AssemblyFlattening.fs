@@ -99,7 +99,7 @@ module AssemblyFlattening =
 
 
         parts
-        |> GslResult.fold shiftOne ([], false)
+        |> GslResult.foldM shiftOne ([], false)
         |> GslResult.mapError AssemblyExplosionError.ShiftFuse
         >>= fun (shiftedParts, trailingFuse) ->
                 if trailingFuse then

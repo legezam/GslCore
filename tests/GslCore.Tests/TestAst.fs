@@ -2,9 +2,12 @@
 
 open GslCore
 open GslCore.Ast
+open GslCore.Ast.Linting
 open GslCore.Ast.Phase1
 open GslCore.Ast.Process
+open GslCore.Ast.Process.Inlining
 open GslCore.Ast.Process.Validation
+open GslCore.Ast.Process.VariableResolution
 open GslCore.Pragma
 open NUnit.Framework
 open GslCore.GslResult
@@ -23,35 +26,34 @@ type TestLinting() =
     member x.TestDetectOldVariableSyntax() =
         "@foo"
         |> GslSourceCode
-        |> compile
-            (Phase1.linting
-             >> GslResult.mapError Phase1Error.toAstMessage)
+        |> compile Phase1.linting
         |> GslResult.assertWarning
         |> function
-        | Choice2Of2 msg ->
-            Assert.AreEqual(AstMessageType.Warning, msg.Type)
-            Assert.IsTrue(msg.Message.Contains("The syntax for using a variable has changed"))
+        | Choice2Of2 (Phase1Error.LinterHint (LinterHint.VariableReferenceDeprecated (name, _node))) ->
+            Assert.AreEqual("foo", name)
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
     [<Test>]
-    member x.TestDetectPushPop() =
-        "#push\n#pop"
+    member x.TestDetectPush() =
+        "#push"
         |> GslSourceCode
-        |> compile
-            (Phase1.linting
-             >> GslResult.mapError Phase1Error.toAstMessage)
+        |> compile Phase1.linting
         |> GslResult.assertErrors
         |> fun errors ->
             match errors.[0] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.PragmaError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("#push and #pop have been removed"))
+            | Choice2Of2 (Phase1Error.LinterHint (LinterHint.PushPopDeprecated _node)) -> Assert.Pass()
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
-            match errors.[1] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.PragmaError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("#push and #pop have been removed"))
+
+    [<Test>]
+    member x.TestDetectPop() =
+        "#pop"
+        |> GslSourceCode
+        |> compile Phase1.linting
+        |> GslResult.assertErrors
+        |> fun errors ->
+            match errors.[0] with
+            | Choice2Of2 (Phase1Error.LinterHint (LinterHint.PushPopDeprecated _node)) -> Assert.Pass()
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
     [<Test>]
@@ -179,7 +181,6 @@ type TestTransformation() =
         >=> Phase1.functionInlining
         >=> Phase1.stripFunctions
         >=> Phase1.variableResolutionStrict
-        >> GslResult.mapError Phase1Error.toAstMessage
 
     let fullVariableResolutionTest =
         sourceCompareTest variableResolutionPipeline
@@ -213,25 +214,34 @@ let foo(bar) =
     &bar
 end
 &bar
+"""
+
+        GslSourceCode(source)
+        |> compile Phase1.variableResolution
+        |> GslResult.assertError
+        |> fun error ->
+            match error with
+            | Choice2Of2 (Phase1Error.VariableResolutionError (VariableResolutionError.UnresolvedVariable (name, _node))) ->
+                Assert.AreEqual("bar", name)
+            | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
+
+    [<Test>]
+    member x.TestBlockScopedVariables2() =
+        let source = """
+let foo(bar) =
+    let baz = 1
+    &bar
+end
 &baz
 """
 
         GslSourceCode(source)
-        |> compile
-            (Phase1.variableResolution
-             >> GslResult.mapError Phase1Error.toAstMessage)
-        |> GslResult.assertErrors
-        |> fun errors ->
-            match errors.[0] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.UnresolvedVariable, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("bar"))
-            | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
-
-            match errors.[1] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.UnresolvedVariable, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("baz"))
+        |> compile Phase1.variableResolution
+        |> GslResult.assertError
+        |> fun error ->
+            match error with
+            | Choice2Of2 (Phase1Error.VariableResolutionError (VariableResolutionError.UnresolvedVariable (name, node))) ->
+                Assert.AreEqual("baz", name)
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
     [<Test>]
@@ -413,7 +423,7 @@ foo(1)"""
         |> compile variableResolutionPipeline
         |> GslResult.assertError
         |> function
-        | Choice2Of2 msg -> Assert.AreEqual(AstMessageType.RecursiveFunctionCall, msg.Type)
+        | Choice2Of2 (Phase1Error.RecursiveCallCheckError (RecursiveCallFoundError _)) -> Assert.Pass()
         | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
     [<Test>]
@@ -434,9 +444,13 @@ testFunc(&fooPart, &fooInt)
         |> GslResult.assertErrors
         |> fun errors ->
             match errors.[0] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.TypeError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("The variable part has been inferred to have the type Int"))
+            | Choice2Of2 (Phase1Error.VariableResolutionError (VariableResolutionError.TypeCheck (TypeCheckError.ElisionConflict (elidedType,
+                                                                                                                                  targetType),
+                                                                                                  _node,
+                                                                                                  varName))) ->
+                Assert.AreEqual("part", varName)
+                Assert.AreEqual(PartType, targetType)
+                Assert.AreEqual(IntType, elidedType)
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
 
@@ -455,15 +469,35 @@ foo(gFOO, pFOO, dFOO)
         |> GslResult.assertErrors
         |> fun errors ->
             match errors.[0] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.TypeError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("Function 'foo' expects 2 arguments but received 1."))
+            | Choice2Of2 (Phase1Error.FunctionInliningError (InliningError.Validation (_,
+                                                                                       FunctionValidationError.ParameterNumberMismatch (_,
+                                                                                                                                        needed,
+                                                                                                                                        actual)))) ->
+                Assert.AreEqual(2, needed)
+                Assert.AreEqual(1, actual)
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
-            match errors.[1] with
-            | Choice2Of2 msg ->
-                Assert.AreEqual(AstMessageType.TypeError, msg.Type)
-                Assert.IsTrue(msg.Message.Contains("Function 'foo' expects 2 arguments but received 3."))
+
+    [<Test>]
+    member x.TestFunctionCallArgCount2() =
+        let source = """
+let foo(a, b) =
+    &a ; &b
+end
+foo(gFOO, pFOO, dFOO)
+"""
+
+        GslSourceCode(source)
+        |> compile variableResolutionPipeline
+        |> GslResult.assertErrors
+        |> fun errors ->
+            match errors.[0] with
+            | Choice2Of2 (Phase1Error.FunctionInliningError (InliningError.Validation (_node,
+                                                                                       FunctionValidationError.ParameterNumberMismatch (_functionCall,
+                                                                                                                                        needed,
+                                                                                                                                        actual)))) ->
+                Assert.AreEqual(2, needed)
+                Assert.AreEqual(3, actual)
             | x -> Assert.Fail(sprintf "Expected AstMessage, got %O instead" x)
 
 

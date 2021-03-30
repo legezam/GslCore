@@ -172,14 +172,6 @@ bar("qux")
             Assert.AreEqual("block-level", usedScope)
         | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
 
-        match errors.[1] with
-        | Choice2Of2 (Phase1Error.PragmaBuildingError (PragmaBuildingError.PragmaIsUsedInWrongScope (name,
-                                                                                                     _allowedScope,
-                                                                                                     usedScope,
-                                                                                                     _node))) ->
-            Assert.AreEqual("capa", name)
-            Assert.AreEqual("part-level", usedScope)
-        | x -> Assert.Fail(sprintf "Expecting PragmaIsUsedInWrongScope. Got something else instead: %A" x)
 
 
     [<Test>]
@@ -319,9 +311,9 @@ gBAZ"""
         |> stuffPragmasPipeline
         |> GslResult.assertError
         |> function
-        | Phase1Error.AssemblyStuffingError (AssemblyStuffingError.PragmaMerge (_node,
-                                                                                PragmaMergeError.PragmaConflict (incoming,
-                                                                                                                 existing))) ->
+        | Phase1Error.AssemblyStuffingError (MapError (AssemblyStuffingError.PragmaMerge (_node,
+                                                                                          PragmaMergeError.PragmaConflict (incoming,
+                                                                                                                           existing)))) ->
 
             Assert.AreEqual("name", incoming.Name)
 

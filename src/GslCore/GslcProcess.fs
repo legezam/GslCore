@@ -400,7 +400,7 @@ module GslcProcess =
                 transformer atContext currentResult
 
             assemblyTransformers
-            |> GslResult.fold transform assembly
+            |> GslResult.foldM transform assembly
 
         /// Attempt to transform all of the assemblies
         assemblies
